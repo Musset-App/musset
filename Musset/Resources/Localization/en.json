@@ -1,0 +1,114 @@
+{
+ ", {%0} passages not found in the text.": {
+  "one": ", {%0} passage not found in the text.",
+  "other": ", {%0} passages not found in the text."
+ },
+ "Add {%0} notes to the chapter": {
+  "one": "Add {%0} note to the chapter",
+  "other": "Add {%0} notes to the chapter"
+ },
+ "Adding {%0} notes…": {
+  "one": "Adding {%0} note…",
+  "other": "Adding {%0} notes…"
+ },
+ "Grid updated: {%0} tags in the index,": {
+  "one": "Grid updated: {%0} tag in the index,",
+  "other": "Grid updated: {%0} tags in the index,"
+ },
+ "Open thread ({%0} replies)": {
+  "one": "Open thread ({%0} reply)",
+  "other": "Open thread ({%0} replies)"
+ },
+ "Part {%0}: {%1} chapters. Drag chapters under it to put them in.": {
+  "one": "Part {%0}: {%1} chapter. Drag chapters under it to put them in.",
+  "other": "Part {%0}: {%1} chapters. Drag chapters under it to put them in."
+ },
+ "in {%0} chapters": {
+  "one": "in {%0} chapter",
+  "other": "in {%0} chapters"
+ },
+ "{%0} chapters change,": {
+  "one": "{%0} chapter changes,",
+  "other": "{%0} chapters change,"
+ },
+ "{%0} close": {
+  "one": "{%0} close",
+  "other": "{%0} close"
+ },
+ "{%0} files and the folder to the Finder’s Trash.": {
+  "one": "{%0} file and the folder to the Finder’s Trash.",
+  "other": "{%0} files and the folder to the Finder’s Trash."
+ },
+ "{%0} fixed notes resolved.": {
+  "one": "{%0} fixed note resolved.",
+  "other": "{%0} fixed notes resolved."
+ },
+ "{%0} fixes": {
+  "one": "{%0} fix",
+  "other": "{%0} fixes"
+ },
+ "{%0} identical paragraphs · show all": {
+  "one": "{%0} identical paragraph · show all",
+  "other": "{%0} identical paragraphs · show all"
+ },
+ "{%0} lines": {
+  "one": "{%0} line",
+  "other": "{%0} lines"
+ },
+ "{%0} matches": {
+  "one": "{%0} match",
+  "other": "{%0} matches"
+ },
+ "{%0} notes added": {
+  "one": "{%0} note added",
+  "other": "{%0} notes added"
+ },
+ "{%0} notes in the margin from {%1}": {
+  "one": "{%1}: {%0} note in the margin",
+  "other": "{%1}: {%0} notes in the margin"
+ },
+ "{%0} notes left by {%1}.": {
+  "one": "{%1} left {%0} note.",
+  "other": "{%1} left {%0} notes."
+ },
+ "{%0} notes may lose their passage.": {
+  "one": "{%0} note may lose its passage.",
+  "other": "{%0} notes may lose their passage."
+ },
+ "{%0} of {%1} notes added (others already noted or not found)": {
+  "one": "{%0} of {%1} notes added (others already noted or not found)",
+  "other": "{%0} of {%1} notes added (others already noted or not found)"
+ },
+ "{%0} pages": {
+  "one": "{%0} page",
+  "other": "{%0} pages"
+ },
+ "{%0} paragraphs left to choose · what only one side changed is already chosen": {
+  "one": "{%0} paragraph left to choose · what only one side changed is already chosen",
+  "other": "{%0} paragraphs left to choose · what only one side changed is already chosen"
+ },
+ "{%0} passages highlighted in orange": {
+  "one": "{%0} passage highlighted in orange",
+  "other": "{%0} passages highlighted in orange"
+ },
+ "{%0} put away": {
+  "one": "{%0} put away",
+  "other": "{%0} put away"
+ },
+ "{%0} scenes read.": {
+  "one": "{%0} scene read.",
+  "other": "{%0} scenes read."
+ },
+ "{%0} sheets go to the book’s Trash,": {
+  "one": "{%0} sheet goes to the book’s Trash,",
+  "other": "{%0} sheets go to the book’s Trash,"
+ },
+ "{%0} tenses to review": {
+  "one": "{%0} tense to review",
+  "other": "{%0} tenses to review"
+ },
+ "{%0} typographic fixes this session": {
+  "one": "{%0} typographic fix this session",
+  "other": "{%0} typographic fixes this session"
+ }
+}

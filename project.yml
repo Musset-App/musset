@@ -1,0 +1,98 @@
+name: Musset
+options:
+  bundleIdPrefix: app.musset
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  libgit2:
+    # libgit2 built from source by SwiftPM (HTTPS through SecureTransport, SSH through /usr/bin/ssh):
+    # no git on the Mac needed, and push/pull to a server later.
+    url: https://github.com/ibrahimcetin/libgit2
+    exactVersion: 1.9.2
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: NO
+targets:
+  Musset:
+    type: application
+    # Signing: ad hoc unless a Local.xcconfig (not in git) names a team and a certificate.
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    platform: macOS
+    sources:
+      - path: Musset
+    dependencies:
+      - package: libgit2
+    info:
+      path: Musset/Info.plist
+      properties:
+        CFBundleDisplayName: Musset
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.musset.Musset
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_APP_SANDBOX: NO
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      - name: Bundle typst
+        basedOnDependencyAnalysis: false
+        script: |
+          # Ship the typst binary inside the app so reading mode and PDF export don't depend on Homebrew.
+          T="$(command -v typst || true)"
+          [ -z "$T" ] && [ -x /opt/homebrew/bin/typst ] && T=/opt/homebrew/bin/typst
+          if [ -n "$T" ]; then
+            mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
+            cp -fL "$T" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin/typst"
+          else
+            echo "warning: typst not found; reading mode and Typst export will look for it on PATH"
+          fi
+      - name: Bundle pandoc
+        basedOnDependencyAnalysis: false
+        script: |
+          # Ship pandoc inside the app for DOCX/EPUB export and .docx import: the official release,
+          # checked against its SHA-256 and Developer ID signature (scripts/fetch-pandoc.sh).
+          if P="$("$SRCROOT/scripts/fetch-pandoc.sh" $ARCHS)"; then
+            mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
+            cp -f "$P" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin/pandoc"
+          else
+            echo "warning: pandoc could not be downloaded; DOCX/EPUB export will look for it on PATH"
+          fi
+      - name: Bundle LanguageTool
+        basedOnDependencyAnalysis: false
+        script: |
+          # Spelling and grammar in Musset's six languages, on this Mac: LanguageTool trimmed to them, with a small
+          # Java runtime, both checked against their SHA-256 (scripts/fetch-languagetool.sh).
+          if B="$("$SRCROOT/scripts/fetch-languagetool.sh")"; then
+            D="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/LanguageTool"
+            mkdir -p "$D"
+            rsync -a --delete "$B/" "$D/"
+          else
+            echo "warning: LanguageTool could not be prepared; proofreading will be off"
+          fi
+  MussetTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [MussetTests]
+    dependencies:
+      - target: Musset
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Musset.app/Contents/MacOS/Musset"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  Musset:
+    build:
+      targets:
+        Musset: all
+        MussetTests: [test]
+    test:
+      targets: [MussetTests]

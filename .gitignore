@@ -1,0 +1,9 @@
+fixtures/
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+.DS_Store
+Local.xcconfig
+scripts/local.env
+.claude/

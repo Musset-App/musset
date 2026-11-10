@@ -1,0 +1,2856 @@
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "id": "litterature-blanche",
+      "name": "Littérature blanche",
+      "narratif": false,
+      "contract": "Une langue singulière et une nécessité intérieure ; le lecteur est changé plus que diverti.",
+      "work": {
+        "id": "litterature-blanche.work",
+        "version": 1,
+        "name": "Littérature blanche — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "necessite",
+            "weight": 20
+          },
+          {
+            "criterionId": "singularite",
+            "weight": 15
+          },
+          {
+            "criterionId": "force_existentielle",
+            "weight": 15
+          },
+          {
+            "criterionId": "phrase",
+            "weight": 12
+          },
+          {
+            "criterionId": "forme",
+            "weight": 10
+          },
+          {
+            "criterionId": "universalite",
+            "weight": 10
+          },
+          {
+            "criterionId": "lexique",
+            "weight": 8
+          },
+          {
+            "criterionId": "densite",
+            "weight": 5
+          },
+          {
+            "criterionId": "impact",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "litterature-blanche.chapter",
+        "version": 1,
+        "name": "Littérature blanche — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "force_existentielle",
+            "weight": 21
+          },
+          {
+            "criterionId": "necessite",
+            "weight": 17
+          },
+          {
+            "criterionId": "singularite",
+            "weight": 13
+          },
+          {
+            "criterionId": "phrase",
+            "weight": 10
+          },
+          {
+            "criterionId": "forme",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "lexique",
+            "weight": 7
+          },
+          {
+            "criterionId": "densite",
+            "weight": 4
+          },
+          {
+            "criterionId": "impact",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "essai",
+      "name": "Essai philosophique",
+      "narratif": false,
+      "contract": "Un problème réel posé nettement et traité avec rigueur ; le lecteur pense mieux à la fin.",
+      "work": {
+        "id": "essai.work",
+        "version": 1,
+        "name": "Essai philosophique — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "these",
+            "weight": 20
+          },
+          {
+            "criterionId": "rigueur",
+            "weight": 20
+          },
+          {
+            "criterionId": "originalite_conceptuelle",
+            "weight": 15
+          },
+          {
+            "criterionId": "objection",
+            "weight": 10
+          },
+          {
+            "criterionId": "tradition",
+            "weight": 10
+          },
+          {
+            "criterionId": "clarte",
+            "weight": 10
+          },
+          {
+            "criterionId": "densite",
+            "weight": 10
+          },
+          {
+            "criterionId": "portee",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "essai.chapter",
+        "version": 1,
+        "name": "Essai philosophique — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "these",
+            "weight": 30
+          },
+          {
+            "criterionId": "rigueur",
+            "weight": 17
+          },
+          {
+            "criterionId": "objection",
+            "weight": 9
+          },
+          {
+            "criterionId": "tradition",
+            "weight": 9
+          },
+          {
+            "criterionId": "clarte",
+            "weight": 9
+          },
+          {
+            "criterionId": "densite",
+            "weight": 9
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 9
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "thriller",
+      "name": "Thriller psychologique",
+      "narratif": true,
+      "contract": "Une tension psychologique croissante, une perspective trompeuse et une révélation loyale.",
+      "work": {
+        "id": "thriller.work",
+        "version": 1,
+        "name": "Thriller psychologique — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "gestion_info",
+            "weight": 20
+          },
+          {
+            "criterionId": "tension",
+            "weight": 15
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 15
+          },
+          {
+            "criterionId": "retournement",
+            "weight": 15
+          },
+          {
+            "criterionId": "pdv",
+            "weight": 10
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 10
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 5
+          },
+          {
+            "criterionId": "coherence",
+            "weight": 5
+          },
+          {
+            "criterionId": "malaise",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_deus_ex",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "chapter": {
+        "id": "thriller.chapter",
+        "version": 1,
+        "name": "Thriller psychologique — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "gestion_info",
+            "weight": 16
+          },
+          {
+            "criterionId": "tension",
+            "weight": 12
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 12
+          },
+          {
+            "criterionId": "retournement",
+            "weight": 12
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 12
+          },
+          {
+            "criterionId": "pdv",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 4
+          },
+          {
+            "criterionId": "coherence",
+            "weight": 4
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_deus_ex",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "chick-lit",
+      "name": "Chick lit",
+      "narratif": true,
+      "contract": "Une héroïne attachante, de l'humour, une transformation personnelle et une fin chaleureuse.",
+      "work": {
+        "id": "chick-lit.work",
+        "version": 1,
+        "name": "Chick lit — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "voix",
+            "weight": 20
+          },
+          {
+            "criterionId": "humour",
+            "weight": 20
+          },
+          {
+            "criterionId": "identification",
+            "weight": 15
+          },
+          {
+            "criterionId": "arc",
+            "weight": 15
+          },
+          {
+            "criterionId": "galerie",
+            "weight": 10
+          },
+          {
+            "criterionId": "chimie",
+            "weight": 10
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 5
+          },
+          {
+            "criterionId": "chaleur",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_dialogue_explicatif",
+            "maxPenalty": 3
+          }
+        ]
+      },
+      "chapter": {
+        "id": "chick-lit.chapter",
+        "version": 1,
+        "name": "Chick lit — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "voix",
+            "weight": 16
+          },
+          {
+            "criterionId": "humour",
+            "weight": 16
+          },
+          {
+            "criterionId": "identification",
+            "weight": 12
+          },
+          {
+            "criterionId": "agentivite",
+            "weight": 12
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 8
+          },
+          {
+            "criterionId": "chimie",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 4
+          },
+          {
+            "criterionId": "chaleur",
+            "weight": 4
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_dialogue_explicatif",
+            "maxPenalty": 3
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "romance",
+      "name": "Romance",
+      "narratif": true,
+      "contract": "Une relation centrale dont la tension progresse jusqu'à une fin heureuse méritée.",
+      "work": {
+        "id": "romance.work",
+        "version": 1,
+        "name": "Romance — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "chimie",
+            "weight": 25
+          },
+          {
+            "criterionId": "progression_lien",
+            "weight": 15
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 15
+          },
+          {
+            "criterionId": "chute",
+            "weight": 10
+          },
+          {
+            "criterionId": "contrat",
+            "weight": 10
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 10
+          },
+          {
+            "criterionId": "dialogues",
+            "weight": 10
+          },
+          {
+            "criterionId": "chaleur",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_dialogue_explicatif",
+            "maxPenalty": 3
+          }
+        ]
+      },
+      "chapter": {
+        "id": "romance.chapter",
+        "version": 1,
+        "name": "Romance — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "chimie",
+            "weight": 22
+          },
+          {
+            "criterionId": "progression_lien",
+            "weight": 13
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 13
+          },
+          {
+            "criterionId": "chute",
+            "weight": 9
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 9
+          },
+          {
+            "criterionId": "dialogues",
+            "weight": 9
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 9
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "chaleur",
+            "weight": 4
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_dialogue_explicatif",
+            "maxPenalty": 3
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "young-adult",
+      "name": "Young adult",
+      "narratif": true,
+      "contract": "Une voix adolescente juste, un héros qui agit, des premières fois qui comptent.",
+      "work": {
+        "id": "young-adult.work",
+        "version": 1,
+        "name": "Young adult — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "voix",
+            "weight": 20
+          },
+          {
+            "criterionId": "impact",
+            "weight": 15
+          },
+          {
+            "criterionId": "agentivite",
+            "weight": 15
+          },
+          {
+            "criterionId": "arc",
+            "weight": 15
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 10
+          },
+          {
+            "criterionId": "galerie",
+            "weight": 10
+          },
+          {
+            "criterionId": "clarte",
+            "weight": 10
+          },
+          {
+            "criterionId": "identification",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "young-adult.chapter",
+        "version": 1,
+        "name": "Young adult — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "agentivite",
+            "weight": 24
+          },
+          {
+            "criterionId": "voix",
+            "weight": 16
+          },
+          {
+            "criterionId": "impact",
+            "weight": 12
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 8
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 8
+          },
+          {
+            "criterionId": "clarte",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "identification",
+            "weight": 4
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "sf",
+      "name": "Science-fiction",
+      "narratif": true,
+      "contract": "Une idée spéculative neuve, explorée de façon cohérente, qui éclaire le présent.",
+      "work": {
+        "id": "sf.work",
+        "version": 1,
+        "name": "Science-fiction — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "novum",
+            "weight": 20
+          },
+          {
+            "criterionId": "coherence",
+            "weight": 15
+          },
+          {
+            "criterionId": "emerveillement",
+            "weight": 15
+          },
+          {
+            "criterionId": "portee",
+            "weight": 15
+          },
+          {
+            "criterionId": "exposition",
+            "weight": 10
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 10
+          },
+          {
+            "criterionId": "regles",
+            "weight": 10
+          },
+          {
+            "criterionId": "tension",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_infodump",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "chapter": {
+        "id": "sf.chapter",
+        "version": 1,
+        "name": "Science-fiction — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "coherence",
+            "weight": 17
+          },
+          {
+            "criterionId": "emerveillement",
+            "weight": 17
+          },
+          {
+            "criterionId": "exposition",
+            "weight": 11
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 11
+          },
+          {
+            "criterionId": "regles",
+            "weight": 11
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 11
+          },
+          {
+            "criterionId": "delta",
+            "weight": 11
+          },
+          {
+            "criterionId": "tension",
+            "weight": 6
+          },
+          {
+            "criterionId": "relance",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_infodump",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "michon",
+      "name": "Michon / récit de vies",
+      "narratif": false,
+      "contract": "Une vie minuscule élevée par une prose incandescente ; la phrase est l'événement.",
+      "work": {
+        "id": "michon.work",
+        "version": 1,
+        "name": "Michon / récit de vies — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "phrase",
+            "weight": 25
+          },
+          {
+            "criterionId": "incandescence",
+            "weight": 15
+          },
+          {
+            "criterionId": "elevation",
+            "weight": 15
+          },
+          {
+            "criterionId": "ellipse",
+            "weight": 10
+          },
+          {
+            "criterionId": "risque",
+            "weight": 10
+          },
+          {
+            "criterionId": "documentation",
+            "weight": 10
+          },
+          {
+            "criterionId": "lexique",
+            "weight": 10
+          },
+          {
+            "criterionId": "chute",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "michon.chapter",
+        "version": 1,
+        "name": "Michon / récit de vies — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "phrase",
+            "weight": 21
+          },
+          {
+            "criterionId": "incandescence",
+            "weight": 13
+          },
+          {
+            "criterionId": "elevation",
+            "weight": 13
+          },
+          {
+            "criterionId": "ellipse",
+            "weight": 9
+          },
+          {
+            "criterionId": "risque",
+            "weight": 8
+          },
+          {
+            "criterionId": "documentation",
+            "weight": 8
+          },
+          {
+            "criterionId": "lexique",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "chute",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "polar",
+      "name": "Polar / noir",
+      "narratif": true,
+      "contract": "Une enquête qui tient, un regard sur un milieu, une résolution qui coûte.",
+      "work": {
+        "id": "polar.work",
+        "version": 1,
+        "name": "Polar / noir — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "gestion_info",
+            "weight": 20
+          },
+          {
+            "criterionId": "portee",
+            "weight": 20
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 15
+          },
+          {
+            "criterionId": "dialogues",
+            "weight": 10
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 10
+          },
+          {
+            "criterionId": "chute",
+            "weight": 10
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 10
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_deus_ex",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "chapter": {
+        "id": "polar.chapter",
+        "version": 1,
+        "name": "Polar / noir — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "gestion_info",
+            "weight": 19
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 14
+          },
+          {
+            "criterionId": "dialogues",
+            "weight": 10
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 10
+          },
+          {
+            "criterionId": "chute",
+            "weight": 10
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 9
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 9
+          },
+          {
+            "criterionId": "delta",
+            "weight": 9
+          },
+          {
+            "criterionId": "rythme",
+            "weight": 5
+          },
+          {
+            "criterionId": "relance",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_deus_ex",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "fantasy",
+      "name": "Fantasy",
+      "narratif": true,
+      "contract": "Un monde épais aux règles payantes, une quête et un souffle mythique.",
+      "work": {
+        "id": "fantasy.work",
+        "version": 1,
+        "name": "Fantasy — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "worldbuilding",
+            "weight": 20
+          },
+          {
+            "criterionId": "regles",
+            "weight": 15
+          },
+          {
+            "criterionId": "emerveillement",
+            "weight": 15
+          },
+          {
+            "criterionId": "arc",
+            "weight": 15
+          },
+          {
+            "criterionId": "tension",
+            "weight": 10
+          },
+          {
+            "criterionId": "registre",
+            "weight": 10
+          },
+          {
+            "criterionId": "contrat",
+            "weight": 10
+          },
+          {
+            "criterionId": "architecture",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_infodump",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "chapter": {
+        "id": "fantasy.chapter",
+        "version": 1,
+        "name": "Fantasy — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "immersion",
+            "weight": 17
+          },
+          {
+            "criterionId": "regles",
+            "weight": 13
+          },
+          {
+            "criterionId": "emerveillement",
+            "weight": 13
+          },
+          {
+            "criterionId": "agentivite",
+            "weight": 13
+          },
+          {
+            "criterionId": "tension",
+            "weight": 9
+          },
+          {
+            "criterionId": "registre",
+            "weight": 9
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 9
+          },
+          {
+            "criterionId": "delta",
+            "weight": 9
+          },
+          {
+            "criterionId": "economie",
+            "weight": 4
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_infodump",
+            "maxPenalty": 5
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "autofiction",
+      "name": "Autofiction",
+      "narratif": false,
+      "contract": "Une exposition réelle de soi, mise en forme jusqu'à devenir l'affaire de tous.",
+      "work": {
+        "id": "autofiction.work",
+        "version": 1,
+        "name": "Autofiction — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "risque",
+            "weight": 20
+          },
+          {
+            "criterionId": "forme",
+            "weight": 15
+          },
+          {
+            "criterionId": "universalite",
+            "weight": 15
+          },
+          {
+            "criterionId": "phrase",
+            "weight": 15
+          },
+          {
+            "criterionId": "montage",
+            "weight": 10
+          },
+          {
+            "criterionId": "necessite",
+            "weight": 10
+          },
+          {
+            "criterionId": "voix",
+            "weight": 10
+          },
+          {
+            "criterionId": "impact",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "autofiction.chapter",
+        "version": 1,
+        "name": "Autofiction — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "risque",
+            "weight": 17
+          },
+          {
+            "criterionId": "forme",
+            "weight": 13
+          },
+          {
+            "criterionId": "force_existentielle",
+            "weight": 13
+          },
+          {
+            "criterionId": "phrase",
+            "weight": 13
+          },
+          {
+            "criterionId": "montage",
+            "weight": 8
+          },
+          {
+            "criterionId": "necessite",
+            "weight": 8
+          },
+          {
+            "criterionId": "voix",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "impact",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "horreur",
+      "name": "Horreur",
+      "narratif": true,
+      "contract": "Une peur réelle qui monte, ancrée dans le quotidien, et une image qui hante.",
+      "work": {
+        "id": "horreur.work",
+        "version": 1,
+        "name": "Horreur — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "effroi",
+            "weight": 20
+          },
+          {
+            "criterionId": "tension",
+            "weight": 20
+          },
+          {
+            "criterionId": "portee",
+            "weight": 15
+          },
+          {
+            "criterionId": "immersion",
+            "weight": 15
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 10
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 10
+          },
+          {
+            "criterionId": "malaise",
+            "weight": 5
+          },
+          {
+            "criterionId": "chute",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "chapter": {
+        "id": "horreur.chapter",
+        "version": 1,
+        "name": "Horreur — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "effroi",
+            "weight": 18
+          },
+          {
+            "criterionId": "tension",
+            "weight": 18
+          },
+          {
+            "criterionId": "immersion",
+            "weight": 14
+          },
+          {
+            "criterionId": "atmosphere",
+            "weight": 14
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 9
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 9
+          },
+          {
+            "criterionId": "delta",
+            "weight": 9
+          },
+          {
+            "criterionId": "chute",
+            "weight": 5
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    },
+    {
+      "id": "historique",
+      "name": "Roman historique",
+      "narratif": true,
+      "contract": "Une époque habitée de l'intérieur, sans anachronisme, où les destins nouent la grande histoire.",
+      "work": {
+        "id": "historique.work",
+        "version": 1,
+        "name": "Roman historique — œuvre",
+        "scope": "work",
+        "items": [
+          {
+            "criterionId": "immersion",
+            "weight": 20
+          },
+          {
+            "criterionId": "documentation",
+            "weight": 15
+          },
+          {
+            "criterionId": "articulation",
+            "weight": 15
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 15
+          },
+          {
+            "criterionId": "registre",
+            "weight": 10
+          },
+          {
+            "criterionId": "tension",
+            "weight": 10
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 10
+          },
+          {
+            "criterionId": "portee",
+            "weight": 5
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_anachronisme",
+            "maxPenalty": 6
+          }
+        ]
+      },
+      "chapter": {
+        "id": "historique.chapter",
+        "version": 1,
+        "name": "Roman historique — chapitre",
+        "scope": "chapter",
+        "items": [
+          {
+            "criterionId": "immersion",
+            "weight": 17
+          },
+          {
+            "criterionId": "documentation",
+            "weight": 13
+          },
+          {
+            "criterionId": "articulation",
+            "weight": 13
+          },
+          {
+            "criterionId": "profondeur",
+            "weight": 13
+          },
+          {
+            "criterionId": "registre",
+            "weight": 8
+          },
+          {
+            "criterionId": "tension",
+            "weight": 8
+          },
+          {
+            "criterionId": "motivations",
+            "weight": 8
+          },
+          {
+            "criterionId": "fonction",
+            "weight": 8
+          },
+          {
+            "criterionId": "delta",
+            "weight": 8
+          },
+          {
+            "criterionId": "relance",
+            "weight": 4
+          }
+        ],
+        "maluses": [
+          {
+            "criterionId": "m_cliche",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_repetition",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_surexplication",
+            "maxPenalty": 3
+          },
+          {
+            "criterionId": "m_faux_raccord",
+            "maxPenalty": 4
+          },
+          {
+            "criterionId": "m_anachronisme",
+            "maxPenalty": 6
+          }
+        ]
+      },
+      "roleModifiers": [
+        {
+          "role": "ouverture",
+          "multipliers": {
+            "voix": 1.5,
+            "singularite": 1.5,
+            "delta": 0.5
+          },
+          "additions": {
+            "accroche": 15
+          }
+        },
+        {
+          "role": "montee",
+          "multipliers": {
+            "tension": 1.5,
+            "gestion_info": 1.3,
+            "relance": 1.5,
+            "atmosphere": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "pivot",
+          "multipliers": {
+            "delta": 2,
+            "motivations": 1.5,
+            "retournement": 1.5,
+            "economie": 0.7
+          },
+          "additions": {}
+        },
+        {
+          "role": "climax",
+          "multipliers": {
+            "tension": 2,
+            "effroi": 1.5,
+            "incandescence": 1.5,
+            "impact": 1.5,
+            "fonction": 1.5,
+            "exposition": 0.3
+          },
+          "additions": {
+            "tension": 10
+          }
+        },
+        {
+          "role": "respiration",
+          "multipliers": {
+            "atmosphere": 1.5,
+            "chaleur": 1.5,
+            "phrase": 1.3,
+            "profondeur": 1.3,
+            "tension": 0.3,
+            "delta": 0.5,
+            "relance": 0.5,
+            "rythme": 0.5
+          },
+          "additions": {}
+        },
+        {
+          "role": "denouement",
+          "multipliers": {
+            "fonction": 1.5,
+            "impact": 1.3,
+            "relance": 0,
+            "tension": 0.5
+          },
+          "additions": {
+            "chute": 15
+          }
+        },
+        {
+          "role": "neutre",
+          "multipliers": {},
+          "additions": {}
+        }
+      ],
+      "lambda": 0.5
+    }
+  ],
+  "roleModifiers": [
+    {
+      "role": "ouverture",
+      "multipliers": {
+        "voix": 1.5,
+        "singularite": 1.5,
+        "delta": 0.5
+      },
+      "additions": {
+        "accroche": 15
+      }
+    },
+    {
+      "role": "montee",
+      "multipliers": {
+        "tension": 1.5,
+        "gestion_info": 1.3,
+        "relance": 1.5,
+        "atmosphere": 0.7
+      },
+      "additions": {}
+    },
+    {
+      "role": "pivot",
+      "multipliers": {
+        "delta": 2,
+        "motivations": 1.5,
+        "retournement": 1.5,
+        "economie": 0.7
+      },
+      "additions": {}
+    },
+    {
+      "role": "climax",
+      "multipliers": {
+        "tension": 2,
+        "effroi": 1.5,
+        "incandescence": 1.5,
+        "impact": 1.5,
+        "fonction": 1.5,
+        "exposition": 0.3
+      },
+      "additions": {
+        "tension": 10
+      }
+    },
+    {
+      "role": "respiration",
+      "multipliers": {
+        "atmosphere": 1.5,
+        "chaleur": 1.5,
+        "phrase": 1.3,
+        "profondeur": 1.3,
+        "tension": 0.3,
+        "delta": 0.5,
+        "relance": 0.5,
+        "rythme": 0.5
+      },
+      "additions": {}
+    },
+    {
+      "role": "denouement",
+      "multipliers": {
+        "fonction": 1.5,
+        "impact": 1.3,
+        "relance": 0,
+        "tension": 0.5
+      },
+      "additions": {
+        "chute": 15
+      }
+    },
+    {
+      "role": "neutre",
+      "multipliers": {},
+      "additions": {}
+    }
+  ]
+}

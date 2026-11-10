@@ -1,0 +1,1997 @@
+{
+  "schemaVersion": 1,
+  "scale": {
+    "min": 0,
+    "max": 20,
+    "anchors": [
+      5,
+      10,
+      15,
+      19
+    ]
+  },
+  "families": [
+    "langue",
+    "structure",
+    "personnages",
+    "monde",
+    "idee",
+    "affect",
+    "meta",
+    "malus"
+  ],
+  "criteria": [
+    {
+      "id": "phrase",
+      "version": 2,
+      "label": "Style",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Cohérence du style avec ce que le texte entreprend : la langue tient le parti qu'elle a pris, qu'il soit ample, blanc, oral ou orné. Aucune forme n'est préférée à une autre : une prose plate par choix vaut une prose en périodes.",
+      "question": "Le style tient-il le parti pris du texte d'un bout à l'autre, et ce parti sert-il ce qui est raconté ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Aucun parti tenu : le style change au hasard ou subit ses effets ; platitude ou ornement qui ne servent rien.",
+        "10": "Un parti reconnaissable mais intermittent ; des phrases en sortent sans raison.",
+        "15": "Un parti tenu sur tout le chapitre ; les écarts sont rares et ont une raison.",
+        "19": "Un parti tenu sans faille jusque dans ses écarts ; chaque phrase semble inévitable dans ce style-là."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "litterature-blanche",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "lexique",
+      "version": 2,
+      "label": "Justesse lexicale",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Précision du mot, quel que soit le style : chaque mot dit exactement ce qu'il doit dire, dans une langue blanche comme dans une langue ornée. Ni approximation, ni mot d'emprunt, ni préciosité gratuite.",
+      "question": "Chaque mot est-il le mot exact, ou un autre ferait-il aussi bien ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Mots approximatifs ou convenus ; beaucoup pourraient être remplacés sans perte.",
+        "10": "Vocabulaire correct, mais souvent le mot attendu plutôt que le mot juste.",
+        "15": "Le mot juste presque partout ; les approximations sont rares et repérables.",
+        "19": "Aucun mot ne pourrait être remplacé sans perte, jusque dans les plus simples."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "litterature-blanche",
+        "historique"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "voix",
+      "version": 1,
+      "label": "Voix",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Présence d'une instance narrative singulière et constante.",
+      "question": "Entend-on une voix identifiable, et tient-elle d'un bout à l'autre ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "variance_penalized"
+      },
+      "anchors": {
+        "5": "Narration neutre, interchangeable, ou voix qui se dérègle.",
+        "10": "Voix perceptible mais intermittente.",
+        "15": "Voix nette, tenue, qui colore la perception des faits.",
+        "19": "Voix inoubliable ; le texte n'existerait pas sans elle."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "young-adult",
+        "autofiction",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "dialogues",
+      "version": 1,
+      "label": "Dialogues",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Justesse, économie et caractérisation par la parole.",
+      "question": "Les dialogues sonnent-ils vrais, caractérisent-ils et font-ils avancer ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Dialogues raides, explicatifs, tous les personnages parlent pareil.",
+        "10": "Fonctionnels, crédibles, peu caractérisés.",
+        "15": "Chaque personnage a sa parole ; le sous-texte travaille.",
+        "19": "Dialogues qui révèlent plus qu'ils ne disent ; on reconnaît qui parle sans incise."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "polar",
+        "chick-lit",
+        "romance",
+        "young-adult"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "clarte",
+      "version": 1,
+      "label": "Clarté",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Lisibilité : le lecteur sait qui fait quoi, où, quand, sauf obscurité voulue.",
+      "question": "Le lecteur comprend-il sans effort inutile ce qui se passe ou se dit ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Confusions fréquentes sur les référents, la chronologie ou l'argument.",
+        "10": "Globalement clair, quelques passages à relire.",
+        "15": "Limpide ; les obscurités sont des choix.",
+        "19": "Clarté souveraine même sur des matières complexes."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai",
+        "young-adult",
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "humour",
+      "version": 1,
+      "label": "Humour",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Efficacité comique : situation, ironie, autodérision, sens du timing.",
+      "question": "Le texte fait-il réellement sourire ou rire, et au bon moment ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Humour forcé, plaqué ou qui tombe à plat.",
+        "10": "Quelques traits drôles, timing inégal.",
+        "15": "Drôle régulièrement, avec un ton propre.",
+        "19": "Comique irrésistible et caractérisant ; on cite les répliques."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "young-adult",
+        "romance"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "registre",
+      "version": 1,
+      "label": "Tenue du registre",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Cohérence du niveau de langue avec l'époque, le narrateur et le genre ; pastiche dosé.",
+      "question": "Le registre est-il cohérent et adapté à ce que le texte construit ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "variance_penalized",
+        "chapter_to_work": "variance_penalized"
+      },
+      "anchors": {
+        "5": "Ruptures de registre involontaires, anachronismes de langue.",
+        "10": "Registre cohérent mais sans finesse d'adaptation.",
+        "15": "Registre sûr, modulé selon les personnages et les scènes.",
+        "19": "Maîtrise totale : le registre est lui-même un moyen d'expression."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "historique",
+        "fantasy",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "images",
+      "version": 1,
+      "label": "Puissance des images",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Force et originalité des images, métaphores et comparaisons.",
+      "question": "Les images sont-elles neuves, exactes et porteuses de sens ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "peaks",
+        "chapter_to_work": "peaks"
+      },
+      "anchors": {
+        "5": "Images usées ou incohérentes.",
+        "10": "Images correctes, rarement surprenantes.",
+        "15": "Images neuves qui éclairent leur objet.",
+        "19": "Images qui reconfigurent la perception ; elles restent après lecture."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "litterature-blanche",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "densite",
+      "version": 2,
+      "label": "Densité",
+      "family": "langue",
+      "polarity": "bonus",
+      "definition": "Ce que chaque phrase porte, rapporté à ce qu'elle coûte. Une phrase simple peut être dense ; une phrase chargée peut être vide.",
+      "question": "Que perdrait-on si l'on retranchait ce mot-ci, cette phrase-là ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Délayage, redites, remplissage : on peut couper largement sans rien perdre.",
+        "10": "Des passages serrés et d'autres lâches ; des coupes restent faciles.",
+        "15": "Texte serré : quelques coupes restent possibles, à peine.",
+        "19": "Rien à retrancher, et rien d'asphyxié : le texte respire à la mesure de ce qu'il porte."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "michon",
+        "essai"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "accroche",
+      "version": 1,
+      "label": "Accroche d'entrée",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Capacité des premières lignes à saisir le lecteur et à poser un enjeu.",
+      "question": "Les premières lignes donnent-elles envie de continuer et annoncent-elles quelque chose ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Entrée molle, descriptive ou confuse.",
+        "10": "Entrée correcte, enjeu tardif.",
+        "15": "Entrée qui accroche et oriente en une page.",
+        "19": "Incipit qui saisit et contient déjà le livre."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "young-adult",
+        "polar"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "relance",
+      "version": 1,
+      "label": "Relance de sortie",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Fin de chapitre qui crée un désir ou une question pour la suite.",
+      "question": "La fin du chapitre pousse-t-elle à lire le suivant ?",
+      "scopes": [
+        "chapter"
+      ],
+      "aggregation": {},
+      "anchors": {
+        "5": "Le chapitre s'éteint ; aucune raison de tourner la page.",
+        "10": "Fin propre mais sans tension prospective.",
+        "15": "Question ouverte ou bascule qui appelle la suite.",
+        "19": "Impossible de ne pas lire la suite ; la relance est aussi un sens."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar",
+        "young-adult",
+        "romance"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "gestion_info",
+      "version": 1,
+      "label": "Gestion de l'information",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Dosage de ce que le lecteur sait, ignore ou croit savoir ; préparations et paiements.",
+      "question": "L'information est-elle distribuée au bon moment pour créer tension et sens ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Tout est dit trop tôt ou rien n'est préparé.",
+        "10": "Dosage correct, peu de jeu avec l'attente.",
+        "15": "Préparations et paiements nets ; le lecteur est tenu.",
+        "19": "Architecture d'information virtuose ; la relecture révèle tout ce qui était semé."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar",
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "ellipse",
+      "version": 1,
+      "label": "Art de l'ellipse",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Capacité à omettre ce qui n'est pas nécessaire et à faire signifier l'absence.",
+      "question": "Le texte sait-il ce qu'il ne doit pas dire ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Tout est raconté, rien n'est laissé au lecteur.",
+        "10": "Quelques ellipses fonctionnelles.",
+        "15": "Ellipses expressives ; les blancs travaillent.",
+        "19": "L'omis pèse autant que le dit."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "litterature-blanche",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "montage",
+      "version": 1,
+      "label": "Montage temporel",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Organisation de l'ordre des événements : analepses, prolepses, alternances.",
+      "question": "L'ordre de présentation produit-il un sens que la chronologie seule ne produirait pas ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Chronologie confuse ou montage gratuit.",
+        "10": "Chronologie lisible, montage sans effet propre.",
+        "15": "Montage signifiant, alternances efficaces.",
+        "19": "Le montage est une pensée ; il construit le livre."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "autofiction",
+        "litterature-blanche",
+        "thriller"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "economie",
+      "version": 1,
+      "label": "Économie",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Chaque scène et chaque paragraphe justifient leur présence.",
+      "question": "Peut-on retirer une scène ou un passage sans perte ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Plusieurs scènes inutiles ou redondantes.",
+        "10": "Quelques longueurs identifiables.",
+        "15": "Tout sert ; les rares digressions paient.",
+        "19": "Aucune ligne ne peut être retirée sans dommage."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar",
+        "nouvelle"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "rythme",
+      "version": 1,
+      "label": "Rythme",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Alternance des tempos : accélérations, pauses, scènes et sommaires.",
+      "question": "Le tempo varie-t-il à bon escient ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "trajectory"
+      },
+      "anchors": {
+        "5": "Tempo uniforme ou erratique ; ennui ou essoufflement.",
+        "10": "Rythme correct, peu de modulation.",
+        "15": "Alternances maîtrisées, pauses placées.",
+        "19": "Rythme musical ; chaque changement de tempo produit un effet."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar",
+        "young-adult",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "chute",
+      "version": 1,
+      "label": "Chute / clausule",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Qualité de la fin : dernière phrase, dernière scène, dernier chapitre.",
+      "question": "La fin résonne-t-elle et referme-t-elle (ou ouvre-t-elle) avec justesse ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "emergent",
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Fin bâclée, arbitraire ou superflue.",
+        "10": "Fin correcte, sans écho.",
+        "15": "Fin qui résonne et éclaire ce qui précède.",
+        "19": "Clausule parfaite ; elle reconfigure tout le texte."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "nouvelle",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "forme",
+      "version": 2,
+      "label": "Maîtrise de la forme",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Ce que la structure, le point de vue, le découpage et l'ordre des moments font au propos. Aucune forme n'est préférée à une autre : une forme classique bien tenue vaut une forme expérimentale.",
+      "question": "Que fait cette forme que le propos ne ferait pas sans elle, et tient-elle jusqu'au bout ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Forme par défaut, ou ambitieuse et non tenue : elle n'ajoute rien, ou elle se voit.",
+        "10": "Forme cohérente, mais elle range la matière plus qu'elle ne la fait travailler.",
+        "15": "Le découpage et le point de vue produisent du sens : une coupe, un ordre, un silence font ce qu'aucune phrase ne dit.",
+        "19": "La forme est le propos : changer le découpage ou le point de vue changerait ce que dit le texte."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "michon",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "architecture",
+      "version": 1,
+      "label": "Architecture d'ensemble",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Équilibre des parties, progression globale, proportions.",
+      "question": "Les parties s'équilibrent-elles et la progression d'ensemble est-elle maîtrisée ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Déséquilibres majeurs : début interminable, fin précipitée.",
+        "10": "Structure fonctionnelle avec des proportions discutables.",
+        "15": "Architecture claire et équilibrée.",
+        "19": "Architecture de cathédrale ; chaque partie appelle la suivante."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "fantasy",
+        "sf",
+        "historique",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "fonction",
+      "version": 2,
+      "label": "Fonction remplie",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Ce que ce chapitre doit faire à sa place dans le livre : ce qu'il ouvre, prépare, relance ou referme. Si aucun rôle n'est déclaré, le déduire de sa position et de ce que les autres chapitres attendent de lui.",
+      "question": "De quoi le livre a-t-il besoin à cet endroit, et ce chapitre le lui donne-t-il ?",
+      "scopes": [
+        "chapter"
+      ],
+      "aggregation": {},
+      "anchors": {
+        "5": "Le livre n'a pas besoin de lui ici, ou il manque à ce qu'on attend de lui : sa place est à repenser.",
+        "10": "Il fait une partie de son travail ; le reste manque ou arrive ailleurs.",
+        "15": "Il donne au livre ce dont celui-ci a besoin à cet endroit.",
+        "19": "Il fait plus que son travail : les chapitres suivants s'appuient sur ce qu'il a posé, et le livre ne tiendrait pas sans lui."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "delta",
+      "version": 2,
+      "label": "Delta",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Ce qui a bougé entre le début et la fin : la situation, le savoir, une relation, le regard du lecteur. Un déplacement discret vaut une bascule spectaculaire s'il change la lecture de la suite.",
+      "question": "Que voit ou comprend le lecteur à la dernière page, qu'il ne pouvait pas voir à la première ?",
+      "scopes": [
+        "chapter"
+      ],
+      "aggregation": {},
+      "anchors": {
+        "5": "Rien n'a bougé : le chapitre pourrait s'arrêter à sa première page.",
+        "10": "Un déplacement mineur, ou annoncé d'avance, sans effet sur la suite.",
+        "15": "Un déplacement net, même discret, qui change la lecture de ce qui suit.",
+        "19": "Un déplacement à la fois imprévu et inévitable, après lequel le lecteur ne lit plus le livre de la même façon."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "tempo",
+      "version": 1,
+      "label": "Variation de tempo",
+      "family": "structure",
+      "polarity": "bonus",
+      "definition": "Contraste de tempo avec le chapitre précédent, selon le besoin du récit.",
+      "question": "Le tempo de ce chapitre contraste-t-il utilement avec le précédent ?",
+      "scopes": [
+        "chapter"
+      ],
+      "aggregation": {},
+      "anchors": {
+        "5": "Même tempo que le chapitre précédent sans raison ; monotonie.",
+        "10": "Légère variation.",
+        "15": "Contraste net et justifié.",
+        "19": "Contraste qui crée un effet dramatique propre."
+      },
+      "requiresQuote": false,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "motivations",
+      "version": 1,
+      "label": "Crédibilité des motivations",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Les actes des personnages découlent de raisons perceptibles et cohérentes.",
+      "question": "Croit-on aux raisons pour lesquelles les personnages agissent ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Personnages mus par les besoins de l'intrigue.",
+        "10": "Motivations plausibles mais peu fouillées.",
+        "15": "Motivations claires, parfois contradictoires de façon humaine.",
+        "19": "Chaque acte paraît nécessaire du point de vue du personnage, même le plus surprenant."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "romance",
+        "polar"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "profondeur",
+      "version": 1,
+      "label": "Profondeur psychologique",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Complexité intérieure : contradictions, angles morts, vie psychique au-delà de la fonction.",
+      "question": "Les personnages ont-ils une intériorité qui excède leur rôle ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Silhouettes fonctionnelles.",
+        "10": "Personnages crédibles mais lisibles d'un coup.",
+        "15": "Intériorités riches, contradictoires.",
+        "19": "Personnages plus vrais que des personnes ; on continue à penser à eux."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "litterature-blanche",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "agentivite",
+      "version": 1,
+      "label": "Agentivité",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Le protagoniste agit et ses choix déterminent le cours du récit.",
+      "question": "Le protagoniste agit-il, ou subit-il ce qui lui arrive ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Protagoniste passif, sauvé ou porté par les événements.",
+        "10": "Agit par moments, souvent en réaction.",
+        "15": "Choix actifs qui orientent l'intrigue.",
+        "19": "Chaque choix engage et coûte ; le récit naît de ses décisions."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "young-adult",
+        "fantasy",
+        "chick-lit"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "arc",
+      "version": 1,
+      "label": "Arc de transformation",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Transformation du protagoniste sur l'ensemble de l'œuvre.",
+      "question": "Le protagoniste est-il changé de façon méritée à la fin ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Aucune évolution, ou évolution décrétée.",
+        "10": "Évolution perceptible mais peu préparée.",
+        "15": "Arc net, progressif, mérité.",
+        "19": "Transformation profonde et inévitable rétrospectivement."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "young-adult",
+        "fantasy",
+        "romance"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "galerie",
+      "version": 1,
+      "label": "Galerie secondaire",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Richesse et fonction des personnages secondaires.",
+      "question": "Les personnages secondaires existent-ils par eux-mêmes ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Secondaires fonctionnels ou caricaturaux.",
+        "10": "Quelques secondaires réussis.",
+        "15": "Galerie vivante et différenciée.",
+        "19": "Chaque secondaire pourrait porter son propre livre."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "polar",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "chimie",
+      "version": 1,
+      "label": "Chimie",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Tension d'attirance ou de friction entre deux personnages.",
+      "question": "Sent-on physiquement et émotionnellement la tension entre eux ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Aucune étincelle ; relation décrétée.",
+        "10": "Attirance perceptible mais tiède.",
+        "15": "Chimie évidente, scènes électriques.",
+        "19": "Tension irrésistible ; chaque échange est un événement."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "romance",
+        "chick-lit",
+        "young-adult"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "progression_lien",
+      "version": 1,
+      "label": "Progression du lien",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Évolution par paliers de la relation centrale (désir, confiance, conflit).",
+      "question": "La relation progresse-t-elle par étapes crédibles, sans stagnation ni précipitation ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "trajectory"
+      },
+      "anchors": {
+        "5": "Relation qui stagne ou se résout d'un coup.",
+        "10": "Progression perceptible mais irrégulière.",
+        "15": "Paliers nets, chacun mérité.",
+        "19": "Progression d'une justesse parfaite ; chaque palier coûte et récompense."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "romance",
+        "chick-lit"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "pdv",
+      "version": 1,
+      "label": "Point de vue tenu",
+      "family": "personnages",
+      "polarity": "bonus",
+      "definition": "Cohérence de la focalisation : pas de fuite de point de vue involontaire.",
+      "question": "La focalisation est-elle maîtrisée et cohérente ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "variance_penalized",
+        "chapter_to_work": "variance_penalized"
+      },
+      "anchors": {
+        "5": "Sauts de point de vue involontaires fréquents.",
+        "10": "Focalisation globalement tenue, quelques fuites.",
+        "15": "Focalisation rigoureuse.",
+        "19": "Le point de vue est un outil de sens à part entière."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "romance",
+        "young-adult"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "immersion",
+      "version": 1,
+      "label": "Immersion",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Capacité à faire habiter un lieu, une époque, un milieu par les sens et les mentalités.",
+      "question": "Le lecteur est-il physiquement et mentalement transporté ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Décor en carton, absence de sensations.",
+        "10": "Cadre perceptible, peu sensoriel.",
+        "15": "Immersion sensorielle et mentale réussie.",
+        "19": "On sent l'odeur et on pense comme on pensait là-bas."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "historique",
+        "fantasy",
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "coherence",
+      "version": 1,
+      "label": "Cohérence interne",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Respect des règles établies par le texte : physique, sociales, magiques, chronologiques.",
+      "question": "Le monde respecte-t-il ses propres règles ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Contradictions fréquentes avec les règles établies.",
+        "10": "Quelques entorses.",
+        "15": "Règles tenues partout.",
+        "19": "Cohérence parfaite, y compris dans les conséquences lointaines."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "sf",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "exposition",
+      "version": 1,
+      "label": "Exposition intégrée",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Transmission des informations sur le monde sans rupture du récit.",
+      "question": "Les informations nécessaires passent-elles par l'action et la perception plutôt que par l'exposé ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Blocs d'exposition qui arrêtent le récit.",
+        "10": "Exposition fonctionnelle, parfois lourde.",
+        "15": "Informations fondues dans l'action.",
+        "19": "Le lecteur apprend le monde sans jamais sentir qu'on l'instruit."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "sf",
+        "fantasy",
+        "historique"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "documentation",
+      "version": 1,
+      "label": "Documentation",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Exactitude des savoirs mobilisés : histoire, sciences, métiers, lieux.",
+      "question": "Les faits, gestes et savoirs sont-ils exacts ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Erreurs factuelles visibles.",
+        "10": "Exact mais superficiel.",
+        "15": "Documentation solide et discrète.",
+        "19": "Érudition exacte et fondue ; le spécialiste n'y trouve rien à redire."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "historique",
+        "polar",
+        "sf",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "atmosphere",
+      "version": 1,
+      "label": "Atmosphère",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Climat émotionnel produit par le décor, la lumière, les sons, le temps.",
+      "question": "Le texte crée-t-il un climat qui imprègne la lecture ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "weighted_mean",
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Aucun climat perceptible.",
+        "10": "Atmosphère esquissée.",
+        "15": "Atmosphère dense et cohérente.",
+        "19": "Atmosphère qui devient presque un personnage."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "horreur",
+        "polar",
+        "thriller",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "worldbuilding",
+      "version": 1,
+      "label": "Profondeur du monde",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Épaisseur du monde au-delà de ce que l'intrigue exige : histoire, cultures, économie.",
+      "question": "Le monde semble-t-il exister hors du cadre du récit ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Monde réduit à l'intrigue.",
+        "10": "Monde crédible, peu fouillé.",
+        "15": "Monde épais, aux couches multiples.",
+        "19": "Monde total, dont on devine l'histoire derrière chaque détail."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "fantasy",
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "regles",
+      "version": 1,
+      "label": "Règles et coûts",
+      "family": "monde",
+      "polarity": "bonus",
+      "definition": "Les systèmes spéculatifs (magie, technologie, pouvoirs) ont des limites et des coûts.",
+      "question": "Le système a-t-il des règles, des limites et un prix ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Pouvoirs sans limites qui résolvent tout.",
+        "10": "Règles posées, coûts flous.",
+        "15": "Règles et coûts clairs qui contraignent l'intrigue.",
+        "19": "Le système génère l'intrigue par ses contraintes mêmes."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "fantasy",
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "these",
+      "version": 1,
+      "label": "Netteté du problème",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Clarté et réalité de la question posée par le texte.",
+      "question": "Le texte pose-t-il un problème réel, circonscrit, non trivial ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Question floue, triviale ou déjà résolue.",
+        "10": "Question identifiable mais vague.",
+        "15": "Problème net et légitime.",
+        "19": "Problème formulé de telle sorte qu'on ne peut plus l'ignorer."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "rigueur",
+      "version": 1,
+      "label": "Rigueur argumentative",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Validité des enchaînements, absence de sophismes et de sauts logiques.",
+      "question": "L'argumentation tient-elle, étape par étape ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "floor",
+        "chapter_to_work": "floor"
+      },
+      "anchors": {
+        "5": "Sophismes, sauts logiques masqués par le style.",
+        "10": "Argumentation correcte avec des failles.",
+        "15": "Raisonnement solide.",
+        "19": "Démonstration sans faille ni facilité."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "objection",
+      "version": 1,
+      "label": "Résistance à l'objection",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Capacité à affronter les meilleures objections plutôt que des hommes de paille.",
+      "question": "Le texte se confronte-t-il aux objections les plus fortes ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Aucune objection ou objections caricaturales.",
+        "10": "Objections évoquées rapidement.",
+        "15": "Objections sérieuses traitées loyalement.",
+        "19": "L'auteur formule mieux que ses adversaires leurs propres objections, puis y répond."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "tradition",
+      "version": 1,
+      "label": "Dialogue avec la tradition",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Situation du propos dans l'histoire des idées ou des formes.",
+      "question": "Le texte sait-il ce qui a été pensé avant lui et s'en distingue-t-il ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Ignorance des précédents ou name-dropping.",
+        "10": "Références pertinentes mais décoratives.",
+        "15": "Dialogue réel avec les sources.",
+        "19": "Le texte déplace la tradition qu'il convoque."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "originalite_conceptuelle",
+      "version": 1,
+      "label": "Originalité conceptuelle",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Production d'un concept, d'une distinction ou d'un renversement neuf.",
+      "question": "Le texte apporte-t-il une idée qui n'existait pas avant lui ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Reformulation d'idées reçues.",
+        "10": "Angle personnel sur des idées connues.",
+        "15": "Une idée neuve et féconde.",
+        "19": "Un concept qui change la manière de penser le sujet."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "essai"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "novum",
+      "version": 1,
+      "label": "Novum",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Nouveauté et pertinence de l'idée spéculative centrale.",
+      "question": "L'idée spéculative centrale est-elle neuve et exploitée dans ses conséquences ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Idée rebattue, exploitée en surface.",
+        "10": "Idée connue, traitée honnêtement.",
+        "15": "Idée originale aux conséquences explorées.",
+        "19": "Novum qui ouvre un champ ; on y repensera longtemps."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "sf"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "portee",
+      "version": 1,
+      "label": "Portée",
+      "family": "idee",
+      "polarity": "bonus",
+      "definition": "Ce que le texte dit du monde, du présent ou de la condition humaine au-delà de son sujet.",
+      "question": "Le texte éclaire-t-il quelque chose au-delà de lui-même ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Aucune portée au-delà de l'histoire.",
+        "10": "Portée implicite, peu travaillée.",
+        "15": "Portée nette sans didactisme.",
+        "19": "Le texte change la façon de voir une part du réel."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "sf",
+        "essai",
+        "polar",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "tension",
+      "version": 1,
+      "label": "Tension",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Inquiétude du lecteur quant à ce qui va arriver.",
+      "question": "Le lecteur a-t-il besoin de savoir la suite, et à quel point ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "trajectory",
+        "chapter_to_work": "trajectory"
+      },
+      "anchors": {
+        "5": "Aucune inquiétude ; issue indifférente.",
+        "10": "Curiosité modérée.",
+        "15": "Tension soutenue, lecture compulsive.",
+        "19": "Tension presque insoutenable, parfaitement dosée."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar",
+        "horreur",
+        "young-adult"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "effroi",
+      "version": 1,
+      "label": "Effroi",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Peur réelle produite chez le lecteur (et non simple dégoût).",
+      "question": "Le texte fait-il peur, durablement ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "trajectory",
+        "chapter_to_work": "trajectory"
+      },
+      "anchors": {
+        "5": "Aucune peur ; effets mécaniques.",
+        "10": "Frissons ponctuels.",
+        "15": "Peur réelle, montée maîtrisée.",
+        "19": "Terreur qui persiste après la lecture."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "horreur"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "chaleur",
+      "version": 1,
+      "label": "Chaleur",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Bienveillance et réconfort procurés par le texte.",
+      "question": "Le lecteur se sent-il bien, accompagné, réconforté ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Froideur ou mièvrerie.",
+        "10": "Moments chaleureux ponctuels.",
+        "15": "Chaleur constante sans niaiserie.",
+        "19": "Réconfort profond et mérité ; on y revient comme chez un ami."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "romance",
+        "young-adult"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "incandescence",
+      "version": 1,
+      "label": "Incandescence",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Moments où la prose transfigure le réel et atteint une intensité visionnaire.",
+      "question": "Le texte atteint-il des moments de transfiguration ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "peaks",
+        "chapter_to_work": "peaks"
+      },
+      "anchors": {
+        "5": "Aucun moment d'élévation.",
+        "10": "Un élan ponctuel.",
+        "15": "Plusieurs moments incandescents.",
+        "19": "Des pages qui brûlent ; on les relit pour vérifier qu'elles existent."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "impact",
+      "version": 2,
+      "label": "Impact émotionnel",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "L'émotion que le texte produit par ses propres moyens, repérable aux passages qui la déclenchent. Ni chantage, ni gravité du sujet : une mort racontée n'émeut pas d'office.",
+      "question": "Quel passage émeut, et par quel moyen ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "peaks",
+        "chapter_to_work": "peaks"
+      },
+      "anchors": {
+        "5": "Aucune émotion, ou une émotion forcée par le sujet ou par les mots.",
+        "10": "Une émotion ponctuelle, ou due surtout au sujet.",
+        "15": "Une émotion forte et méritée, produite par des choix repérables.",
+        "19": "L'émotion vient de ce que le texte tait ou de la place qu'il donne aux choses ; elle revient à la relecture, même quand on sait ce qui arrive."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "romance",
+        "young-adult",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "identification",
+      "version": 1,
+      "label": "Identification",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Capacité du lecteur à se reconnaître dans le protagoniste ou sa situation.",
+      "question": "Le lecteur se reconnaît-il, partage-t-il ce que vit le personnage ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Distance totale ou personnage antipathique sans intérêt.",
+        "10": "Identification partielle.",
+        "15": "Identification forte.",
+        "19": "Le lecteur a l'impression qu'on parle de lui."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "chick-lit",
+        "young-adult",
+        "romance"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "emerveillement",
+      "version": 1,
+      "label": "Émerveillement",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Sentiment de vertige devant une idée, une échelle ou une beauté (sense of wonder).",
+      "question": "Le texte provoque-t-il un vertige ou un émerveillement ?",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "peaks",
+        "chapter_to_work": "peaks"
+      },
+      "anchors": {
+        "5": "Aucun vertige.",
+        "10": "Émerveillement ponctuel.",
+        "15": "Plusieurs moments de vertige.",
+        "19": "Sentiment d'immensité qui reconfigure la perception."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "sf",
+        "fantasy"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "malaise",
+      "version": 1,
+      "label": "Malaise résiduel",
+      "family": "affect",
+      "polarity": "bonus",
+      "definition": "Trouble persistant après la lecture.",
+      "question": "Le texte laisse-t-il un trouble durable ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Rien ne reste.",
+        "10": "Léger trouble passager.",
+        "15": "Malaise net qui accompagne le lecteur.",
+        "19": "Le texte hante."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "horreur"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "necessite",
+      "version": 2,
+      "label": "Nécessité",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Ce que le texte perdrait si on le retirait ou si on l'écrivait autrement. Se vérifie sur le texte : ce que lui seul apporte à sa place, et ce que sa forme accomplit qu'une autre n'accomplirait pas.",
+      "question": "Que perdrait-on à retirer ce texte, ou à le dire autrement ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "On pourrait le retirer ou le résumer sans rien perdre ; la forme n'est qu'un exercice.",
+        "10": "Il a sa place, mais un autre passage ou une autre forme ferait presque le même travail.",
+        "15": "Il apporte ce que rien d'autre n'apporte et sa forme y contribue ; seuls quelques passages restent remplaçables.",
+        "19": "Rien ne peut être retiré ni dit autrement sans perte : ce que fait le texte n'existe que sous cette forme."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "autofiction",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "singularite",
+      "version": 2,
+      "label": "Singularité",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Ce que seul ce texte voit et fait : un regard, des rapprochements, une façon de choisir et d'ordonner les faits. Se juge sur le texte lui-même, ni sur la réputation de l'auteur ni sur le fait de reconnaître sa manière.",
+      "question": "Que trouve-t-on ici qu'on ne trouverait dans aucun texte voisin ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Rien qu'on ne trouverait ailleurs : le regard et les procédés sont ceux du genre.",
+        "10": "Quelques traits propres, au milieu de manières empruntées.",
+        "15": "Un regard propre, qui décide de ce qui est vu et dans quel ordre ; les emprunts sont rares.",
+        "19": "Tout relève de ce seul regard, jusque dans les détails ; aucun texte voisin n'aurait pu le faire."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "force_existentielle",
+      "version": 2,
+      "label": "Force existentielle",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Ce que le texte engage des questions de l'existence (la mort, la faute, l'amour, le sens d'une vie) et ce qu'il en fait éprouver par ses scènes et ses gestes, sans les énoncer. Dans un chapitre, on juge ce qu'il apporte à ce mouvement depuis sa place dans le livre.",
+      "question": "Quelle question de l'existence ce texte fait-il travailler, et où le lecteur l'éprouve-t-il sans qu'on la lui dise ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Aucune question de l'existence en jeu, ou seulement des formules qui en tiennent lieu.",
+        "10": "Une question présente, mais que le texte nomme ou commente plus qu'il ne la fait éprouver.",
+        "15": "Une question réelle, travaillée par des scènes ou des gestes précis ; le lecteur l'éprouve sans qu'on la lui explique.",
+        "19": "Le lecteur se trouve lui-même en cause : il ne peut plus regarder cette question de l'extérieur."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "autofiction",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "universalite",
+      "version": 2,
+      "label": "Universalité",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Comment le plus particulier du texte (un lieu, un objet, une famille) parle à ceux qui n'y ont aucune part, sans que le texte généralise à leur place.",
+      "question": "Un lecteur étranger à cette histoire y reconnaît-il quelque chose de la sienne, sans qu'on la lui signale ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Du particulier sans écho, ou du général sans rien de particulier.",
+        "10": "Un écho limité à ceux qui partagent ce milieu ou cette histoire, ou obtenu en généralisant.",
+        "15": "Le détail particulier ouvre au général sans le dire.",
+        "19": "Plus le texte est particulier, plus il est partagé : le plus intime devient ce que chacun reconnaît."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "litterature-blanche",
+        "autofiction"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "contrat",
+      "version": 1,
+      "label": "Tenue du contrat de genre",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Le texte livre ce que son genre promet au lecteur, en respectant ou en déplaçant les attentes.",
+      "question": "Le lecteur venu pour ce genre est-il servi, voire surpris en mieux ?",
+      "scopes": [
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Promesse du genre non tenue.",
+        "10": "Contrat tenu au minimum.",
+        "15": "Contrat tenu avec justesse.",
+        "19": "Contrat tenu et déplacé ; le texte redéfinit son genre."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "*"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "retournement",
+      "version": 1,
+      "label": "Retournement mérité",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Les surprises majeures sont préparées et loyales : la relecture les confirme.",
+      "question": "Le retournement surprend-il tout en étant inévitable rétrospectivement ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Retournement arbitraire ou absent quand le genre l'exige.",
+        "10": "Retournement surprenant mais peu préparé, ou préparé mais prévisible.",
+        "15": "Surprise loyale et préparée.",
+        "19": "Retournement qui reconfigure tout le livre et invite à la relecture."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "thriller",
+        "polar"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "risque",
+      "version": 1,
+      "label": "Risque d'exposition",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Engagement personnel de l'auteur ou du narrateur ; ce qu'il met en jeu de lui-même.",
+      "question": "Le texte prend-il un risque réel, intime ou formel ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Aucun risque ; texte protégé.",
+        "10": "Risque calculé.",
+        "15": "Exposition réelle.",
+        "19": "Exposition totale, maîtrisée ; le texte coûte."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "autofiction",
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "articulation",
+      "version": 1,
+      "label": "Articulation intime / collectif",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Nouage entre le destin individuel des personnages et l'histoire collective (époque, société, événement).",
+      "question": "La petite histoire éclaire-t-elle la grande, et inversement ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "emergent"
+      },
+      "anchors": {
+        "5": "Toile de fond décorative ; les deux plans ne se touchent pas.",
+        "10": "Liens ponctuels entre les deux plans.",
+        "15": "Les événements collectifs pèsent sur les destins, qui les éclairent en retour.",
+        "19": "On ne peut plus penser l'époque sans ces personnages."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "historique",
+        "polar",
+        "litterature-blanche"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "elevation",
+      "version": 1,
+      "label": "Élévation du minuscule",
+      "family": "meta",
+      "polarity": "bonus",
+      "definition": "Capacité à rendre à une vie ou un objet modeste sa grandeur, sans condescendance ni misérabilisme.",
+      "question": "Le sujet modeste est-il élevé sans être trahi ?",
+      "scopes": [
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "chapter_to_work": "weighted_mean"
+      },
+      "anchors": {
+        "5": "Condescendance ou misérabilisme.",
+        "10": "Respect du sujet sans élévation.",
+        "15": "Le minuscule acquiert une dignité.",
+        "19": "Le minuscule devient légendaire."
+      },
+      "requiresQuote": true,
+      "genreHints": [
+        "michon"
+      ],
+      "builtin": true
+    },
+    {
+      "id": "m_cliche",
+      "version": 2,
+      "label": "Cliché",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Expression, image ou situation usée, employée sans distance. Un mot simple n'est pas un cliché.",
+      "question": "Relevez chaque occurrence : expression, image ou situation usée, employée sans distance.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Expression convenue isolée.",
+        "2": "Image ou situation cliché qui affaiblit la scène.",
+        "3": "Scène entière bâtie sur un cliché."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_infodump",
+      "version": 1,
+      "label": "Infodump",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Bloc d'information qui interrompt le récit pour instruire le lecteur.",
+      "question": "Relevez chaque occurrence : bloc d'information qui interrompt le récit pour instruire le lecteur.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Paragraphe explicatif un peu long.",
+        "2": "Bloc qui arrête net la scène.",
+        "3": "Plusieurs pages d'exposé brut."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_deus_ex",
+      "version": 1,
+      "label": "Deus ex machina",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Résolution par un élément non préparé.",
+      "question": "Relevez chaque occurrence : résolution par un élément non préparé.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Coïncidence commode mineure.",
+        "2": "Problème important résolu par hasard.",
+        "3": "Dénouement principal non préparé."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_anachronisme",
+      "version": 1,
+      "label": "Anachronisme",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Objet, mot ou mentalité impossible à l'époque représentée.",
+      "question": "Relevez chaque occurrence : objet, mot ou mentalité impossible à l'époque représentée.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Mot ou détail anachronique.",
+        "2": "Comportement ou idée anachronique d'un personnage.",
+        "3": "Psychologie entièrement contemporaine plaquée sur l'époque."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_dialogue_explicatif",
+      "version": 1,
+      "label": "Dialogue explicatif",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Personnages qui se disent ce qu'ils savent déjà, pour le lecteur.",
+      "question": "Relevez chaque occurrence : personnages qui se disent ce qu'ils savent déjà, pour le lecteur.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Réplique informative maladroite.",
+        "2": "Échange entier au service de l'exposition.",
+        "3": "Scène de dialogue entièrement fonctionnelle."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_repetition",
+      "version": 2,
+      "label": "Répétition",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Répétition involontaire de mots, de tournures ou d'informations. Un effet voulu et tenu, comme une anaphore, n'en est pas une.",
+      "question": "Relevez chaque occurrence : répétition involontaire de mots, de tournures ou d'informations.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Mot répété à proximité.",
+        "2": "Tic d'écriture récurrent dans le chapitre.",
+        "3": "Information ou scène redite."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_faux_raccord",
+      "version": 2,
+      "label": "Faux raccord",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Contradiction avec un fait établi dans ce chapitre ou ailleurs dans le livre : nom, lieu, objet, chronologie. Une incertitude assumée par le narrateur n'en est pas une.",
+      "question": "Relevez chaque occurrence : contradiction avec un fait établi dans le chapitre ou dans le livre.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Détail incohérent mineur.",
+        "2": "Contradiction visible pour un lecteur attentif.",
+        "3": "Contradiction qui casse l'intrigue."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    },
+    {
+      "id": "m_surexplication",
+      "version": 2,
+      "label": "Surexplication",
+      "family": "malus",
+      "polarity": "malus",
+      "definition": "Le texte commente ou explique ce qu'il vient de montrer.",
+      "question": "Relevez chaque occurrence : le texte commente ou explique ce qu'il vient de montrer.",
+      "scopes": [
+        "scene",
+        "chapter",
+        "work"
+      ],
+      "aggregation": {
+        "scene_to_chapter": "penalty_sum",
+        "chapter_to_work": "penalty_mean"
+      },
+      "severityGuide": {
+        "1": "Glose superflue isolée.",
+        "2": "Émotion nommée après avoir été montrée.",
+        "3": "Morale ou sens explicités en conclusion."
+      },
+      "requiresQuote": true,
+      "genreHints": [],
+      "builtin": true
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+// How Musset is signed when built from Xcode.
+// By default: ad hoc, which runs on this Mac and needs no Apple account.
+// To sign with your own certificate, create Local.xcconfig next to this file (it is ignored by git), for example:
+//
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   CODE_SIGN_IDENTITY = Apple Development
+//
+// A real certificate keeps the Keychain's « Always Allow » for the Pangram key and the sync token from one build to
+// the next; an ad hoc build asks again after each rebuild.
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+#include? "Local.xcconfig"
