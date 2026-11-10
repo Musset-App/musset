@@ -7,3 +7,4 @@ DerivedData/
 Local.xcconfig
 scripts/local.env
 .claude/
+.public/

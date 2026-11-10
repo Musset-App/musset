@@ -1,32 +1,68 @@
 #!/bin/zsh
-# Builds the open-source tree of Musset in a separate folder, with a fresh history of one commit:
-# the app, its tests and scripts — not the sync server, the reports, the books in fixtures/ or the generated
-# Xcode project. Then scans it for secrets with gitleaks. Nothing is pushed anywhere.
-#   scripts/make-public.sh <empty-or-new-folder>
+# Publishes Musset's open-source tree to github.com/Musset-App/musset, signed by the project, never by a person.
+#
+# The public repository lives in .public/ (ignored by this one). Each run copies the app, its tests and scripts into
+# it — never the sync server, the reports, the books in fixtures/, local signing files or the generated Xcode
+# project — and adds one commit on top, signed « Musset <hello@musset.app> ». Hooks in .public/ refuse any commit or
+# push under another name. gitleaks scans the result. Nothing is pushed unless you pass --push.
+#
+#   scripts/make-public.sh "What changed"          # prepare the commit in .public/
+#   scripts/make-public.sh "What changed" --push   # and push it
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-OUT="${1:?usage: scripts/make-public.sh <folder>}"
-if [ -e "$OUT" ] && [ -n "$(ls -A "$OUT" 2>/dev/null)" ]; then echo "error: $OUT is not empty" >&2; exit 1; fi
-mkdir -p "$OUT"
+MESSAGE="${1:?usage: scripts/make-public.sh \"commit message\" [--push]}"
+PUSH="${2:-}"
+REMOTE="https://github.com/Musset-App/musset.git"
+NAME="Musset"
+EMAIL="hello@musset.app"
+PUB=".public"
 
-# Every file git knows or would add, minus what stays private.
+# The public clone, with the project's identity and the guards.
+if [ ! -d "$PUB/.git" ]; then git clone -q "$REMOTE" "$PUB"; fi
+git -C "$PUB" config user.name "$NAME"
+git -C "$PUB" config user.email "$EMAIL"
+mkdir -p "$PUB/.git/hooks"
+cat > "$PUB/.git/hooks/pre-commit" <<EOF
+#!/bin/sh
+# Every commit here is signed by the project.
+for who in "\$(git var GIT_AUTHOR_IDENT)" "\$(git var GIT_COMMITTER_IDENT)"; do
+  case "\$who" in "$NAME <$EMAIL> "*) ;; *) echo "refused: commits here are signed $NAME <$EMAIL>, not: \${who% * *}" >&2; exit 1 ;; esac
+done
+EOF
+cat > "$PUB/.git/hooks/pre-push" <<EOF
+#!/bin/sh
+# Nothing leaves with another name in it.
+z=0000000000000000000000000000000000000000
+while read local_ref local_sha remote_ref remote_sha; do
+  [ "\$local_sha" = "\$z" ] && continue
+  range="\$local_sha"; [ "\$remote_sha" != "\$z" ] && range="\$remote_sha..\$local_sha"
+  bad=\$(git log --format='%an <%ae>%n%cn <%ce>' "\$range" | grep -v '^$NAME <$EMAIL>\$' | sort -u)
+  if [ -n "\$bad" ]; then echo "refused: commits signed by someone else than $NAME <$EMAIL>:" >&2; echo "\$bad" >&2; exit 1; fi
+done
+EOF
+chmod +x "$PUB/.git/hooks/pre-commit" "$PUB/.git/hooks/pre-push"
+
+# The files to publish: what git knows here, minus what stays private.
+STAGE=$(mktemp -d)
 git ls-files --cached --others --exclude-standard -z \
-  | grep -zvE '^(server/|reports/|research_notes/|docs/|fixtures/|Musset\.xcodeproj/|build/|\.claude/)' \
-  | xargs -0 -I{} rsync -R "{}" "$OUT/"
+  | grep -zvE '^(server/|reports/|research_notes/|docs/|fixtures/|Musset\.xcodeproj/|build/|\.claude/|\.public/)' \
+  | xargs -0 -I{} rsync -R "{}" "$STAGE/"
+rsync -a --delete --exclude .git "$STAGE/" "$PUB/"
+rm -rf "$STAGE"
 
-[ -f LICENSE ] || echo "warning: no LICENSE file yet (GPL-3.0 text from https://www.gnu.org/licenses/gpl-3.0.txt)" >&2
-
-cd "$OUT"
-git init -q
+cd "$PUB"
 git add -A
-# Signed by the project, not by a person.
-GIT_AUTHOR_NAME=Musset GIT_AUTHOR_EMAIL=hello@musset.app GIT_COMMITTER_NAME=Musset GIT_COMMITTER_EMAIL=hello@musset.app \
-  git -c user.name=Musset -c user.email=hello@musset.app commit -q -m "Musset, open source under the GPL-3.0"
-echo "Public tree: $OUT ($(git ls-files | wc -l | tr -d ' ') files)"
+if git diff --cached --quiet; then echo "Nothing changed since the last publication."; else
+  GIT_AUTHOR_NAME="$NAME" GIT_AUTHOR_EMAIL="$EMAIL" GIT_COMMITTER_NAME="$NAME" GIT_COMMITTER_EMAIL="$EMAIL" \
+    git commit -q -m "$MESSAGE"
+  echo "Committed in $PUB: $(git log -1 --format='%h %an <%ae> — %s')"
+fi
 
 if command -v gitleaks >/dev/null; then
   gitleaks git --no-banner --redact . && echo "gitleaks: no secrets found"
 else
-  echo "warning: gitleaks not installed; scan for secrets before publishing" >&2
+  echo "warning: gitleaks not installed; scan for secrets before pushing" >&2
 fi
+
+if [ "$PUSH" = "--push" ]; then git push -q origin HEAD:main && echo "Pushed to $REMOTE"; else echo "Not pushed (add --push)."; fi
