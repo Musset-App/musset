@@ -97,8 +97,13 @@ enum BibleImporter {
         defer { try? FileManager.default.removeItem(at: scratch) }
         let out = try await ExportService.runPandoc([scratch.path, "-f", "html-native_divs-native_spans", "-t", "gfm-raw_html", "--wrap=none"], cwd: session.root)
         guard out.ok else { throw Failure(out.stderr) }
-        return try session.bible.create(title: title, kind: .web, folder: BibleStore.documents, body: out.stdout,
-                                        meta: ["source": url.absoluteString, "date": ISO8601DateFormatter().string(from: Date())])
+        var meta = ["source": url.absoluteString, "date": ISO8601DateFormatter().string(from: Date())]
+        if let archive = await WebArchiver.archive(url) {
+            let path = session.bible.store.freePath(title: title, folder: BibleStore.documents, ext: "webarchive")
+            if (try? session.bible.store.prepare(session.bible.store.url(path))) != nil,
+               (try? archive.write(to: session.bible.store.url(path))) != nil { meta["archive"] = path }
+        }
+        return try session.bible.create(title: title, kind: .web, folder: BibleStore.documents, body: out.stdout, meta: meta)
     }
 
     static func title(_ html: String) -> String? {
@@ -145,6 +150,7 @@ struct Reference: Equatable {
     var year = ""
     var publisher = ""
     var doi = ""
+    var isbn = ""
 
     func meta(taken: Set<String>) -> [String: String] {
         var base = key.isEmpty ? BibleStore.slug(author.split(whereSeparator: { $0 == " " || $0 == "," }).first.map(String.init) ?? title) + year : key
@@ -157,6 +163,7 @@ struct Reference: Equatable {
         if !year.isEmpty { m["year"] = year }
         if !publisher.isEmpty { m["publisher"] = publisher }
         if !doi.isEmpty { m["doi"] = doi }
+        if !isbn.isEmpty { m["isbn"] = isbn }
         return m
     }
 }
@@ -176,8 +183,38 @@ enum References {
     static func entries(_ session: BookSession) -> [BibleEntry] { session.bible.entries.filter { $0.kind == .reference } }
     static func keys(_ session: BookSession) -> Set<String> { Set(entries(session).compactMap { $0.meta["citekey"] }) }
 
+    /// Chapter id → the citations of its text, as last read (keyed by the text's fingerprint).
+    private static var cache: [String: (fingerprint: String, keys: [String])] = [:]
+
+    static func citations(of chapter: String, in session: BookSession) -> [String] {
+        let text = session.editorText(of: chapter)
+        let f = PlotGrid.fingerprint(text)
+        if let hit = cache[session.root.path + chapter], hit.fingerprint == f { return hit.keys }
+        let keys = citations(in: text)
+        cache[session.root.path + chapter] = (f, keys)
+        return keys
+    }
+
     private static func allCitations(_ session: BookSession) -> [String] {
-        session.manifest.chapters.flatMap { citations(in: session.editorText(of: $0.id)) }
+        session.manifest.chapters.flatMap { citations(of: $0.id, in: session) }
+    }
+
+    /// Where a source is cited: chapter, and the sentence around each citation.
+    static func places(of key: String, in session: BookSession) -> [(chapter: String, range: NSRange, excerpt: String)] {
+        var out: [(String, NSRange, String)] = []
+        for ch in session.manifest.chapters where citations(of: ch.id, in: session).contains(key) {
+            let text = session.editorText(of: ch.id)
+            let ns = text as NSString
+            var search = NSRange(location: 0, length: ns.length)
+            while true {
+                let r = ns.range(of: "@" + key, range: search)
+                guard r.location != NSNotFound else { break }
+                let lo = max(0, r.location - 90), hi = min(ns.length, NSMaxRange(r) + 30)
+                out.append((ch.id, r, "…" + ns.substring(with: NSRange(location: lo, length: hi - lo)).replacingOccurrences(of: "\n", with: " ") + "…"))
+                search = NSRange(location: NSMaxRange(r), length: ns.length - NSMaxRange(r))
+            }
+        }
+        return out
     }
 
     static func citeCount(of e: BibleEntry, in session: BookSession) -> Int {
@@ -247,7 +284,7 @@ enum References {
         let publishers = (m["publishers"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
         let date = m["publish_date"] as? String ?? ""
         let year = date.range(of: "[0-9]{4}", options: .regularExpression).map { String(date[$0]) } ?? ""
-        return Reference(title: m["title"] as? String ?? isbn, author: authors.joined(separator: "; "), year: year, publisher: publishers.first ?? "")
+        return Reference(title: m["title"] as? String ?? isbn, author: authors.joined(separator: "; "), year: year, publisher: publishers.first ?? "", isbn: isbn)
     }
 }
 
@@ -314,7 +351,7 @@ struct DocumentPreview: View {
             .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 12)
             Divider()
             if !FileManager.default.fileExists(atPath: file.path) {
-                Text(L("This linked file is no longer at ") + file.path)
+                Text(L("This linked file is no longer at \(file.path)"))
                     .foregroundStyle(.secondary).padding(20)
                 Spacer()
             } else if file.pathExtension.lowercased() == "pdf" {
@@ -345,7 +382,7 @@ private struct PDFPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PDFHost(view: view, url: url)
+            PDFHost(view: view, url: url, sidecar: sidecar)
             Divider()
             HStack {
                 Text(L("Select a passage to keep it.")).font(.ui(12)).foregroundStyle(.secondary)
@@ -363,15 +400,23 @@ private struct PDFPane: View {
         let current = (try? String(contentsOf: sidecar, encoding: .utf8)) ?? ""
         try? store.prepare(sidecar)
         try? (current + line).write(to: sidecar, atomically: true, encoding: .utf8)
+        Highlights.mark(sel)
     }
 }
 
 private struct PDFHost: NSViewRepresentable {
     let view: PDFView
     let url: URL
+    var sidecar: URL? = nil
     func makeNSView(context: Context) -> PDFView {
         view.autoScales = true
         view.document = PDFDocument(url: url)
+        if let doc = view.document, let sidecar { Highlights.show(Highlights.read(sidecar), in: doc) }
+        // Opened from a citation « p. 12 »: straight to that page.
+        if let n = PDFJump.page, let page = view.document?.page(at: max(0, n - 1)) {
+            PDFJump.page = nil
+            DispatchQueue.main.async { view.go(to: page) }
+        }
         return view
     }
     func updateNSView(_ v: PDFView, context: Context) {}
@@ -396,16 +441,76 @@ enum CitationPages {
                 let who = e.meta["author"]?.components(separatedBy: ";").first?.split(separator: " ").last.map(String.init) ?? e.title
                 let prefix = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
                 let suffix = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespaces)
-                result += "(" + (prefix.isEmpty ? "" : prefix + " ") + who + (e.meta["year"].map { ", " + $0 } ?? "") + suffix + ")"
+                result += "(" + (prefix.isEmpty ? "" : prefix + " ") + who + (e.meta["year"].map { " " + $0 } ?? "") + suffix + ")"
                 last = m.range.location + m.range.length
             }
             result += ns.substring(from: last)
             return (id: ch.id, text: result)
         }
         guard !cited.isEmpty else { return chapters }
-        let lines = cited.compactMap { byKey[$0] }.sorted { ($0.meta["author"] ?? $0.title) < ($1.meta["author"] ?? $1.title) }.map { e in
-            [e.meta["author"], "*\(e.title)*", e.meta["publisher"], e.meta["year"]].compactMap { $0 }.joined(separator: ", ") + "."
-        }
+        let lines = cited.compactMap { byKey[$0] }.map { e in (Self.inverted(e.meta["author"] ?? ""), e) }
+            .sorted { ($0.0.isEmpty ? $0.1.title : $0.0).localizedCaseInsensitiveCompare($1.0.isEmpty ? $1.1.title : $1.0) == .orderedAscending }
+            .map { author, e in Self.entry(author: author, year: e.meta["year"], title: e.title, publisher: e.meta["publisher"]) }
         return out + [(id: "_bibliographie", text: "# " + (lang.hasPrefix("fr") ? "Bibliographie" : "Bibliography") + "\n\n" + lines.joined(separator: "\n\n") + "\n")]
+    }
+
+    /// « Hartley, M. 1994. *The Salt Coast*. Harbour Press. »: Chicago author-date, as pandoc's export writes it.
+    static func entry(author: String, year: String?, title: String, publisher: String?) -> String {
+        [author.isEmpty ? nil : author, year, "*\(title)*", publisher].compactMap { $0.flatMap { $0.isEmpty ? nil : $0 } }
+            .map { $0.hasSuffix(".") ? $0 : $0 + "." }.joined(separator: " ")
+    }
+
+    /// The first author family name first: « M. Hartley; R. Abbott » → « Hartley, M., and R. Abbott ».
+    static func inverted(_ authors: String) -> String {
+        var names = authors.components(separatedBy: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard let first = names.first else { return "" }
+        var words = first.split(separator: " ").map(String.init)
+        if !first.contains(","), words.count > 1 { names[0] = words.removeLast() + ", " + words.joined(separator: " ") }
+        guard names.count > 1, let last = names.last else { return names[0] }
+        return names.dropLast().joined(separator: ", ") + ", and " + last
+    }
+}
+
+/// The page the next PDF opened should show (from a citation's « p. 12 »).
+@MainActor enum PDFJump { static var page: Int? }
+
+/// Passages kept from a PDF (its `.pdf.md` beside it, « > text (p. N) »), shown highlighted on their page.
+enum Highlights {
+    struct Kept: Equatable { var text: String; var page: Int }
+
+    static func read(_ sidecar: URL) -> [Kept] {
+        guard let text = try? String(contentsOf: sidecar, encoding: .utf8) else { return [] }
+        return parse(text)
+    }
+
+    static func parse(_ text: String) -> [Kept] {
+        var out: [Kept] = []
+        var quote: String?
+        for line in text.components(separatedBy: "\n") {
+            if line.hasPrefix("> ") { quote = String(line.dropFirst(2)) }
+            else if let q = quote, let r = line.range(of: "^\\(p\\. ([0-9]+)\\)", options: .regularExpression) {
+                out.append(Kept(text: q, page: Int(line[r].filter(\.isNumber)) ?? 1))
+                quote = nil
+            }
+        }
+        return out
+    }
+
+    static func show(_ kept: [Kept], in doc: PDFDocument) {
+        for k in kept {
+            guard let page = doc.page(at: max(0, k.page - 1)) else { continue }
+            let found = doc.findString(k.text, withOptions: [.caseInsensitive]).first { $0.pages.contains(page) }
+            if let found { mark(found) }
+        }
+    }
+
+    static func mark(_ selection: PDFSelection) {
+        for line in selection.selectionsByLine() {
+            for page in line.pages {
+                let a = PDFAnnotation(bounds: line.bounds(for: page), forType: .highlight, withProperties: nil)
+                a.color = NSColor.systemYellow.withAlphaComponent(0.45)
+                page.addAnnotation(a)
+            }
+        }
     }
 }

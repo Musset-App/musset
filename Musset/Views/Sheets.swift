@@ -28,13 +28,13 @@ struct SetupSheet: View {
             }
             .frame(minHeight: 300)
             if setup.manifest.chapters.isEmpty {
-                Text(L("No chapters detected. You can add them from the sidebar after opening.")).font(.ui(11)).foregroundStyle(.orange)
+                Text(L("No chapters detected. You can add them from the sidebar after opening.")).font(.ui(11)).foregroundStyle(Ink.warning)
             }
             if setup.isRepo {
-                Label(L("Git repository found. Musset will commit a snapshot of the chapters before writing anything."), systemImage: "checkmark.seal")
+                Label(L("This folder already keeps a history. Musset will save the chapters in it before writing anything."), systemImage: "checkmark.seal")
                     .font(.ui(12)).foregroundStyle(.secondary)
             } else {
-                Toggle(L("Track this book with git (recommended: needed for history and versions)"), isOn: $setup.initGit)
+                Toggle(L("Keep this book’s history (recommended: needed for versions, tracks and milestones)"), isOn: $setup.initGit)
             }
             HStack {
                 Spacer()
@@ -56,17 +56,16 @@ struct QuickOpenView: View {
 
     private var results: [(bookPath: String, bookTitle: String, chapter: ChapterEntry)] {
         let all = app.allChapters()
-        let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+        let q = query.folded
         guard !q.isEmpty else { return Array(all.prefix(60)) }
         return all.filter {
-            "\($0.bookTitle) \($0.chapter.title) \($0.chapter.id)".folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
-                .localizedStandardContains(q)
+            "\($0.bookTitle) \($0.chapter.title) \($0.chapter.id)".folded.localizedStandardContains(q)
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField(L("Jump to chapter…"), text: $query)
+            TextField(app.current?.words.jumpToPiece ?? L("Jump to chapter…"), text: $query)
                 .textFieldStyle(.plain)
                 .font(.ui(15))
                 .padding(14)
@@ -85,7 +84,7 @@ struct QuickOpenView: View {
                         Text(r.bookTitle).font(.ui(11)).foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
-                    .listRowBackground(i == index ? Color.accentColor.opacity(0.18) : Color.clear)
+                    .listRowBackground(i == index ? Ink.accent.opacity(0.18) : Color.clear)
                     .contentShape(Rectangle())
                     .onTapGesture { index = i; openSelected() }
                     .id(i)
@@ -125,48 +124,21 @@ struct ExportSheet: View {
     @State private var layouts: [String: String] = [:]
     @State private var facing = false
 
-    enum Scope: String, Codable { case book, status, pick }
-
-    /// Everything the author chose for this book's last export, offered again the next time.
-    struct Choice: Codable {
-        var format: String
-        var layouts: [String: String]
-        var scope: Scope
-        var statuses: String
-        var picked: [String]
-        var specials: [String]
-        var facing: Bool?
-
-        static func key(_ root: URL) -> String { "exportChoice:" + root.standardizedFileURL.path }
-
-        static func load(_ root: URL) -> Choice? {
-            UserDefaults.standard.data(forKey: key(root)).flatMap { try? JSONDecoder().decode(Choice.self, from: $0) }
-        }
-
-        func save(_ root: URL) {
-            if let data = try? JSONEncoder().encode(self) { UserDefaults.standard.set(data, forKey: Self.key(root)) }
-        }
-    }
+    typealias Scope = ChapterScopeMode
 
     private var statuses: Set<ChapterStatus> { Set(statusList.split(separator: ",").compactMap { ChapterStatus(rawValue: String($0)) }) }
 
     /// The chapters this export holds, in book order.
-    private var chosen: [ChapterEntry] {
-        session.manifest.chapters.filter { ch in
-            switch Scope(rawValue: scope) ?? .book {
-            case .book: !ch.excludeFromExport
-            case .status: statuses.contains(ch.status ?? .draft)
-            case .pick: picked.contains(ch.id)
-            }
-        }
-    }
+    private var chosen: [ChapterEntry] { ChapterScopePicker.chapters(session.manifest, scope: scope, statusList: statusList, picked: picked) }
 
-    private var presets: [ExportPreset] { session.manifest.exports.filter { $0.format == format } }
+    /// Every layout of the book (Musset's own and the author's), and those of the format chosen.
+    private var allLayouts: [ExportPreset] { session.store.presets(session.manifest) }
+    private var presets: [ExportPreset] { allLayouts.filter { $0.format == format } }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                Text(L("Export")).font(.system(size: 26, design: .serif))
+                Text(L("Export…").titled).font(.system(size: 26, design: .serif))
                 if let source = sourceName {
                     Label(source, systemImage: at == nil ? "arrow.triangle.branch" : "flag")
                         .font(.ui(12)).foregroundStyle(at == nil ? Ink.piste : Ink.jalon).lineLimit(1)
@@ -197,7 +169,7 @@ struct ExportSheet: View {
                 if running { ProgressView().controlSize(.small) }
                 Button(L("Close")) { dismiss() }.keyboardShortcut(.cancelAction).buttonStyle(.inkSecondary)
                 if let preview { Button(L("Preview")) { dismiss(); preview() }.buttonStyle(.inkSecondary) }
-                Button(L("Export ") + format.rawValue.uppercased()) { Task { await run() } }
+                Button(L("Export \(format.rawValue.uppercased())")) { Task { await run() } }
                     .buttonStyle(.ink)
                     .keyboardShortcut(.defaultAction)
                     .disabled(running || selected.isEmpty || chosen.isEmpty)
@@ -208,86 +180,33 @@ struct ExportSheet: View {
         .frame(width: 780)
         .onAppear(perform: restore)
         .onChange(of: format) { _, _ in pickPreset() }
-        .onChange(of: selected) { _, id in if !id.isEmpty { layouts[format.rawValue] = id } }
+        .onChange(of: selected) { _, id in
+            if !id.isEmpty { layouts[format.rawValue] = id }
+            // Each edition comes with its own pages: single for readers, facing for the printer.
+            if let f = allLayouts.first(where: { $0.id == id })?.facing { facing = f }
+        }
     }
 
     private var contents: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(L("CONTENTS"))
-            scopeRow(.book, L("The whole book", ctx: "Le livre entier"),
-                     "\(session.manifest.chapters.filter { !$0.excludeFromExport }.count) " + L("chapters, in order"))
-            scopeRow(.status, L("Chapters by status"), L("For example: only what is edited or final"))
-            if scope == Scope.status.rawValue {
-                HStack(spacing: 6) {
-                    ForEach(ChapterStatus.allCases) { st in
-                        let n = session.manifest.chapters.filter { ($0.status ?? .draft) == st }.count
-                        Chip(label: "\(st.label) \(n)", on: statuses.contains(st), dot: st.dot) {
-                            var set = statuses
-                            if set.contains(st) { set.remove(st) } else { set.insert(st) }
-                            statusList = ChapterStatus.allCases.filter(set.contains).map(\.rawValue).joined(separator: ",")
-                        }
-                    }
-                }
-                .padding(.leading, 30)
-            }
-            scopeRow(.pick, L("Chosen chapters"), L("For a reader, a submission…"))
-            if scope == Scope.pick.rawValue {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(Array(session.manifest.chapters.enumerated()), id: \.element.id) { i, ch in
-                            Toggle(isOn: Binding(get: { picked.contains(ch.id) }, set: { if $0 { picked.insert(ch.id) } else { picked.remove(ch.id) } })) {
-                                HStack {
-                                    Text("\(i)").font(.uiMono(11)).foregroundStyle(.tertiary).frame(width: 18, alignment: .trailing)
-                                    Text(ch.title)
-                                    Spacer()
-                                    StatusDot(status: ch.status ?? .draft)
-                                    Text((session.chapterWords[ch.id] ?? 0).ui).font(.ui(11).monospacedDigit()).foregroundStyle(.secondary).frame(width: 48, alignment: .trailing)
-                                }
-                            }
-                            .toggleStyle(.checkbox)
-                            .padding(.horizontal, 10).frame(height: 30)
-                            Divider()
-                        }
-                    }
-                }
-                .frame(maxHeight: 200)
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ink.hairline))
-                .padding(.leading, 30)
-            }
+            SectionLabel(L("Contents", ctx: "Contenu"))
+            ChapterScopePicker(session: session, scope: $scope, statusList: $statusList, picked: $picked, pickHint: L("For a reader, a submission…"))
         }
-    }
-
-    private func scopeRow(_ s: Scope, _ title: String, _ hint: String) -> some View {
-        Button { scope = s.rawValue } label: {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: scope == s.rawValue ? "largecircle.fill.circle" : "circle").foregroundStyle(scope == s.rawValue ? .primary : .secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).fontWeight(.medium)
-                    Text(hint).font(.ui(11)).foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .padding(10)
-            .background(scope == s.rawValue ? Ink.side : .clear, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(scope == s.rawValue ? Color.primary.opacity(0.8) : Ink.hairline))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     private var layout: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("LAYOUT"))
+                SectionLabel(L("Layout"))
                 Picker("", selection: $selected) {
                     ForEach(presets) { p in
-                        Text([p.shownName, p.geometry.flatMap(paper)].compactMap { $0 }.joined(separator: " · ")).tag(p.id)
+                        Text([p.shownName, p.paper?.label].compactMap { $0 }.joined(separator: " · ")).tag(p.id)
                     }
                 }
                 .labelsHidden()
-                if let i = session.manifest.exports.firstIndex(where: { $0.id == selected }), session.manifest.exports[i].manuscript != nil {
-                    TextField(L("Pseudonym (prizes)"), text: Binding(get: { session.manifest.exports[i].pseudonym ?? "" },
-                                                                    set: { session.manifest.exports[i].pseudonym = $0.isEmpty ? nil : $0; session.saveManifest() }))
+                if let chosen = presets.first(where: { $0.id == selected }), chosen.manuscript != nil {
+                    TextField(L("Pseudonym (prizes)"), text: Binding(get: { chosen.pseudonym ?? "" },
+                                                                    set: { session.manifest.setPseudonym($0.isEmpty ? nil : $0, for: chosen.id); session.saveManifest() }))
                         .textFieldStyle(.roundedBorder).frame(width: 180)
                         .help(L("For a literary prize: the manuscript carries this pseudonym instead of your name and contact."))
                 } else if format == .pdf {
@@ -296,7 +215,7 @@ struct ExportSheet: View {
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
-                SectionLabel(L("SPECIAL PAGES"))
+                SectionLabel(L("Special pages"))
                 ForEach([SpecialPage.cover, .title, .dedication, .epigraph, .contents, .acknowledgements]) { page in
                     Toggle(page.label, isOn: Binding(get: { specials.contains(page) }, set: { if $0 { specials.insert(page) } else { specials.remove(page) } }))
                         .toggleStyle(.checkbox)
@@ -304,7 +223,7 @@ struct ExportSheet: View {
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("BETWEEN SCENES"))
+                SectionLabel(L("Between scenes"))
                 Segmented(options: SceneBreak.allCases.map { ($0, $0.localizedLabel) },
                           selection: Binding(get: { session.manifest.sceneBreak ?? .none }, set: { session.manifest.sceneBreak = $0 == .none ? nil : $0; session.saveManifest() }))
             }
@@ -325,10 +244,10 @@ struct ExportSheet: View {
     }
 
     private var summary: String {
-        let words = chosen.reduce(0) { $0 + (session.chapterWords[$1.id] ?? 0) }
+        let counts = chosen.reduce(TextCounts.zero) { $0 + (session.chapterCounts[$1.id] ?? .zero) }
         let n = chosen.count
-        return "\(n) " + (n == 1 ? L("chapter") : L("chapters")) + " · \(words.ui) " + L("words")
-            + (format == .pdf ? " · ~" + L("\(max(1, words / 260)) pages") : "")
+        return session.words.count(n, .piece) + " · " + counts.label
+            + (format == .pdf ? " · ~" + L("\(max(1, counts.words / 260)) pages") : "")
     }
 
     private func pickPreset() {
@@ -339,7 +258,7 @@ struct ExportSheet: View {
     /// The last export's choices; the first time, the book's special pages, without the made-up cover.
     private func restore() {
         let ids = Set(session.manifest.chapters.map(\.id))
-        if let c = Choice.load(session.root) {
+        if let c = session.state.export {
             format = ExportFormat(rawValue: c.format) ?? .pdf
             layouts = c.layouts
             scope = c.scope.rawValue
@@ -356,9 +275,9 @@ struct ExportSheet: View {
     }
 
     private func remember() {
-        Choice(format: format.rawValue, layouts: layouts, scope: Scope(rawValue: scope) ?? .book, statuses: statusList,
-               picked: session.manifest.chapters.map(\.id).filter(picked.contains), specials: specials.map(\.rawValue).sorted(), facing: facing)
-            .save(session.root)
+        session.state.export = ExportChoice(format: format.rawValue, layouts: layouts, scope: Scope(rawValue: scope) ?? .book, statuses: statusList,
+                                            picked: session.manifest.chapters.map(\.id).filter(picked.contains), specials: specials.map(\.rawValue).sorted(), facing: facing)
+        session.stateChanged()
     }
 
     /// What the file name says is in it: nothing for the whole book, the statuses, or the chapters.
@@ -374,14 +293,6 @@ struct ExportSheet: View {
         }
     }
 
-    private func paper(_ g: String) -> String? {
-        let parts = g.split(separator: ",")
-        let w = parts.first { $0.hasPrefix("paperwidth=") }?.dropFirst(11)
-        let h = parts.first { $0.hasPrefix("paperheight=") }?.dropFirst(12)
-        guard let w, let h else { return nil }
-        return "\(w) × \(h)"
-    }
-
     /// What is exported when it isn't the manuscript today: a milestone, or the track one writes in.
     private var sourceName: String? {
         if let at { return L("as at « \(at.title) »") }
@@ -389,7 +300,7 @@ struct ExportSheet: View {
     }
 
     private func run() async {
-        guard var preset = session.manifest.exports.first(where: { $0.id == selected }) else { return }
+        guard var preset = allLayouts.first(where: { $0.id == selected }) else { return }
         preset.facing = facing
         session.flushSave()
         session.saveManifest()
@@ -399,6 +310,8 @@ struct ExportSheet: View {
         m.chapters = chosen.map { var c = $0; c.excludeFromExport = false; return c }
         var f = m.front ?? FrontMatter()
         if specials.contains(.cover) { if f.cover == nil { f.cover = FrontMatter.Cover() }; f.cover?.inPDF = true } else { f.cover?.inPDF = false }
+        // The printer's interior never holds the cover: it is printed apart, on the cover stock.
+        if preset.interior == true { f.cover?.inPDF = false }
         f.titlePage = specials.contains(.title)
         if !specials.contains(.dedication) { f.dedication = nil }
         if !specials.contains(.epigraph) { f.epigraph = nil }
@@ -414,13 +327,13 @@ struct ExportSheet: View {
                 store.revisionName = at.title
             } else if let p = session.piste {
                 // A track exports as written in it: its chapters, committed first.
-                session.commitNow("musset: edit \(session.selectedChapterID ?? "")")
+                session.commitNow(session.editMessage)
                 store.revision = p.branch
                 store.revisionName = p.name
             }
             let out = try await ExportService.export(manifest: m, store: store, preset: preset, contents: contentsName)
             lastFile = out.file
-            message = L("Saved ") + out.file.lastPathComponent
+            message = L("Saved \(out.file.lastPathComponent)")
             NSWorkspace.shared.activateFileViewerSelecting([out.file])
         } catch {
             message = error.localizedDescription

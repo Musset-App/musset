@@ -66,7 +66,7 @@ struct AIHelpersView: View {
             Button(L("Download")) { if let k = asking { install(k) } }
             Button(L("Cancel"), role: .cancel) {}
         } message: {
-            Text(asking.map { L("Musset will install it from ") + ManagedCLI.source($0) + L(". It then signs in on the official page.") } ?? "")
+            Text(asking.map { L("Musset will install it from \(ManagedCLI.source($0)). It then signs in on the official page.") } ?? "")
         }
     }
 
@@ -78,7 +78,7 @@ struct AIHelpersView: View {
              + Text(L(" The river ran under the bridge. "))
              + Text(L("In this silence, every memory took on a new dimension.")).foregroundColor(.orange))
                 .font(.uiMono(13)).lineSpacing(6)
-            card(L("Second reader"), Ink.accent, L("Precision: “great sadness” names what the case set down had already shown.")).padding(.top, 10)
+            card(L("AI reader"), Ink.accent, L("Precision: “great sadness” names what the case set down had already shown.")).padding(.top, 10)
             card("Pangram", .orange, L("This sentence reads like something a machine would write."))
             Spacer()
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -98,25 +98,25 @@ struct AIHelpersView: View {
             Text(text)
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
     }
 
     private var choices: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(L("Two helpers, if you like.")).font(.system(size: 26, design: .serif))
             Text(L("Musset works without them. Neither rewrites your text.")).foregroundStyle(.secondary).padding(.top, 6)
-            Text(L("A demanding reader")).font(.ui(13, .semibold)).padding(.top, 20)
+            Text(L("A demanding AI reader")).font(.ui(13, .semibold)).padding(.top, 20)
             Text(L("It reads each chapter in its place in the book, scores it, says what to work on, and annotates the margin.")).foregroundStyle(.secondary).padding(.top, 2)
             VStack(spacing: 0) {
                 engine(.claude, L("With a Claude subscription"))
                 Divider()
                 engine(.codex, L("With a ChatGPT subscription"))
             }
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             .padding(.top, 10)
             Text(L("Your subscription, on the official page. No terminal, no key.")).font(.ui(12)).foregroundStyle(.secondary).padding(.top, 6)
-            if let problem { Text(problem).font(.ui(12)).foregroundStyle(.red).lineLimit(3).padding(.top, 4) }
+            if let problem { Text(problem).font(.ui(12)).foregroundStyle(Ink.error).lineLimit(3).padding(.top, 4) }
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(L("Also proofread while I write")).font(.ui(13, .medium))
@@ -158,7 +158,7 @@ struct AIHelpersView: View {
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(kind.label).font(.ui(13, .medium))
-                Text(status).font(.ui(12)).foregroundStyle(state == .ready && phase[kind] == nil ? Color.green : (phase[kind] != nil ? Ink.accent : .secondary))
+                Text(status).font(.ui(12)).foregroundStyle(state == .ready && phase[kind] == nil ? Ink.positive : (phase[kind] != nil ? Ink.accent : .secondary))
             }
             Spacer()
             if phase[kind] != nil {

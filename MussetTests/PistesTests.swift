@@ -179,6 +179,6 @@ final class PisteSnapshotTests: XCTestCase {
         try png(StoryView(app: app, session: session), NSSize(width: 1320, height: 820), "p-story.png")
         try png(TakeBackView(session: session, piste: session.pistes[0]), NSSize(width: 1300, height: 860), "p-takeback.png")
         try png(NewPisteSheet(session: session, start: TrackStart()), NSSize(width: 520, height: 470), "p-new.png")
-        try png(PisteMenu(app: app, session: session).padding(20), NSSize(width: 240, height: 70), "p-chip.png")
+        try png(TrackChip(app: app, piste: session.pistes[0]).padding(20), NSSize(width: 240, height: 70), "p-chip.png")
     }
 }

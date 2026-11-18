@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The open chapter's outline: its synopsis, then its scenes, each opening on the plot grid's columns. Same data as the grid (⌘5).
+/// The open chapter's slice of Overview: its synopsis (Overview ▸ Synopsis), then its scenes, each opening on the
+/// grid's cells for it (Overview ▸ Grid, ⌘5). The same fields, editing the same plot.
 struct PlanPanel: View {
     let app: AppState
     @Bindable var session: BookSession
@@ -26,7 +27,7 @@ struct PlanPanel: View {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
-                        Segmented(options: [(false, L("This chapter")), (true, L("Whole book"))], selection: $wholeBook)
+                        Segmented(options: [(false, session.words.thisPiece), (true, L("Whole book"))], selection: $wholeBook)
                         if wholeBook {
                             bookOutline
                         } else {
@@ -44,13 +45,13 @@ struct PlanPanel: View {
                         }
                         .onDrop(of: [.text], delegate: PlanDrop(slot: PlanSlot(chapter: chapter.id, index: scenes.count), dragging: $dragging, target: $dropSlot, perform: perform))
                         Button { bridge.textView?.beginScene() } label: {
-                            Text(L("+ Scene at the caret")).font(.ui(12)).foregroundStyle(.secondary)
+                            Text(session.words.sceneAtCaret).font(.ui(12)).foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, minHeight: 34)
-                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ink.hairline, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+                                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help(L("New scene at the caret, the title ready to type (⇧⌘N)"))
+                        .help(AppCommand.hint(session.words.newSceneAtCaretHelp, "write.scene"))
                         }
                     }
                     .padding(14)
@@ -78,7 +79,7 @@ struct PlanPanel: View {
         HStack(alignment: .firstTextBaseline) {
             Text(chapter.title).font(.ui(15, .semibold)).lineLimit(1)
             Spacer()
-            Button { withAnimation { app.showPlotGrid = true } } label: { Text(L("Grid ⌘5")).font(.ui(12)).foregroundStyle(Ink.accent) }
+            Button { withAnimation { app.open(OverviewTab.grid.tab) } } label: { Text(L("Grid") + " " + AppCommand.glyphs("view.grid")).font(.ui(12)).foregroundStyle(Ink.accent) }
                 .buttonStyle(.plain)
                 .help(L("The same outline for the whole book"))
         }
@@ -86,12 +87,12 @@ struct PlanPanel: View {
 
     private func synopsis(_ chapter: ChapterEntry) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(L("Chapter synopsis")).font(.ui(11, .medium)).foregroundStyle(.secondary)
-            ChapterSynopsisField(session: session, chapter: chapter.id, placeholder: L("What the chapter accomplishes, in two or three sentences."))
+            Text(session.words.pieceSynopsis).font(.ui(11, .medium)).foregroundStyle(.secondary)
+            ChapterSynopsisField(session: session, chapter: chapter.id)
                 .font(.ui(13))
                 .lineLimit(3...)
                 .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
+                .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
         }
     }
 
@@ -99,9 +100,9 @@ struct PlanPanel: View {
         let total = scenes.reduce(0) { $0 + $1.words }
         return VStack(spacing: 6) {
             HStack {
-                Text("\(scenes.count) " + (scenes.count == 1 ? L("scene") : L("scenes"))).font(.ui(11, .medium))
+                Text(session.words.count(scenes.count, .scene)).font(.ui(11, .medium))
                 Spacer()
-                Text("\(total.ui) " + L("words")).font(.ui(11))
+                Text(scenes.reduce(TextCounts.zero) { $0 + $1.counts }.label).font(.ui(11))
             }
             .foregroundStyle(.secondary)
             GeometryReader { geo in
@@ -116,7 +117,7 @@ struct PlanPanel: View {
                 }
             }
             .frame(height: 6)
-            .accessibilityLabel(L("Relative length of the scenes"))
+            .accessibilityLabel(session.words.relativeSceneLength)
         }
     }
 
@@ -128,7 +129,7 @@ struct PlanPanel: View {
     }
 
     private func sceneTitle(_ s: ChapterScene) -> String {
-        s.title ?? (s.marker == nil && scenes.count == 1 ? L("Whole chapter", ctx: "Tout le chapitre") : L("Opening"))
+        s.title ?? (s.marker == nil && scenes.count == 1 ? session.words.wholePiece : L("Opening"))
     }
 
     @ViewBuilder
@@ -143,7 +144,7 @@ struct PlanPanel: View {
                     Text(sceneTitle(scene)).font(.ui(13, open ? .medium : .regular)).lineLimit(1).truncationMode(.tail)
                     Spacer(minLength: 4)
                     fillDots(chapter, scene)
-                    Text(scene.words > 0 ? scene.words.ui : "—").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary).frame(width: 34, alignment: .trailing)
+                    Text(scene.words > 0 ? scene.counts.size.ui : "—").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary).frame(width: 44, alignment: .trailing)
                 }
                 .padding(.horizontal, 9).frame(minHeight: 36)
                 .contentShape(Rectangle())
@@ -151,7 +152,7 @@ struct PlanPanel: View {
             .buttonStyle(.plain)
             if open { fields(chapter, scene, i) }
         }
-        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
     }
 
     private func fillDots(_ chapter: ChapterEntry, _ scene: ChapterScene) -> some View {
@@ -171,7 +172,7 @@ struct PlanPanel: View {
                     Text(L("Title")).font(.ui(11)).foregroundStyle(.secondary)
                     TextField("", text: $titleDraft)
                         .textFieldStyle(.plain).font(.ui(12)).padding(8)
-                        .background(Self.field, in: RoundedRectangle(cornerRadius: 6))
+                        .background(Self.field, in: RoundedRectangle(cornerRadius: Radius.row))
                         .onAppear { titleDraft = scene.title ?? "" }
                         .onSubmit { rename(marker) }
                 }
@@ -184,7 +185,7 @@ struct PlanPanel: View {
                     }
                     PlotCellView(session: session, chapter: chapter.id, scene: scene.key, column: column, highlight: .constant(nil))
                         .frame(maxWidth: .infinity, minHeight: column.isTagged ? 0 : 34, alignment: .topLeading)
-                        .background(Self.field, in: RoundedRectangle(cornerRadius: 6))
+                        .background(Self.field, in: RoundedRectangle(cornerRadius: Radius.row))
                 }
             }
             HStack(spacing: 12) {
@@ -199,18 +200,17 @@ struct PlanPanel: View {
     private func aiBar(_ chapter: ChapterEntry) -> some View {
         HStack {
             if let s = analyst.lastError ?? analyst.status {
-                Text(s).font(.ui(11)).foregroundStyle(analyst.lastError != nil ? .orange : .secondary).lineLimit(2)
+                Text(s).font(.ui(11)).foregroundStyle(analyst.lastError != nil ? Ink.warning : .secondary).lineLimit(2)
             }
             Spacer()
             PopMenu(sections: AIStatus.shared.engines.map { engine in
                 PopSection(title: engine.label, items: [
                     PopItem(title: L("Fill this chapter's scenes")) { analyst.update(session, engine: engine, chapters: [chapter.id]) },
-                    PopItem(title: L("Propose scenes…")) { planner.propose(session, engine: engine) },
+                    PopItem(title: session.words.proposeScenes) { planner.propose(session, engine: engine) },
                 ])
             }) {
                 HStack(spacing: 6) { Image(systemName: "sparkles").font(.ui(10)); Text(L("AI")).font(.ui(12, .medium)) }
-                    .padding(.horizontal, 10).frame(height: 28)
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline))
+                    .toolbarButton()
             }
             .disabled(analyst.running)
         }
@@ -247,10 +247,10 @@ struct PlanPanel: View {
                         PlanGrip()
                         Text(ch.title).font(.ui(13, .semibold)).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text((session.chapterWords[ch.id] ?? 0).ui).font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary)
+                        Text((session.chapterCounts[ch.id]?.size ?? 0).ui).font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary)
                     }
                     .padding(.horizontal, 9).frame(minHeight: 30)
-                    .background(ch.id == session.selectedChapterID ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .background(ch.id == session.selectedChapterID ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -261,10 +261,10 @@ struct PlanPanel: View {
                     Button { bridge.show(scene, chapter: ch.id, session: session) } label: {
                         HStack(spacing: 8) {
                             PlanGrip()
-                            Text(scene.title ?? (scene.marker == nil && list.count == 1 ? L("Whole chapter", ctx: "Tout le chapitre") : L("Opening"))).font(.ui(13)).lineLimit(1)
+                            Text(scene.title ?? (scene.marker == nil && list.count == 1 ? session.words.wholePiece : L("Opening"))).font(.ui(13)).lineLimit(1)
                             Spacer(minLength: 4)
-                            if let n = noteCounts[ch.id]?[scene.id], n > 0 { Text("\(n) " + (n == 1 ? L("note") : L("notes"))).font(.ui(11)).foregroundStyle(.secondary) }
-                            Text(scene.words > 0 ? scene.words.ui : "—").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary).frame(width: 34, alignment: .trailing)
+                            if let n = noteCounts[ch.id]?[scene.id], n > 0 { Text(L("\(n) notes")).font(.ui(11)).foregroundStyle(.secondary) }
+                            Text(scene.words > 0 ? scene.counts.size.ui : "—").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary).frame(width: 44, alignment: .trailing)
                         }
                         .padding(.leading, 26).padding(.trailing, 9).frame(minHeight: 28)
                         .contentShape(Rectangle())
@@ -284,8 +284,9 @@ struct PlanPanel: View {
         var out: [String: [String: Int]] = [:]
         for ch in session.manifest.chapters {
             let list = session.scenes[ch.id] ?? []
-            for n in session.notes.notes(of: ch.id) where n.status == .open {
-                let at = ch.id == session.selectedChapterID ? (session.notes.live[n.id]?.location ?? n.anchor.start) : n.anchor.start
+            let notes = session.noteStore(for: ch.id)
+            for n in notes.notes(of: ch.id) where n.status == .open {
+                let at = notes.live[n.id]?.location ?? n.anchor.start
                 if let s = Scenes.scene(at: at, in: list) { out[ch.id, default: [:]][s.id, default: 0] += 1 }
             }
         }

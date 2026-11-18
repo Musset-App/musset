@@ -8,7 +8,6 @@ following programs, libraries and fonts. Each keeps its own licence, reproduced 
 | Component | Version | Licence | Source |
 |---|---|---|---|
 | **pandoc** (DOCX, EPUB, Word import) | 3.9.0.2 | GPL-2.0-or-later | https://github.com/jgm/pandoc/releases/tag/3.9.0.2 |
-| **Typst** (PDF typesetting) | 0.14.2 | Apache-2.0 | https://github.com/typst/typst |
 | **LanguageTool** (spelling and grammar) | 6.6 | LGPL-2.1-or-later | https://languagetool.org/download/ — https://github.com/languagetool-org/languagetool |
 | **Eclipse Temurin** Java runtime (runs LanguageTool; trimmed with `jlink`) | 21.0.13+9 | GPL-2.0 with the Classpath Exception | https://adoptium.net — https://github.com/adoptium/temurin21-binaries/releases/tag/jdk-21.0.13%2B9 |
 
@@ -18,11 +17,15 @@ uses (`scripts/fetch-languagetool.sh` does both, reproducibly, from the pinned r
 source code is available at the addresses above. LanguageTool also bundles libraries under their own licences,
 listed in `LanguageTool/languagetool/third-party-licenses/` inside the app.
 
-## Library linked into Musset
+## Libraries linked into Musset
 
 | Component | Version | Licence | Source |
 |---|---|---|---|
 | **libgit2** (git history and sync) | 1.9.2 | GPL-2.0 with the linking exception | https://github.com/libgit2/libgit2 (built through https://github.com/ibrahimcetin/libgit2) |
+| **Typst** (the pages of Read mode and of the PDF export), as a library: `typst`, `typst-render`, `typst-pdf`, `typst-kit` | 0.14.2 | Apache-2.0 | https://github.com/typst/typst |
+
+Typst is linked through `musset-typeset/` (Rust), with the crates it depends on, each under its own licence
+(MIT or Apache-2.0 for nearly all); `musset-typeset/Cargo.lock` lists them with their exact versions.
 
 ## Fonts
 

@@ -1,0 +1,323 @@
+{
+ "uiLang": "es",
+ "bookLang": "es-ES",
+ "title": "El camino de la sal",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "El ferri",
+   "text": "# El ferri\n\n<!-- scene: Travesía de madrugada -->\n\nEl ferri salía a las seis, antes de que despertaran las gaviotas. Nora estaba de pie junto a la barandilla, con el abrigo de su padre sobre el brazo, como si él aún pudiera pedírselo. La cubierta estaba mojada y nadie más había subido; los demás pasajeros seguían abajo, en el salón caldeado que olía a café y a gasoil, dormidos contra su propio reflejo en las ventanillas.\n\nAbajo, el agua guardaba sus secretos. Había ensayado lo que le diría a su hermano durante quinientos kilómetros, y ahora cada frase sonaba a otra persona. Volvió a probarlas en voz baja, una tras otra, y ninguna sobrevivió al viento.\n\n—Has venido —diría él. O no diría nada, que era peor y más propio de él.\n\nNo se hablaban desde el entierro de su madre, hacía once años, cuando Tom se quedó al fondo de la iglesia con un traje prestado y se marchó antes del último himno. Ella lo encontró después en el aparcamiento, fumando con el de la funeraria, y él la miró como a una desconocida que le hubiera preguntado por una dirección.\n\nUn hombre con chaqueta naranja pasó por la cubierta con un rollo de cabo y la saludó con la cabeza sin detenerse. Ella le devolvió el saludo. Era la primera vez que alguien la miraba desde la autopista.\n\n<!-- scene: La isla -->\n\nLa isla fue surgiendo de la bruma a trozos: una iglesia, una hilera de casas blancas, el largo tejado gris de la salinera donde su madre había contado sacos durante veinte años. Después el espigón del puerto, la grúa, los dos coches que esperaban en la rampa con los faros todavía encendidos, aunque ya era de día y nadie los necesitaba.\n\nVolvió a doblar el abrigo. Olía a tabaco y a lluvia, y al invierno que él había pasado fingiendo que no estaba enfermo. En el bolsillo interior había un billete del ferri de marzo, un lápiz y una lista con su letra que ella no había podido leer en el hospital y tampoco podía leer ahora: *sal, cristal, la barca azul, Tom.*\n\nLos motores cambiaron de tono. En algún lugar, abajo, se oyó un portazo, y los pasajeros empezaron a subir por la escalera con sus bolsas, parpadeando, poniéndose el abrigo. Un niño preguntó si aquello era la isla. Su madre le dijo que sí. El niño miró la isla un buen rato y dijo que era más pequeña que en el libro.\n\nNora volvió a guardar la lista donde la había encontrado.\n\n<!-- scene: El puerto -->\n\nÉl no estaba en el muelle. Sabía que no estaría, y aun así lo buscó dos veces: una entre los hombres junto a la grúa, otra en la puerta del café, donde una anciana giraba el cartel de *Cerrado* a *Abierto* con mucho cuidado, como si la palabra pudiera romperse.\n\nSubió la cuesta con el abrigo sobre el brazo y la bolsa al hombro. La carretera era la que recordaba, solo que más estrecha. Las casas tenían puertas nuevas. Arriba del todo, donde la carretera giraba hacia la salinera, alguien había pintado una barca azul en el costado de la marquesina del autobús, mal, hacía mucho tiempo, y seguía allí.\n\nSe detuvo delante y se rio, porque era suya, y porque en once años nadie la había tapado, y porque no sabía qué otra cosa hacer."
+  },
+  {
+   "title": "La salinera",
+   "text": "# La salinera\n\nLa verja estaba abierta. Nadie {~~nunca había cerrado~>había cerrado~~}{@Claire} nada con llave en la isla desde la guerra, y menos aún la salinera: no quedaba {--allí--}{@Claire} nada que llevarse salvo la sal, y la sal sabía cuidarse sola.\n\nLa furgoneta de Tom estaba aparcada junto a la vieja caseta de la báscula, {++con las puertas traseras abiertas,++}{@Claire} y a su sombra dormía un perro. El perro levantó la cabeza cuando ella cruzó la verja y volvió a bajarla, como si la estuvieran esperando.\n\n{==Lo encontró en el tejado.==}{>>¿Demasiado brusco? Aún no lo hemos oído. Quizá primero su voz, y luego el tejado.<<}{@Claire} Estaba arrodillado entre dos hileras de pizarras, con un martillo en la mano, y no se volvió.\n\n—Hay goteras encima del secadero —dijo—. Siempre hubo goteras encima del secadero."
+  },
+  {
+   "title": "Inventario",
+   "text": "# Inventario\n\nSu hermano lo había guardado todo: recibos, tablas de mareas, un calendario de 1987 con las pleamares rodeadas en rojo.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "guardaba sus secretos",
+   "author": "claude",
+   "kind": "critique",
+   "body": "Una frase prestada en un capítulo que, por lo demás, es enteramente suyo. ¿Qué ve Nora en el agua?"
+  },
+  {
+   "anchor": "que era peor y más propio de él",
+   "author": "claude",
+   "kind": "praise",
+   "body": "El hermano llega antes de aparecer. Consérvalo."
+  },
+  {
+   "anchor": "Volvió a doblar el abrigo.",
+   "author": "claude",
+   "kind": "question",
+   "body": "El abrigo se dobla por segunda vez. ¿Eco deliberado, o una vez de más?"
+  },
+  {
+   "anchor": "hacía once años",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Comprobar con el capítulo 4: allí el entierro es en invierno."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "¿Se sostiene la travesía sin Tom? Me temo que la primera escena no sea más que espera."
+  },
+  {
+   "role": "assistant",
+   "text": "Se sostiene, y la espera es justamente lo que importa: Tom está presente en cada párrafo a través de lo que Nora ensaya, el abrigo, la lista con su letra. El lector lo conoce antes de que aparezca.\n\nHay dos cosas que la debilitan. «Guardaba sus secretos» es la única frase prestada en un capítulo que, por lo demás, es enteramente suyo. Y el abrigo se dobla dos veces; el segundo doblez es el más fuerte, así que el primero podría desaparecer.\n\nHe dejado tres notas en el margen. ¿Quieres que mire cómo termina la escena del puerto?"
+  },
+  {
+   "role": "user",
+   "text": "Sí. ¿La risa ante la marquesina no llega demasiado pronto?"
+  }
+ ],
+ "versions": {
+  "current": "Primer borrador",
+  "other": "Más oscura",
+  "edits": [
+   [
+    "El ferri salía a las seis, antes de que despertaran las gaviotas.",
+    "El ferri salió a oscuras."
+   ],
+   [
+    "como si él aún pudiera pedírselo.",
+    "como si él aún pudiera subir por la escalera y pedírselo."
+   ],
+   [
+    "Abajo, el agua guardaba sus secretos.",
+    "Abajo, el agua estaba negra y no se movía."
+   ],
+   [
+    "que era peor y más propio de él.",
+    "que era lo que siempre había hecho."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, en la isla",
+     "Traductora, en tierra firme",
+     "Decírselo a Tom ella misma",
+     "La lista en el bolsillo del abrigo"
+    ],
+    "body": "Vuelve con el abrigo de su padre y ni una frase que se sostenga.\n\nSe fue a los diecinueve. Quinientos kilómetros ensayando, y nada de eso llegará a decirse.\n\nSe ríe cuando no sabe qué otra cosa hacer. Guardarlo para el final.",
+    "facts": [
+     [
+      "01",
+      "Está junto a la barandilla, con el abrigo de su padre sobre el brazo.",
+      "con el abrigo de su padre sobre el brazo"
+     ],
+     [
+      "01",
+      "No habla con su hermano desde el entierro de su madre.",
+      "No se hablaban desde el entierro de su madre"
+     ],
+     [
+      "01",
+      "No puede leer la lista escrita con la letra de su padre.",
+      "tampoco podía leer ahora"
+     ],
+     [
+      "01",
+      "Se ríe delante de la barca azul de la marquesina.",
+      "Se detuvo delante y se rio"
+     ],
+     [
+      "02",
+      "Encuentra a Tom en el tejado de la salinera.",
+      "Lo encontró en el tejado."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Mantiene en pie la salinera, solo",
+     "Que nadie le pregunte nada",
+     "Lo que pasó en 1987"
+    ],
+    "body": "Se quedó. Arregla lo que gotea, guarda lo que habría que tirar.\n\nHabla con el tejado mejor que con la gente. Once años sin una palabra a Nora, y su primera frase será para el secadero.\n\nLa barca azul la pintó él, a los catorce. No decirlo nunca: que ella la reconozca.",
+    "found": [
+     "su hermano"
+    ],
+    "facts": [
+     [
+      "01",
+      "Se marchó de la iglesia antes del último himno, con un traje prestado.",
+      "se marchó antes del último himno"
+     ],
+     [
+      "01",
+      "No habla con Nora desde el entierro de su madre, hace once años.",
+      "No se hablaban desde el entierro de su madre"
+     ],
+     [
+      "02",
+      "Su furgoneta está aparcada junto a la caseta de la báscula; a su sombra duerme un perro.",
+      "La furgoneta de Tom estaba aparcada"
+     ],
+     [
+      "02",
+      "Arregla él mismo el tejado de la salinera.",
+      "arrodillado entre dos hileras de pizarras, con un martillo en la mano"
+     ],
+     [
+      "02",
+      "Dice que siempre hubo goteras encima del secadero.",
+      "Siempre hubo goteras encima del secadero."
+     ],
+     [
+      "03",
+      "Lo ha guardado todo: recibos, tablas de mareas, un calendario de 1987.",
+      "Su hermano lo había guardado todo"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "su padre"
+    ],
+    "tier": "secondary",
+    "body": "Muerto antes de que empiece el libro. Su abrigo hace toda la travesía.\n\nUn invierno fingiendo que no estaba enfermo, y una lista que nadie sabe leer.",
+    "facts": [
+     [
+      "01",
+      "Pasó un invierno fingiendo que no estaba enfermo.",
+      "al invierno que él había pasado fingiendo que no estaba enfermo"
+     ],
+     [
+      "01",
+      "Dejó una lista en el abrigo: sal, cristal, la barca azul, Tom.",
+      "sal, cristal, la barca azul, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "su madre"
+    ],
+    "tier": "secondary",
+    "body": "Contó sacos en la salinera durante veinte años.\n\nEnterrada hace once: la última vez que Nora y Tom estuvieron en la misma habitación.",
+    "facts": [
+     [
+      "01",
+      "Contó sacos en la salinera durante veinte años.",
+      "donde su madre había contado sacos durante veinte años"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "La señora Pell",
+    "aliases": [
+     "anciana"
+    ],
+    "tier": "extra",
+    "body": "Lleva el café del puerto. Gira el cartel como si la palabra pudiera romperse.",
+    "facts": [
+     [
+      "01",
+      "Gira el cartel del café de Cerrado a Abierto.",
+      "una anciana giraba el cartel"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "hombre con chaqueta naranja"
+    ],
+    "tier": "extra",
+    "body": "Marinero del ferri. El primero que mira a Nora desde la autopista."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Lleva las cuentas de la salinera. Llega en el capítulo cuatro, con las llaves."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "La salinera",
+    "aliases": [
+     "la salinera"
+    ],
+    "body": "Un largo tejado gris, la caseta de la báscula, el secadero de las goteras.\n\nNada se cierra con llave desde la guerra: solo hay sal que llevarse.",
+    "facts": [
+     [
+      "01",
+      "Su madre contó sacos allí durante veinte años.",
+      "donde su madre había contado sacos durante veinte años"
+     ],
+     [
+      "02",
+      "La verja está abierta; nada se cierra con llave.",
+      "La verja estaba abierta."
+     ],
+     [
+      "02",
+      "Hay goteras encima del secadero.",
+      "Hay goteras encima del secadero"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "La isla",
+    "aliases": [
+     "la isla"
+    ],
+    "body": "Surge de la bruma a trozos: una iglesia, casas blancas, el tejado gris.\n\nMás pequeña que en el libro."
+   },
+   {
+    "id": "harbour",
+    "name": "El puerto",
+    "aliases": [
+     "puerto"
+    ],
+    "body": "El espigón, la grúa, la rampa. El café abre cuando llega el ferri."
+   }
+  ]
+ },
+ "board": {
+  "title": "El regreso",
+  "labels": {
+   "family": "La familia",
+   "story": "Lo que pasa",
+   "island": "La isla",
+   "year": "¿1987?"
+  },
+  "columns": [
+   "Uno · La travesía",
+   "Dos · La salinera"
+  ],
+  "written": [
+   "**Travesía de madrugada**\nNora en la barandilla. Ninguna frase ensayada sobrevive al viento.",
+   "**La isla**\nEl abrigo, la lista con su letra. Ella no puede leerla.",
+   "**El puerto**\nÉl no está en el muelle. La barca azul en la marquesina; ella se ríe."
+  ],
+  "passage": "dijo que era más pequeña que en el libro",
+  "next": [
+   "**El tejado**\nTom sobre las pizarras, de espaldas. Siempre hubo goteras, dice.",
+   "**Inventario**\nRecibos, tablas de mareas, el calendario de 1987.",
+   "**El secadero**\nElla le tiende el abrigo. Él lee la lista en voz alta, entera.",
+   "**Odile**\nLlega con las llaves, y sabe lo que significa la lista."
+  ],
+  "notes": {
+   "list": "*sal, cristal, la barca azul, Tom.*\n\n¿Una lista de la compra, o un testamento?",
+   "boat": "Once años, y nadie ha tapado la barca. ¿Quién la cuidaba?",
+   "tide": "Comprobar las tablas de mareas: ¿sale un ferri a las seis en marzo?",
+   "year": "Las pleamares rodeadas en rojo. ¿Qué pasó aquel año?"
+  },
+  "shape": "La barca azul"
+ },
+ "history": {
+  "milestone": "Enviado a Claire",
+  "note": "Los capítulos uno y dos, tal como ella los leyó."
+ }
+}

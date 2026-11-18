@@ -19,13 +19,13 @@ struct WordCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Text(kind.heading.uppercased()).font(.ui(10, .semibold)).foregroundStyle(.secondary)
-                Text("« \(word) »").font(.ui(13, .semibold))
+                Text(inQuotes(word)).font(.ui(13, .semibold))
             }
             if let error {
                 Text(error).font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             } else if let words {
                 if words.isEmpty {
-                    Text(L("Nothing found.")).font(.ui(12)).foregroundStyle(.secondary)
+                    EmptyNote(L("Nothing found."))
                 }
                 FlowLayout(spacing: 6) {
                     ForEach(Array(words.enumerated()), id: \.offset) { _, w in

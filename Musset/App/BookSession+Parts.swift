@@ -1,52 +1,5 @@
 import Foundation
 
-/// A part of the book: I, II, III… with an optional title. Its chapters are the ones that name it, one run in the book's order.
-struct BookPart: Codable, Equatable, Identifiable, Hashable {
-    var id: String = UUID().uuidString
-    var title: String = ""
-}
-
-extension BookManifest {
-    /// Parts in the book's order: by where their first chapter stands, empty ones last.
-    var orderedParts: [BookPart] {
-        let all = parts ?? []
-        var seen: [String] = []
-        for ch in chapters { if let p = ch.part, !seen.contains(p), all.contains(where: { $0.id == p }) { seen.append(p) } }
-        return seen.compactMap { id in all.first { $0.id == id } } + all.filter { !seen.contains($0.id) }
-    }
-
-    func numeral(of part: String) -> String {
-        Self.roman((orderedParts.firstIndex { $0.id == part } ?? 0) + 1)
-    }
-
-    /// « II » or « II. La fuite ».
-    func label(of part: BookPart) -> String {
-        part.title.isEmpty ? numeral(of: part.id) : numeral(of: part.id) + ". " + part.title
-    }
-
-    /// Where each part begins among the chapters that print: the chapter id, with the part's numeral and title.
-    var partOpenings: [String: (numeral: String, title: String)] {
-        var out: [String: (String, String)] = [:]
-        var previous: String?
-        for ch in chapters where !ch.excludeFromExport {
-            if let p = ch.part, p != previous, let part = parts?.first(where: { $0.id == p }) {
-                out[ch.id] = (numeral(of: p), part.title)
-            }
-            previous = ch.part
-        }
-        return out
-    }
-
-    static func roman(_ n: Int) -> String {
-        guard n > 0 else { return "" }
-        let table: [(Int, String)] = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
-                                      (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
-        var n = n, out = ""
-        for (value, letters) in table { while n >= value { out += letters; n -= value } }
-        return out
-    }
-}
-
 extension BookSession {
     /// A new part from this chapter on: it takes the chapter and those after it that were in the same place
     /// (the rest of its part, or the loose chapters that follow). Right-click chapter 1, then chapter 8: I and II.
@@ -101,5 +54,79 @@ extension BookSession {
         manifest.chapters[i].part = part
         saveManifest()
         commitNow("musset: \(chapterID) change de partie")
+    }
+
+    /// Makes a piece unnumbered (a prologue, an interlude…: one of the book's kinds), or numbered again (nil).
+    /// Only its number goes: its file, its title and its place stay.
+    func setKind(_ chapterID: String, _ kind: String?) {
+        guard let i = manifest.chapters.firstIndex(where: { $0.id == chapterID }), manifest.chapters[i].kind != kind else { return }
+        manifest.chapters[i].kind = kind
+        saveManifest()
+        commitNow(kind == nil ? "musset: \(chapterID) numbered" : "musset: \(chapterID) unnumbered")
+    }
+
+    /// Puts pieces on a strand (one the book has), or on none (nil). An author's tool: nothing that prints changes.
+    func setStrand(_ strand: String?, for chapterIDs: [String]) {
+        guard strand == nil || manifest.strands.contains(where: { $0.id == strand }) else { return }
+        let ids = Set(chapterIDs)
+        let changed = manifest.chapters.indices.filter { ids.contains(manifest.chapters[$0].id) && manifest.chapters[$0].strand != strand }
+        guard !changed.isEmpty else { return }
+        for i in changed { manifest.chapters[i].strand = strand }
+        saveManifest()
+        commitNow("musset: \(changed.map { manifest.chapters[$0].id }.joined(separator: ", ")) " + (strand == nil ? "off its strand" : "on a strand"))
+        dropEmptyStrandFilters()
+    }
+
+    /// A strand made where it is needed, from a piece's menu: named, in the first colour no strand has, and followed
+    /// by these pieces. A name the book already has is that strand, not a twin of it. A book that never chose a form
+    /// takes the one it reads as, as on its Structure page.
+    @discardableResult
+    func newStrand(named name: String, for chapterIDs: [String] = []) -> String? {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        if let known = manifest.strands.first(where: { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) {
+            setStrand(known.id, for: chapterIDs)
+            return known.id
+        }
+        let strand = BookStructure.Strand(name: name, colour: manifest.nextStrandColour)
+        var structure = manifest.structure ?? BookStructure(form: manifest.form)
+        structure.strands = (structure.strands ?? []) + [strand]
+        manifest.structure = structure
+        let ids = Set(chapterIDs)
+        for i in manifest.chapters.indices where ids.contains(manifest.chapters[i].id) { manifest.chapters[i].strand = strand.id }
+        saveManifest()
+        commitNow("musset: new strand")
+        return strand.id
+    }
+
+    /// The strand goes; the pieces that followed it stay, without one, and no board is left reading it alone.
+    func removeStrand(_ id: String) {
+        guard manifest.strands.contains(where: { $0.id == id }) else { return }
+        manifest.structure?.strands?.removeAll { $0.id == id }
+        if manifest.structure?.strands?.isEmpty == true { manifest.structure?.strands = nil }
+        for i in manifest.chapters.indices where manifest.chapters[i].strand == id { manifest.chapters[i].strand = nil }
+        saveManifest()
+        commitNow("musset: strand removed")
+        dropEmptyStrandFilters()
+    }
+
+    /// A board reading one strand alone goes back to the whole book once nothing follows that strand any more.
+    private func dropEmptyStrandFilters() {
+        for ws in allWorkspaces {
+            guard let id = ws.scenesStrand else { continue }
+            if manifest.strand(id) == nil || manifest.pieces(in: id) == 0 { ws.readScenes(alongStrand: nil) }
+        }
+    }
+
+    /// Changes the book's form or one of its settings: names and numbers only, never the files.
+    func setStructure(_ change: (inout BookManifest) -> Void) {
+        var m = manifest
+        change(&m)
+        guard m != manifest else { return }
+        let sections = manifest.textFeatures.subheadings
+        manifest = m
+        // An essay reads its sub-headings as sections; a novel does not.
+        if manifest.textFeatures.subheadings != sections { refreshSections() }
+        saveManifest()
     }
 }

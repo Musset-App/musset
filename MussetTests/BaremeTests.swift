@@ -43,6 +43,23 @@ final class ScoringTests: XCTestCase {
         XCTAssertTrue(b.calibration.contains("L'Étranger"))
     }
 
+    /// A bareme.json written when it named its preset: read as before, and which preset it is told by its grids.
+    func testAnOldFileThatNamesItsPresetStillReads() throws {
+        let library = ScoringLibrary.shared
+        let fantasy = try XCTUnwrap(library.presets.first { $0.id == "fantasy" })
+        let now = try JSONEncoder().encode(Bareme(preset: fantasy))
+        var json = try XCTUnwrap(try JSONSerialization.jsonObject(with: now) as? [String: Any])
+        XCTAssertNil(json["presetId"], "no longer written")
+        json["presetId"] = "fantasy"
+        var old = try JSONDecoder().decode(Bareme.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(old, Bareme(preset: fantasy))
+        XCTAssertEqual(old.presetId, "fantasy")
+        old.chapter[0].weight += 1
+        XCTAssertNil(old.presetId, "changed, the grid is the author's own")
+        old.chapter[0].weight -= 1
+        XCTAssertEqual(old.presetId, "fantasy")
+    }
+
     func testBaremeRoundTripCarriesItsCriteria() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-bareme-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }

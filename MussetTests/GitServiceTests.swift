@@ -89,24 +89,25 @@ final class GitServiceTests: XCTestCase {
         try write("01.md", "Il pleuvait sur la ville.\n")
         try git.commit(paths: ["01.md"], message: "one")
         let c = git.log(path: "01.md")[0]
-        XCTAssertEqual(git.wordDiff(from: c.id, path: "01.md"), "")
+        func wordDiff() throws -> String { Diff.words(git.show(c.id, path: "01.md") ?? "", try String(contentsOf: tmp.appendingPathComponent("01.md"), encoding: .utf8)) }
+        XCTAssertEqual(try wordDiff(), "")
         try write("01.md", "Il neigeait sur la ville.\n")
-        let diff = git.wordDiff(from: c.id, path: "01.md")
+        let diff = try wordDiff()
         XCTAssertTrue(diff.hasSuffix("Il [-pleuvait-]{+neigeait+} sur la ville.\n"), diff)
         XCTAssertEqual(WordDiff.stats(diff).added, 1)
         XCTAssertEqual(WordDiff.stats(diff).removed, 1)
     }
 
     func testWordDiffOfTexts() {
-        XCTAssertEqual(GitService.wordDiff("a b c", "a b c"), "")
+        XCTAssertEqual(Diff.words("a b c", "a b c"), "")
         func body(_ a: String, _ b: String) -> String {
-            String(GitService.wordDiff(a, b).split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)[1])
+            String(Diff.words(a, b).split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)[1])
         }
         XCTAssertEqual(body("foo bar baz", "foo baz"), "foo [-bar-] baz")
         XCTAssertEqual(body("foo baz", "foo bar baz"), "foo {+bar+} baz")
         XCTAssertEqual(body("bar baz", "baz"), "[-bar-] baz")
         XCTAssertEqual(body("un deux trois quatre", "un cinq six quatre"), "un [-deux trois-]{+cinq six+} quatre")
-        XCTAssertEqual(String(WordDiff.attributed(GitService.wordDiff("un deux", "un trois")).characters), "un deuxtrois")
+        XCTAssertEqual(String(WordDiff.attributed(Diff.words("un deux", "un trois")).characters), "un deuxtrois")
     }
 
     func testBranchesAndRemotes() throws {

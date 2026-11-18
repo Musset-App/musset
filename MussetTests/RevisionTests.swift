@@ -40,8 +40,8 @@ final class RevisionTests: XCTestCase {
         XCTAssertEqual(blocked.range.length, 0)
     }
 
-    func testPrintedTextHasNoPendingCorrections() {
-        let typst = TypstMarkup.chapter("Il {++faisait ++}chaud. {--Très chaud.--}{>>Note<<}", id: "c", markers: false)
+    func testPrintedTextHasNoPendingCorrections() throws {
+        let typst = try Typeset.chapter("Il {++faisait ++}chaud. {--Très chaud.--}{>>Note<<}")
         XCTAssertTrue(typst.contains("Il chaud. Très chaud."), typst)
         XCTAssertFalse(typst.contains("{"), typst)
     }

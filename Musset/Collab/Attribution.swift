@@ -34,27 +34,16 @@ struct Attribution: Sendable, Equatable {
     /// trimmed first, and a total rewrite of a long text doesn't try to find crumbs.
     nonisolated static func matches(old: [String], new: [String]) -> [Int: Int] {
         var map: [Int: Int] = [:]
-        var head = 0
-        while head < old.count, head < new.count, old[head] == new[head] { map[head] = head; head += 1 }
-        var tail = 0
-        while tail < old.count - head, tail < new.count - head, old[old.count - 1 - tail] == new[new.count - 1 - tail] {
-            map[new.count - 1 - tail] = old.count - 1 - tail
-            tail += 1
-        }
-        let a = Array(old[head..<(old.count - tail)]), b = Array(new[head..<(new.count - tail)])
-        guard !a.isEmpty, !b.isEmpty, a.count * b.count < 16_000_000 else { return map }
-        var removed = Set<Int>(), inserted = Set<Int>()
-        for c in b.difference(from: a) {
-            switch c {
-            case .remove(let o, _, _): removed.insert(o)
-            case .insert(let o, _, _): inserted.insert(o)
-            }
-        }
-        var i = 0
-        for j in 0..<b.count where !inserted.contains(j) {
-            while removed.contains(i) { i += 1 }
-            map[head + j] = head + i
-            i += 1
+        let ends = Diff.commonEnds(old, new)
+        for k in 0..<ends.head { map[k] = k }
+        for k in 0..<ends.tail { map[new.count - 1 - k] = old.count - 1 - k }
+        let a = old.count - ends.head - ends.tail, b = new.count - ends.head - ends.tail
+        guard a > 0, b > 0, a * b < 16_000_000 else { return map }
+        // Between two stretches that differ, the words are the same ones.
+        var i = ends.head, j = ends.head
+        for gap in Diff.gaps(old, new) + [((old.count - ends.tail)..<old.count, (new.count - ends.tail)..<new.count)] {
+            while j < gap.new.lowerBound { map[j] = i; i += 1; j += 1 }
+            i = gap.old.upperBound; j = gap.new.upperBound
         }
         return map
     }
@@ -214,7 +203,7 @@ struct AttributionBar: View {
             if let hover = bridge.blameHover { Text(hover).font(.ui(12)).foregroundStyle(.secondary).lineLimit(1) }
             Button { bridge.blameOn = false } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .medium)) }
                 .buttonStyle(.plain).foregroundStyle(.secondary)
-                .help(L("Hide who wrote what"))
+                .help(L("Hide Who Wrote What"))
         }
         .padding(.horizontal, 12).frame(height: 28)
         .background(.regularMaterial, in: Capsule())

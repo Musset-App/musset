@@ -272,8 +272,9 @@ Requires **macOS 14 Sonoma or later on Apple silicon**.
 ## Build from source
 
 ```sh
-brew install xcodegen typst
+brew install xcodegen
 git clone <this repository> musset && cd musset
+scripts/build-typeset.sh     # the typesetter (Rust, on the Typst library): needs https://rustup.rs
 xcodegen generate
 open Musset.xcodeproj        # or: xcodebuild -scheme Musset build
 ```

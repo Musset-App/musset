@@ -102,10 +102,10 @@ struct HistoryPanel: View {
 
     private var controls: some View {
         VStack(spacing: 10) {
-            Segmented(options: [(Scope.selection, L("Selection")), (.chapter, L("Chapter")), (.several, L("Several…")), (.book, L("Book"))], selection: $scope)
+            Segmented(options: [(Scope.selection, L("Selection")), (.chapter, session.words.name(.piece)), (.several, L("Several…")), (.book, L("Book"))], selection: $scope)
             if scope == .several {
                 Button { pickingChapters = true } label: {
-                    Text(checked.isEmpty ? L("Choose chapters") : L("\(checked.count) chapters"))
+                    Text(checked.isEmpty ? session.words.choosePieces : session.words.count(checked.count, .piece))
                         .font(.ui(12)).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
@@ -118,11 +118,15 @@ struct HistoryPanel: View {
                         .textFieldStyle(.plain).font(.ui(12))
                 }
                 .padding(.horizontal, 8).frame(height: 26)
-                .background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
+                .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
                 Picker("", selection: $show) { ForEach(Show.allCases) { Text($0.label).tag($0) } }
                     .labelsHidden().pickerStyle(.menu).fixedSize().font(.ui(12))
                     .accessibilityLabel(L("Show"))
                 sourcesMenu
+                // The wide view: the same history as a tab, with the tracks and the milestones on one line.
+                Button { app.open(.story) } label: { Image(systemName: "arrow.up.left.and.arrow.down.right").font(.ui(12)).frame(width: 22, height: 22).contentShape(Rectangle()) }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .help(L("The Book’s History")).accessibilityLabel(L("The Book’s History"))
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
@@ -141,7 +145,7 @@ struct HistoryPanel: View {
         .frame(width: 280, height: 320)
     }
 
-    /// Tracks and milestones can be brought from too; the wide view shows them all on one line.
+    /// Tracks and milestones can be brought from too, and started from here.
     private var sourcesMenu: some View {
         Menu {
             if !session.pistes.isEmpty {
@@ -155,25 +159,33 @@ struct HistoryPanel: View {
                 }
             }
             Divider()
-            Button(L("Wide view: tracks and milestones")) { app.showStory = true }
+            Button(L("New Track…")) { app.newPiste = TrackStart() }
+            Button(L("Set a Milestone…")) { app.newJalon = TrackStart() }
         } label: { Image(systemName: "ellipsis.circle").font(.ui(13)) }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .help(L("Bring from a track or a milestone"))
+        .help(L("Tracks and milestones: bring from one, start one"))
+        .accessibilityLabel(L("Tracks and milestones"))
     }
 
     private func empty(_ text: String) -> some View {
-        Text(text).font(.ui(12)).foregroundStyle(.secondary).padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        EmptyNote(text).padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: The list
 
+    /// Sittings shown at once. An eager stack, bounded: a LazyVStack here spun forever in SwiftUI's prefetch (11 Nov),
+    /// like the chat before it.
+    @State private var shown = 40
+
     private var list: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+        let files = session.manifest.chapters.reduce(into: [String: String]()) { $0[$1.id] = $1.file }
+        let titles = session.manifest.chapters.reduce(into: [String: String]()) { $0[$1.id] = $1.title }
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
                 if loading && sittings.isEmpty { ProgressView().controlSize(.small).padding(16) }
-                ForEach(sittings) { s in
-                    SittingSection(sitting: s, reader: session.historyReader, logs: logs, files: session.manifest.chapters.reduce(into: [:]) { $0[$1.id] = $1.file },
-                                   titles: session.manifest.chapters.reduce(into: [:]) { $0[$1.id] = $1.title },
+                ForEach(sittings.prefix(shown)) { s in
+                    SittingSection(sitting: s, reader: session.historyReader, logs: logs, files: files,
+                                   titles: titles,
                                    showChapter: scope != .chapter, show: show,
                                    current: session.selectedChapterID,
                                    restore: { c, ch in restore(c, chapter: ch) },
@@ -183,13 +195,19 @@ struct HistoryPanel: View {
                                    track: { session.newPiste(named: L("From \(Self.when(s.tip.date))"), from: s.tip.id, fromLabel: Self.when(s.tip.date)) },
                                    milestone: { session.addJalon(title: Self.when(s.tip.date), note: "", at: s.tip.id); message = L("Milestone set.") })
                 }
-                if !loading && sittings.isEmpty { Text(L("Nothing yet.")).font(.ui(12)).foregroundStyle(.secondary).padding(16) }
+                if sittings.count > shown {
+                    Button(L("Show older")) { shown += 40 }.buttonStyle(.link).font(.ui(12)).padding(16)
+                }
+                if !loading && sittings.isEmpty { EmptyNote(L("Nothing yet.")).padding(16) }
             }
         }
     }
 
     private func load() async {
         session.flushSave()
+        // What was just written or deleted is in the history at once, not at the next idle commit: once it is
+        // committed, the list loads again.
+        session.commitIfPending(message: session.editMessage, background: true)
         let reader = session.historyReader
         let targets = chapterIDs.compactMap { id in file(id).map { (id, $0) } }
         loading = true
@@ -252,9 +270,9 @@ struct HistoryPanel: View {
 
     private var searchResults: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
                 if searching { ProgressView().controlSize(.small).padding(12) }
-                ForEach(events.reversed()) { e in eventRow(e) }
+                ForEach(events.reversed().prefix(200)) { e in eventRow(e) }
                 if !searching && events.isEmpty {
                     Text(query.count < 3 ? L("Three letters at least.") : L("Never written in these chapters."))
                         .font(.ui(12)).foregroundStyle(.secondary).padding(16)
@@ -274,7 +292,7 @@ struct HistoryPanel: View {
             Text(e.text).font(.uiMono(12)).lineLimit(4).foregroundStyle(e.kind == .removed ? .secondary : .primary).textSelection(.enabled)
             HStack(spacing: 8) {
                 if e.kind == .removed {
-                    Button(L("Put back")) { restore(TextChange(kind: .removed, old: e.text + "\n", new: "", before: e.before, after: e.after, paragraph: 0), chapter: e.chapter) }
+                    Button(L("Put Back")) { restore(TextChange(kind: .removed, old: e.text + "\n", new: "", before: e.before, after: e.after, paragraph: 0), chapter: e.chapter) }
                 }
                 Button(L("Open that day’s text")) {
                     guard let f = file(e.chapter) else { return }
@@ -300,7 +318,7 @@ struct HistoryPanel: View {
 
     private var selectionStates: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
                 if bridge.selectedRange.length == 0 && states.isEmpty {
                     Text(L("Select a passage: its past states show here.")).font(.ui(12)).foregroundStyle(.secondary).padding(16)
                 }
@@ -309,7 +327,7 @@ struct HistoryPanel: View {
                         Text(i == 0 ? L("Now") : Self.when(s.commit.date)).font(.ui(12, .medium)).foregroundStyle(.secondary)
                         Text(s.text).font(.uiMono(12)).lineLimit(8).textSelection(.enabled)
                         if i > 0, let r = statesRange {
-                            Button(L("Take this one back")) { put(s.text, at: r); statesRange = NSRange(location: r.location, length: (s.text as NSString).length) }.controlSize(.small)
+                            Button(L("Put this one back")) { put(s.text, at: r); statesRange = NSRange(location: r.location, length: (s.text as NSString).length) }.controlSize(.small)
                         }
                     }
                     .padding(.horizontal, 14).padding(.vertical, 10)
@@ -383,9 +401,9 @@ private struct SittingSection: View {
                 .buttonStyle(.plain)
                 Menu {
                     Button(L("Bring this sitting…"), action: bring)
-                    Button(L("Go back to this point…"), action: goBack)
-                    Button(L("Start a track from here"), action: track)
-                    Button(L("Set a milestone"), action: milestone)
+                    Button(L("Go Back to This Sitting…"), action: goBack)
+                    Button(L("Start a Track from Here…"), action: track)
+                    Button(L("Set a Milestone…"), action: milestone)
                 } label: { Image(systemName: "ellipsis").font(.ui(12)).frame(width: 22, height: 22) }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .accessibilityLabel(L("What to do from this sitting"))
@@ -438,9 +456,9 @@ private struct ChangeRow: View {
     }
     private var action: String {
         switch change.kind {
-        case .removed: L("Put back")
+        case .removed: L("Put Back")
         case .added: L("Remove")
-        case .modified: L("Take back the old one")
+        case .modified: L("Put the old one back")
         }
     }
 
@@ -486,7 +504,7 @@ struct PlacementSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(L("Where should it go back?")).font(.ui(16, .semibold))
             Text(L("The text around it has changed since.")).font(.ui(12)).foregroundStyle(.secondary)
-            Text(text.trimmingCharacters(in: .whitespacesAndNewlines)).font(.uiMono(12)).lineLimit(5).padding(10).frame(maxWidth: .infinity, alignment: .leading).background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
+            Text(text.trimmingCharacters(in: .whitespacesAndNewlines)).font(.uiMono(12)).lineLimit(5).padding(10).frame(maxWidth: .infinity, alignment: .leading).background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
             ForEach(places) { p in
                 Button { picked = p.id } label: {
                     HStack(alignment: .top, spacing: 8) {
@@ -570,7 +588,7 @@ struct GoBackSheet: View {
                 }
                 Spacer()
                 Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)
-                Button(L("Go back to this point")) {
+                Button(L("Go Back to This Sitting…").titled) {
                     if let c = chosen { session.goBack(to: sitting.tip.id, label: label, chapters: c.ids, order: c.order) }
                     dismiss()
                 }

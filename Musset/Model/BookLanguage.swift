@@ -73,6 +73,10 @@ struct BookLanguagePicker: View {
 enum BookTerm: String {
     case contents, acknowledgements, colophon
     case noIndent, author, dedication, epigraph, epigraphSource, partNumber, partTitle, sceneBreak, blockQuote, colophonStyle
+    /// The Word styles of a formed book's piece: the line over its title (« Chapitre 3 », « Prologue ») and the title under it.
+    case pieceLine, pieceTitle
+    /// A scene's or a chapter's title by its number, as Return makes them: "Scène 3", "Chapitre 8".
+    case sceneNumber, chapterNumber
 
     private var forms: [String: String] {
         switch self {
@@ -93,6 +97,10 @@ enum BookTerm: String {
         case .sceneBreak: ["en": "Scene Break", "fr": "Saut de scène", "de": "Szenenwechsel", "es": "Cambio de escena", "it": "Stacco di scena", "pt": "Quebra de cena"]
         case .blockQuote: ["en": "Block Quote", "fr": "Citation", "de": "Blockzitat", "es": "Cita en bloque", "it": "Citazione", "pt": "Citação"]
         case .colophonStyle: ["en": "Colophon", "fr": "Achevé d’imprimer", "de": "Impressum", "es": "Colofón", "it": "Colophon", "pt": "Cólofon"]
+        case .pieceLine: ["en": "Chapter Number", "fr": "Numéro de chapitre", "de": "Kapitelnummer", "es": "Número de capítulo", "it": "Numero di capitolo", "pt": "Número do capítulo"]
+        case .pieceTitle: ["en": "Chapter Title", "fr": "Titre de chapitre", "de": "Kapiteltitel", "es": "Título de capítulo", "it": "Titolo di capitolo", "pt": "Título do capítulo"]
+        case .sceneNumber: ["en": "Scene {n}", "fr": "Scène {n}", "de": "Szene {n}", "es": "Escena {n}", "it": "Scena {n}", "pt": "Cena {n}"]
+        case .chapterNumber: ["en": "Chapter {n}", "fr": "Chapitre {n}", "de": "Kapitel {n}", "es": "Capítulo {n}", "it": "Capitolo {n}", "pt": "Capítulo {n}"]
         }
     }
 

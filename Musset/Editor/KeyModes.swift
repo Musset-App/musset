@@ -43,12 +43,12 @@ enum KeyboardMode: String, CaseIterable, Identifiable {
             [(L("Next word"), "⌥→"), (L("Start of line"), "⌘←"),
              (L("Next paragraph"), "⌥↓"), (L("Select the word"), "⌥⇧→"),
              (L("Delete the word"), "⌥⌫"), (L("Italic"), "⌘I"),
-             (L("Find"), "⌘F"), (L("Tracked changes"), "⇧⌘E")]
+             (L("Find…").titled, "⌘F"), (L("Tracked changes"), "⇧⌘E")]
         case .wordstar:
             [(L("Up, left, right, down"), "⌃E ⌃S ⌃D ⌃X"), (L("Previous, next word"), "⌃A ⌃F"),
              (L("Delete the word"), "⌃T"), (L("Delete the line"), "⌃Y"),
              (L("Block start, end"), "⌃K B · ⌃K K"), (L("Move, copy the block"), "⌃K V · ⌃K C"),
-             (L("Set, go to a marker"), "⌃K 1 · ⌃Q 1"), (L("Find"), "⌃Q F")]
+             (L("Set, go to a marker"), "⌃K 1 · ⌃Q 1"), (L("Find…").titled, "⌃Q F")]
         case .vi:
             [(L("Insert, back to NORMAL"), "i · Échap"), (L("Next, previous word"), "w · b"),
              (L("Previous, next sentence"), "( )"), (L("Paragraph"), "{ }"),
@@ -58,7 +58,7 @@ enum KeyboardMode: String, CaseIterable, Identifiable {
             [(L("Next, previous word"), "⌥F · ⌥B"), (L("Previous, next sentence"), "⌥A · Échap E"),
              (L("Kill to the end"), "⌃K"), (L("Yank, then the one before"), "⌃Y · ⌥Y"),
              (L("Set the mark"), "⌃Espace"), (L("Kill, copy the region"), "⌃W · ⌥W"),
-             (L("Search as you type"), "⌃S"), (L("Command (⌘K)"), "⌥X")]
+             (L("Search as you type"), "⌃S"), (MainActor.assumeIsolated { AppCommand.hint(L("Command"), "app.palette") }, "⌥X")]
         }
     }
 
@@ -356,7 +356,7 @@ final class KeyEngine {
     private static let ctrlQ: [KeyHint.Item] = [
         .init(key: "S · D", label: L("Start, end of line")), .init(key: "R · C", label: L("Start, end of chapter")),
         .init(key: "B · K", label: L("Block start, end")), .init(key: "0–9", label: L("Go to a marker")),
-        .init(key: "F", label: L("Find")), .init(key: "A", label: L("Find and replace")),
+        .init(key: "F", label: L("Find…").titled), .init(key: "A", label: L("Find and Replace…").titled),
         .init(key: "Y", label: L("Delete to end of line")),
     ]
 
@@ -489,7 +489,7 @@ final class KeyEngine {
         .init(key: "F · B", label: L("Next, previous word")), .init(key: "A · E", label: L("Previous, next sentence")),
         .init(key: "D", label: L("Kill the word")), .init(key: "U · L · C", label: L("Upper, lower, capital")),
         .init(key: "T", label: L("Swap two words")), .init(key: "W", label: L("Copy the region")),
-        .init(key: "X", label: L("Command bar")),
+        .init(key: "X", label: L("Command Bar…").titled),
     ]
     /// ⌥ + these letters types accents on a Mac (é, ü, ç, ê, ñ, è): they stay accents; Esc then the letter does the command.
     private static let accentKeys: Set<String> = ["e", "u", "c", "i", "n", "`"]
@@ -857,19 +857,4 @@ final class KeyEngine {
 extension Notification.Name {
     /// vi's « : », Emacs's ⌥X: the command bar.
     static let mussetCommandBar = Notification.Name("mussetCommandBar")
-}
-
-extension BookSession {
-    /// Takes `range` out of a chapter that isn't open, if the book's text still holds `expected` there
-    /// (WordStar's ⌃K V with a block marked in another chapter). In a track, nothing moves: the book's folder doesn't change.
-    func removeFromChapter(_ id: String, range: NSRange, expected: String) -> Bool {
-        guard piste == nil, id != selectedChapterID, let ch = anyChapter(id) else { return false }
-        let text = ParagraphCodec.decode(store.read(ch)) as NSString
-        guard NSMaxRange(range) <= text.length, text.substring(with: range) == expected else { return false }
-        let out = text.replacingCharacters(in: range, with: "")
-        do { try store.write(ParagraphCodec.encode(out), to: ch) } catch { lastError = error.localizedDescription; return false }
-        chapterWords[id] = BookStore.wordCount(out)
-        commitNow("musset: bloc déplacé de \(id)")
-        return true
-    }
 }

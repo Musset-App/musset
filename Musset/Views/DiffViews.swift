@@ -22,14 +22,14 @@ enum WordDiff {
             if m.range.location > cursor { out += AttributedString(ns.substring(with: NSRange(location: cursor, length: m.range.location - cursor))) }
             if m.range(at: 1).location != NSNotFound {
                 var a = AttributedString(ns.substring(with: m.range(at: 1)))
-                a.foregroundColor = .red
+                a.foregroundColor = Ink.removed
                 a.strikethroughStyle = .single
-                a.backgroundColor = .red.opacity(0.08)
+                a.backgroundColor = Ink.removed.opacity(0.08)
                 out += a
             } else {
                 var a = AttributedString(ns.substring(with: m.range(at: 2)))
-                a.foregroundColor = .green
-                a.backgroundColor = .green.opacity(0.10)
+                a.foregroundColor = Ink.added
+                a.backgroundColor = Ink.added.opacity(0.10)
                 out += a
             }
             cursor = NSMaxRange(m.range)
@@ -64,7 +64,7 @@ struct CompareView: View {
                 Spacer()
                 Picker("", selection: $mode) {
                     Text(L("Changes")).tag(0)
-                    Text(L("Side by side")).tag(1)
+                    Text(L("Side by Side")).tag(1)
                 }
                 .pickerStyle(.segmented).labelsHidden().frame(width: 220)
                 Button(L("Done", ctx: "Terminé")) { dismiss() }.keyboardShortcut(.defaultAction)
@@ -94,7 +94,7 @@ struct CompareView: View {
         .frame(minWidth: 900, minHeight: 600)
         .task {
             let l = item.left, r = item.right
-            let raw = await Task.detached { GitService.wordDiff(l, r) }.value
+            let raw = await Task.detached { Diff.words(l, r) }.value
             diff = WordDiff.attributed(raw)
         }
     }

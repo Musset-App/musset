@@ -1,3 +1,4 @@
+import MussetPage
 import AppKit
 import SwiftUI
 import XCTest
@@ -182,18 +183,19 @@ final class TypographyApplyFixtures: XCTestCase {
     }
 }
 
+/// Musset's Markdown as the typesetter turns it into Typst.
 final class TypstMarkupTests: XCTestCase {
-    func testInlineAndEscapes() {
-        XCTAssertEqual(TypstMarkup.inline("Il dit *Jungle* et **non** : #1 $5 @x <a> [b] ~ a/b 1_000"),
-                       "Il dit #emph[Jungle] et #strong[non] : \\#1 \\$5 \\@x \\<a\\> \\[b\\] \\~ a\\/b 1\\_000")
-        XCTAssertEqual(TypstMarkup.inline("1943. Barcelone."), "1943\\. Barcelone.")
-        XCTAssertEqual(TypstMarkup.inline("- Oui"), "\\- Oui")
-        XCTAssertEqual(TypstMarkup.inline("*L’Appartement des Quais*. Un"), "#emph[L’Appartement des Quais]. Un")
+    func testInlineAndEscapes() throws {
+        XCTAssertEqual(try Typeset.chapter("Il dit *Jungle* et **non** : #1 $5 @x <a> [b] ~ a/b 1_000"),
+                       "Il dit #emph[Jungle] et #strong[non] : \\#1 \\$5 \\@x \\<a\\> \\[b\\] \\~ a\\/b 1\\_000\n\n")
+        XCTAssertEqual(try Typeset.chapter("1943. Barcelone."), "1943\\. Barcelone.\n\n")
+        XCTAssertEqual(try Typeset.chapter("> - Oui"), "#quote(block: true)[\\- Oui]\n\n")
+        XCTAssertEqual(try Typeset.chapter("*L’Appartement des Quais*. Un"), "#emph[L’Appartement des Quais]. Un\n\n")
     }
 
-    func testChapterStructure() {
+    func testChapterStructure() throws {
         let md = "# Barcelone\n\nLe soir.\n\n<!-- NOTE: secret\nsur deux lignes -->\n\n* * *\n\n> Comme on joue\n> sa vie\n\nFin.\n"
-        let t = TypstMarkup.chapter(md, id: "04", markers: true)
+        let t = try Typeset.chapter(md, id: "04", markers: true)
         XCTAssertTrue(t.contains("= #mk(\"04\", 0)Barcelone"))
         XCTAssertTrue(t.contains("#mk(\"04\", 13)Le soir."))
         XCTAssertFalse(t.contains("secret"))
@@ -203,8 +205,8 @@ final class TypstMarkupTests: XCTestCase {
     }
 
     /// A poster, a poem: lines ending in two spaces or a backslash stay separate inside a quote.
-    func testHardBreaksInAQuote() {
-        let t = TypstMarkup.chapter("> *Vacuité de la mode – 2004*    \n> *Métal sur métal*\\\n> une suite\n> *Collection privée*  \n\nLa suite.\n", id: "09", markers: false)
+    func testHardBreaksInAQuote() throws {
+        let t = try Typeset.chapter("> *Vacuité de la mode – 2004*    \n> *Métal sur métal*\\\n> une suite\n> *Collection privée*  \n\nLa suite.\n", id: "09")
         let quote = t.components(separatedBy: "#quote(block: true)[")[1].components(separatedBy: "]\n\n")[0]
         let lines = quote.components(separatedBy: " \\\n")
         XCTAssertEqual(lines.count, 3, quote)
@@ -215,33 +217,26 @@ final class TypstMarkupTests: XCTestCase {
         XCTAssertFalse(quote.hasSuffix("\\"), "nothing after the last line")
     }
 
-    /// Compiles a whole real book with both styles and maps paragraphs to pages. Opt in with MUSSET_LIVE=1.
+    /// Compiles a whole real book with both styles. Opt in with MUSSET_LIVE=1.
     func testCompileFixtureBook() async throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["MUSSET_LIVE"] == "1")
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus")
         let store = BookStore(root: root)
         let m = try store.loadManifest()
         let chapters = m.chapters.filter { !$0.excludeFromExport }.map { (id: $0.id, text: store.read($0)) }
-        let out = FileManager.default.temporaryDirectory.appendingPathComponent("musset-typst-\(UUID().uuidString)")
-        for style in ["blanche", "classique"] {
-            let src = TypstMarkup.document(title: m.title, author: m.author, contact: m.contact, lang: m.lang,
-                                           layout: TypstLayout(style: style), chapters: chapters, markers: true)
-            let main = try TypstRunner.prepare(dir: out, source: src, bookRoot: root)
+        for style in ["book", "fullpage"] {
             let start = Date()
-            let pdf = out.appendingPathComponent("\(style).pdf")
-            try await TypstRunner.compile(main: main, output: pdf, bookRoot: root)
-            let markers = try await TypstRunner.markers(main: main, bookRoot: root)
-            print("TYPST \(style): \(String(format: "%.2f", Date().timeIntervalSince(start)))s, \(markers.count) paragraphs, last on page \(markers.last?.page ?? 0) → \(pdf.path)")
-            XCTAssertGreaterThan(markers.count, 300)
-            XCTAssertEqual(Set(markers.map(\.ch)).count, chapters.count)
+            let pdf = try TypesetBook.pdf(Typeset.book(chapters, style: style, title: m.title, author: m.author, lang: m.lang, layout: PageLayout()).source)
+            print("TYPST \(style): \(String(format: "%.2f", Date().timeIntervalSince(start)))s, \(pdf.count) bytes")
+            XCTAssertEqual(String(data: pdf.prefix(4), encoding: .ascii), "%PDF")
         }
     }
 }
 
 final class TypstLatexTests: XCTestCase {
-    func testExergueLatexBecomesTypst() {
+    func testExergueLatexBecomesTypst() throws {
         let md = "\\thispagestyle{empty}\n\\vspace*{0.42\\textheight}\n\n\\begin{flushright}\n\\emph{« C’est là ce que nous avons eu de meilleur. »}\n\n\\vspace{0.75\\baselineskip}\n\n— Flaubert\n\\end{flushright}\n\n\\clearpage\n"
-        let t = TypstMarkup.chapter(md, id: "00", markers: false)
+        let t = try Typeset.chapter(md, id: "00")
         XCTAssertFalse(t.contains("\\\\begin") || t.contains("textheight"), t)
         XCTAssertTrue(t.contains("#nofolio()"), t)
         XCTAssertTrue(t.contains("#v(42%)"))
@@ -254,12 +249,14 @@ final class TypstLatexTests: XCTestCase {
 
 @MainActor
 final class ReviewModeTests: XCTestCase {
-    /// Live: typesets 03_nice and checks page ↔ text mapping. Opt in with MUSSET_LIVE=1 (needs typst).
-    func testReadingModeMapsPagesToText() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["MUSSET_LIVE"] == "1")
+    /// Reading mode on the engine: a chapter of the fixture set as the book, the place of a passage found on its page,
+    /// and a conversation on it drawn there. Fixtures are only read (copied).
+    func testReadingModePlacesPassagesAndConversations() throws {
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus")
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: fixture.appendingPathComponent("04_barcelone.md").path), "no fixture")
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-review-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
         for f in ["03_nice.md", "04_barcelone.md"] {
             try FileManager.default.copyItem(at: fixture.appendingPathComponent(f), to: root.appendingPathComponent(f))
         }
@@ -267,28 +264,48 @@ final class ReviewModeTests: XCTestCase {
                                                                  ChapterEntry(id: "04_barcelone", file: "04_barcelone.md", title: "Barcelone")])
         let session = BookSession(root: root, manifest: manifest)
         session.open("04_barcelone")
-        let target = (session.text as NSString).range(of: "Pedro fut condamné à mort")
-        _ = session.notes.add(range: target, text: session.text, author: .me, kind: .note, body: "Source ?")
+        // A sentence from the middle of the chapter, whatever its words.
+        let ns = session.text as NSString
+        let mid = ns.range(of: ". ", range: NSRange(location: ns.length / 2, length: ns.length / 2))
+        try XCTSkipIf(mid.location == NSNotFound, "no sentence in the chapter")
+        let target = NSRange(location: mid.location + 2, length: min(30, ns.length - mid.location - 2))
 
         let model = ReviewModel()
         model.scope = .chapter
-        model.style = "blanche"
-        await model.build(session: session)
+        model.style = "book"
+        model.build(session: session)
         XCTAssertNil(model.error)
-        let doc = try XCTUnwrap(model.document)
-        print("REVIEW chapter: \(doc.pageCount) pages in \(model.seconds ?? -1)s, \(model.markers.count) paragraphs")
-        XCTAssertGreaterThan(doc.pageCount, 3)
+        let reader = try XCTUnwrap(model.reader)
+        XCTAssertEqual(reader.fit, .print, "set as it will be printed")
+        let book = try TypesetBook(reader.source)
+        XCTAssertGreaterThan(book.pageCount, 3)
+        let page = book.page(for: PageAnchor(chapter: "04_barcelone", offset: target.location))
+        let c = try XCTUnwrap(book.source.chapterIndex("04_barcelone"))
+        XCTAssertFalse(book.lineRects(page: page, chapter: c, range: target.location..<(target.location + target.length)).isEmpty, "the passage is on its page")
 
-        // The paragraph holding the note → its page; a double-click there maps back to that paragraph.
-        let m = try XCTUnwrap(model.position(chapter: "04_barcelone", offset: target.location))
-        let back = try XCTUnwrap(model.marker(page: m.page - 1, y: m.y + 5))
-        XCTAssertEqual(back.off, m.off)
-        XCTAssertTrue((session.text as NSString).substring(from: back.off).hasPrefix("Pedro fut condamné"))
+        // A conversation on the passage becomes a mark there, in its starter's ink.
+        let id = UUID()
+        let note = TalkEntry(id: id, thread: id, kind: .note, by: "claire", body: "Source ?", chapter: "04_barcelone",
+                             anchor: Anchoring.capture(target, in: session.text as NSString, version: nil), mark: .margin, color: 0)
+        let mark = try XCTUnwrap(Talk.threads(from: [note]).first?.pageMark(in: session.text, name: { $0 }))
+        XCTAssertEqual(mark.range, target.location..<(target.location + target.length))
+        XCTAssertEqual(mark.kind, .note)
+        XCTAssertEqual(mark.note, "Source ?")
+        XCTAssertEqual(mark.ink, Person.ink("claire"))
+        XCTAssertEqual(mark.id, id.uuidString, "a tap finds its thread")
 
         model.scope = .book
-        await model.build(session: session)
-        print("REVIEW book: \(model.document?.pageCount ?? 0) pages in \(model.seconds ?? -1)s")
-        XCTAssertEqual(Set(model.markers.map(\.ch)), ["03_nice", "04_barcelone"])
+        model.build(session: session)
+        XCTAssertEqual(model.reader?.source.chapters.map(\.id), ["03_nice", "04_barcelone"])
+        XCTAssertTrue(model.reader === reader, "one reader, set again")
+    }
+
+    func testEveryPersonHasAnInk() {
+        for user in ["claire", "tom", "ines", "jun", "dana"] {
+            XCTAssertEqual(Person.ink(user).rawValue.isEmpty, false)
+        }
+        XCTAssertEqual(SelectionAction.note("Pourquoi ?").talk.mark, .margin)
+        XCTAssertEqual(SelectionAction.suggest("Pedro").talk.body, "→ Pedro")
     }
 }
 
@@ -299,50 +316,11 @@ final class TypstExportTests: XCTestCase {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus")
         let store = BookStore(root: root)
         let m = try store.loadManifest()
-        for p in m.exports where p.format == .pdf {
+        for p in store.presets(m) where p.format == .pdf {
             let start = Date()
             let out = try await ExportService.export(manifest: m, store: store, preset: p)
             print("EXPORT \(p.id) [\(p.typstStyle)] \(String(format: "%.2f", Date().timeIntervalSince(start)))s → \(out.file.path)")
             XCTAssertTrue(FileManager.default.fileExists(atPath: out.file.path))
-        }
-    }
-}
-
-final class ReviewFitTests: XCTestCase {
-    func testWholePageFitsTheView() {
-        let blanche = NSSize(width: 340, height: 533)
-        for view in [NSSize(width: 1580, height: 700), NSSize(width: 700, height: 860), NSSize(width: 420, height: 900)] {
-            let s = ClickablePDFView.fit(page: blanche, in: view)
-            XCTAssertLessThanOrEqual(blanche.width * s, view.width - 48 + 0.5)
-            XCTAssertLessThanOrEqual(blanche.height * s, view.height - 48 + 0.5)
-            XCTAssertTrue(abs(blanche.width * s - (view.width - 48)) < 0.5 || abs(blanche.height * s - (view.height - 48)) < 0.5)
-        }
-    }
-}
-
-import PDFKit
-
-@MainActor
-final class ReviewFitSnapshotTests: XCTestCase {
-    /// Renders the reading view at two window sizes. Opt in with MUSSET_SNAPSHOT=<dir>.
-    func testSnapshot() throws {
-        guard let dir = ProcessInfo.processInfo.environment["MUSSET_SNAPSHOT"] else { throw XCTSkip("set MUSSET_SNAPSHOT") }
-        let exports = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus/.musset/exports")
-        let pdf = try XCTUnwrap(try FileManager.default.contentsOfDirectory(at: exports, includingPropertiesForKeys: nil).first { $0.lastPathComponent.contains("_blanche_") })
-        for (name, size) in [("wide", NSSize(width: 660, height: 700)), ("narrow", NSSize(width: 700, height: 860))] {
-            let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled], backing: .buffered, defer: false)
-            let v = ClickablePDFView(frame: NSRect(origin: .zero, size: size))
-            v.displaysAsBook = true
-            v.backgroundColor = .darkGray
-            window.contentView = v
-            v.document = PDFDocument(url: pdf)
-            v.fitPages(force: true)
-            v.go(to: v.document!.page(at: 12)!)
-            window.makeKeyAndOrderFront(nil)
-            RunLoop.main.run(until: Date().addingTimeInterval(0.6))
-            let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds)!
-            v.cacheDisplay(in: v.bounds, to: rep)
-            try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: dir).appendingPathComponent("review-\(name).png"))
         }
     }
 }
@@ -367,7 +345,7 @@ final class SideBySideSnapshotTests: XCTestCase {
             window.contentView = NSHostingView(rootView: column)
             window.makeKeyAndOrderFront(nil)
             let deadline = Date().addingTimeInterval(20)
-            while Date() < deadline && (app.review.document == nil || app.review.building) { RunLoop.main.run(until: Date().addingTimeInterval(0.2)) }
+            while Date() < deadline && (app.review.reader?.book == nil || app.review.building) { RunLoop.main.run(until: Date().addingTimeInterval(0.2)) }
             RunLoop.main.run(until: Date().addingTimeInterval(0.8))
             let v = window.contentView!
             let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds)!

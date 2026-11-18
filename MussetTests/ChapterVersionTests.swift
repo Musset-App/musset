@@ -42,7 +42,7 @@ final class ChapterVersionTests: XCTestCase {
         let ch = try XCTUnwrap(s.selectedChapter)
         XCTAssertTrue(s.store.readVersion(ch, "J’y vais").contains("Je prends le train"))
         XCTAssertFalse(s.editorText(of: "amiens").contains("Je prends le train"), "what the book reads is the book's version")
-        XCTAssertEqual(s.chapterWords["amiens"], BookStore.wordCount(ParagraphCodec.decode(try bookFile())))
+        XCTAssertEqual(s.chapterCounts["amiens"]?.words, BookStore.wordCount(ParagraphCodec.decode(try bookFile())))
 
         // Coming back to the chapter, the editor opens where one was writing.
         s.open("nyons")

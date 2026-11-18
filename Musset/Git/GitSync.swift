@@ -254,7 +254,7 @@ enum SyncMerge {
             } else if let m, let t {
                 result = merged(path: path, base: b, mine: m, theirs: t, who: who, chapters: chapters, outcome: &outcome)
                 if result == nil, keepBoth {
-                    let copy = url.deletingPathExtension().lastPathComponent + L(" (other version).") + url.pathExtension
+                    let copy = L("\(url.deletingPathExtension().lastPathComponent) (other version).\(url.pathExtension)")
                     try t.write(to: url.deletingLastPathComponent().appendingPathComponent(copy), options: .atomic)
                     continue
                 }

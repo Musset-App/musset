@@ -110,6 +110,56 @@ final class BibleTreeTests: XCTestCase {
         XCTAssertNotNil(s.bible.entries.first { $0.title == "Deux" && $0.folder == inner })
     }
 
+    func testWhatIsKeptByPathFollowsASheetThatMoves() throws {
+        let tom = try session().bible.create(title: "Tom", kind: .character).path
+        var facts = BookFacts()
+        facts.entities[tom] = .init(facts: [.init(text: "Tom is eleven.", chapter: "a", quote: "Le texte")], aliases: ["le petit"])
+        try facts.save(root)
+        let s = BookSession(root: root, manifest: try BookStore(root: root).loadManifest())
+        XCTAssertNotNil(s.keeper.entity(tom))
+        let world = try XCTUnwrap(s.newBibleFolder(named: "Le monde", in: ""))
+        s.workspace.open(.sheet(tom), in: .newTab)
+        s.workspace.open(.folder(world), in: .newTab)
+        s.saveLayout(named: "Bible")
+        let window = s.newWindow(with: .sheet(tom))
+        let board = try s.bible.createBoard("Mur")
+        var canvas = JSONCanvas()
+        canvas.nodes = [.init(type: .file, x: 0, y: 0, width: 243, height: 90, file: tom), .init(type: .text, x: 300, y: 0, width: 200, height: 90, text: "Une idée")]
+        try canvas.write(s.bible.store.url(board.path))
+
+        func tabs(_ saved: Workspace.Saved?) -> [PaneTab] { saved?.root.panes.flatMap(\.tabs) ?? [] }
+        func check(_ sheet: String, _ folder: String, _ old: String) {
+            XCTAssertNotNil(s.bible.entry(path: sheet))
+            XCTAssertEqual(s.keeper.entity(sheet)?.facts.map(\.text), ["Tom is eleven."], "what the book says")
+            XCTAssertNil(s.keeper.entity(old))
+            XCTAssertEqual(BookFacts.load(root).entities.keys.sorted(), [sheet])
+            XCTAssertTrue(s.mainWorkspace.panes.flatMap(\.tabs).contains(.sheet(sheet)), "the open tab")
+            XCTAssertTrue(s.mainWorkspace.panes.flatMap(\.tabs).contains(.folder(folder)))
+            XCTAssertEqual(s.workspace(forWindow: window).panes.flatMap(\.tabs), [.sheet(sheet)], "another window's")
+            XCTAssertTrue(tabs(s.state.layouts?["Bible"]).contains(.sheet(sheet)), "a named layout's")
+            XCTAssertTrue(tabs(s.state.layouts?["Bible"]).contains(.folder(folder)))
+            XCTAssertFalse(tabs(s.state.layouts?["Bible"]).contains(.sheet(old)))
+            XCTAssertEqual(JSONCanvas.read(s.bible.store.url(board.path)).nodes.map(\.file), [sheet, nil], "its card on the board")
+        }
+
+        let moved = try XCTUnwrap(s.moveBibleEntry(tom, toFolder: world))
+        XCTAssertNotEqual(moved, tom)
+        check(moved, world, tom)
+        XCTAssertEqual(s.boardsRewritten, 1)
+        // A folder renamed takes what it holds along.
+        let renamed = try XCTUnwrap(s.renameBibleFolder(world, to: "Monde"))
+        let inside = BookSession.retarget(moved, from: world, to: renamed)
+        check(inside, renamed, moved)
+        // Into another folder, and what was kept still follows.
+        let deep = try XCTUnwrap(s.newBibleFolder(named: "Ailleurs", in: ""))
+        let nested = try XCTUnwrap(s.moveBibleFolder(renamed, into: deep))
+        check(BookSession.retarget(inside, from: renamed, to: nested), nested, inside)
+        // Kept with the book: the layout comes back with the right tabs.
+        s.close()
+        let again = BookSession(root: root, manifest: try BookStore(root: root).loadManifest())
+        XCTAssertTrue(again.mainWorkspace.panes.flatMap(\.tabs).contains(.sheet(BookSession.retarget(inside, from: renamed, to: nested))))
+    }
+
     func testFolderDragWire() {
         XCTAssertEqual(ShelfDrag(wire: ShelfDrag.folder("Le monde/Villes").wire), .folder("Le monde/Villes"))
         // A folder dropped on Drafts or Trash moves nothing.

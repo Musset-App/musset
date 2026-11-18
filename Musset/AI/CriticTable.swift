@@ -45,14 +45,12 @@ struct Critic: Codable, Identifiable, Hashable {
 
     /// The author's own characters, tracked with the book.
     static func mine(_ root: URL) -> [Critic] {
-        (try? Data(contentsOf: minesURL(root))).flatMap { try? JSONDecoder().decode([Critic].self, from: $0) } ?? []
+        JSONFile.read(at: minesURL(root)) ?? []
     }
 
     static func saveMine(_ list: [Critic], root: URL) {
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try? BookStore(root: root).ensureMussetDir()
-        try? enc.encode(list).write(to: minesURL(root), options: .atomic)
+        try? JSONFile.write(list, to: minesURL(root))
     }
 
     private static func minesURL(_ root: URL) -> URL { root.appendingPathComponent(".musset/critics.json") }
@@ -82,17 +80,76 @@ struct CriticTableRecord: Codable, Identifiable {
     var sessions: [String: String] = [:]
     /// How many turns each voice has already heard.
     var heard: [String: Int] = [:]
+    /// Where the text stands, so the judgment takes it into account. Nil: finished (and older debates).
+    var stage: Stage? = nil
+    /// Judged against the author's synopsis and plan: two ratings, what is written and its potential.
+    var againstPlan: Bool? = nil
+
+    /// How far along the text under debate is.
+    enum Stage: String, Codable, CaseIterable, Identifiable {
+        case finished, draft, incomplete, beginning
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .finished: L("Finished", ctx: "Terminé")
+            case .draft: L("First draft")
+            case .incomplete: L("Incomplete")
+            case .beginning: L("Just the beginning")
+            }
+        }
+        /// What the voices are told about it.
+        var instruction: String? {
+            switch self {
+            case .finished: nil
+            case .draft: "This is a first draft. Judge what it is trying to do, how far it gets and where it is heading; do not count against it roughness, repetitions, typos or unpolished sentences, which revision will deal with."
+            case .incomplete: "This text is unfinished: parts are missing and threads are left open. Judge what is there and where it is going; do not count against it what is not written yet, an ending or a resolution."
+            case .beginning: "This is only the beginning of the book. Judge the opening, the voice, the promise and the wish to read on; do not ask it for what a whole book would give."
+            }
+        }
+    }
+
+    /// A first view ends with its rating, « ★ 4/5 »: the stars, and the text without that line. Against a plan it
+    /// ends with two, « Écrit ★ 3/5 » then « Potentiel ★ 4/5 »: `stars` is what is written, `potential` the plan's.
+    static func rating(in text: String) -> (stars: Int?, potential: Int?, text: String) {
+        var lines = text.components(separatedBy: "\n")
+        var stars: Int?, potential: Int?
+        guard let re = try? NSRegularExpression(pattern: #"^\W*(?:(\p{L}+)\s*:?\s*)?\W*([1-5])(?:[.,]\d)?\s*/\s*5\W*$"#) else { return (nil, nil, text) }
+        for _ in 0..<2 {
+            while let last = lines.last, last.trimmingCharacters(in: .whitespaces).isEmpty { lines.removeLast() }
+            guard let last = lines.last, let m = re.firstMatch(in: last, range: NSRange(last.startIndex..., in: last)),
+                  let r = Range(m.range(at: 2), in: last), let n = Int(last[r]) else { break }
+            let label = Range(m.range(at: 1), in: last).map { last[$0].lowercased() } ?? ""
+            if label.hasPrefix("pot") { potential = n } else if stars == nil { stars = n } else { break }
+            lines.removeLast()
+        }
+        guard stars != nil || potential != nil else { return (nil, nil, text) }
+        return (stars, potential, lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// Each voice's rating, from its first view.
+    func stars(of critic: String) -> Int? {
+        turns.first { $0.critic == critic && $0.opening == true }.flatMap { Self.rating(in: $0.text).stars }
+    }
+
+    /// Each voice's rating of the plan's potential, when the book was judged against one.
+    func potential(of critic: String) -> Int? {
+        turns.first { $0.critic == critic && $0.opening == true }.flatMap { Self.rating(in: $0.text).potential }
+    }
+
+    /// The table's mean rating, if any voice gave one.
+    var meanStars: Double? {
+        let all = critics.compactMap { stars(of: $0.id) }
+        return all.isEmpty ? nil : Double(all.reduce(0, +)) / Double(all.count)
+    }
 
     static func url(_ root: URL, _ id: String) -> URL { BookStore(root: root).chatDir.appendingPathComponent("tables/\(id).json") }
 
     static func load(_ root: URL, _ id: String) -> CriticTableRecord? {
-        (try? Data(contentsOf: url(root, id))).flatMap { try? JSONDecoder().decode(CriticTableRecord.self, from: $0) }
+        JSONFile.read(at: url(root, id))
     }
 
     func save(_ root: URL) {
-        let file = Self.url(root, id)
-        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(self).write(to: file, options: .atomic)
+        try? JSONFile.write(self, to: Self.url(root, id), [])
     }
 
     func name(of critic: String?) -> String {
@@ -117,7 +174,7 @@ struct CriticTableRecord: Codable, Identifiable {
             The voice is imagined. Never attribute invented facts, quotations or a biography to a real person or house, and never break character to say so. \
             You sit at a table with \(others), discussing « \(title) ». The author listens and may speak. Speak in your own voice, as in a real conversation, with no preamble and no list. \
             Rest each claim on a passage quoted exactly, in « ». Answer the others by name. Disagree when you disagree: do not converge out of politeness, and do not repeat what was said. \
-            Never give a score and never conclude for the table. Say nothing, and quote nothing, about any sexual scene involving minors. \
+            Give your rating once, at the end of your first view, and never again; never conclude for the table. Say nothing, and quote nothing, about any sexual scene involving minors. \
             The book's chapters are files in the current directory: read them with your Read tool when you need them. \
             Answer in the book's language. \(WritingPartner.noRewrites)
             """
@@ -128,9 +185,16 @@ struct CriticTableRecord: Codable, Identifiable {
     /// `opening`: its own view first, without hearing anyone.
     func prompt(for critic: Critic, opening: Bool = false) -> String {
         var parts: [String] = []
-        if sessions[critic.id] == nil { parts.append(context) }
+        if sessions[critic.id] == nil {
+            parts.append(context)
+            if let note = stage?.instruction { parts.append(note) }
+        }
         if opening {
-            parts.append("Donnez votre avis, seul, sans savoir ce que pensent les autres : ce qui tient, ce qui ne tient pas, ce que vous feriez de ce texte à votre place. En 200 mots au plus.")
+            if againstPlan == true {
+                parts.append("Donnez votre avis, seul, sans savoir ce que pensent les autres : ce que font les chapitres écrits, à leur place dans le plan, puis ce que vaut le plan lui-même, ses forces et ses risques. En 220 mots au plus. Terminez par deux dernières lignes qui ne contiennent que vos notes sur cinq étoiles, sous cette forme exacte : « Écrit ★ 3/5 » puis « Potentiel ★ 4/5 » (des nombres entiers de 1 à 5).")
+            } else {
+                parts.append("Donnez votre avis, seul, sans savoir ce que pensent les autres : ce qui tient, ce qui ne tient pas, ce que vous feriez de ce texte à votre place. En 200 mots au plus. Terminez par une dernière ligne qui ne contient que votre note sur cinq étoiles, sous cette forme exacte : « ★ 3/5 » (un nombre entier de 1 à 5).")
+            }
             return parts.joined(separator: "\n\n")
         }
         let start = sessions[critic.id] == nil ? 0 : (heard[critic.id] ?? 0)
@@ -293,24 +357,56 @@ extension BookSession {
         \(chapterFiles)
         """
         let engine = AgentKind(rawValue: reading.agent).flatMap { AIStatus.shared.engines.contains($0) ? $0 : nil } ?? fallbackAgent
-        let name = L("The reader")
-        return CriticTableRecord(id: id, kind: .reader, title: L("Reading of « \(title) »"),
+        let name = L("The AI reader")
+        return CriticTableRecord(id: id, kind: .reader, title: L("AI reading of « \(title) »"),
                                  critics: [Critic(id: "lecteur", name: name, horizon: "")],
                                  agent: engine, model: engine.rawValue == reading.agent ? reading.model : model, context: context)
     }
 
-    /// A debate on the open chapter, or on the whole book (nil).
-    func debateTable(critics: [Critic], chapter: String?, agent: AgentKind, model: String) -> CriticTableRecord {
+    /// A debate on some chapters: one is given in full, the whole book or several are read by each voice first.
+    func debateTable(critics: [Critic], chapters: [ChapterEntry], wholeBook: Bool, stage: CriticTableRecord.Stage,
+                     agent: AgentKind, model: String) -> CriticTableRecord {
         let title: String
         let context: String
-        if let chapter, let entry = anyChapter(chapter) {
+        if chapters.count == 1, let entry = chapters.first {
             title = entry.title
-            context = "Le chapitre « \(entry.title) » du livre « \(self.title) » :\n<<<\n\(printed(chapter))\n>>>\n\nTous les chapitres du livre :\n\(chapterFiles)"
-        } else {
+            context = "Le chapitre « \(entry.title) » du livre « \(self.title) » :\n<<<\n\(printed(entry.id))\n>>>\n\nTous les chapitres du livre :\n\(chapterFiles)"
+        } else if wholeBook {
             title = self.title
             context = "Le livre entier, « \(self.title) ». Lisez ses chapitres dans l'ordre avec votre outil Read avant de parler :\n\(chapterFiles)"
+        } else {
+            title = chapters.count <= 3 ? chapters.map(\.title).joined(separator: " · ") : "\(self.title) · " + L("\(chapters.count) chapters")
+            let list = chapters.map { "- \($0.title) — `\($0.file)`" }.joined(separator: "\n")
+            context = "Ces chapitres du livre « \(self.title) », à lire dans l'ordre avec votre outil Read avant de parler :\n\(list)\n\nTous les chapitres du livre, pour situer :\n\(chapterFiles)"
         }
-        return CriticTableRecord(id: "debate-" + UUID().uuidString, kind: .debate, title: title, critics: critics, agent: agent, model: model, context: context)
+        var record = CriticTableRecord(id: "debate-" + UUID().uuidString, kind: .debate, title: title, critics: critics, agent: agent, model: model,
+                                       context: context, stage: stage == .finished ? nil : stage)
+        if let plan = planForDebate {
+            record.context += "\n\n" + plan
+            record.againstPlan = true
+            // Chapters still to write: the book is unfinished, whatever its written chapters' status.
+            if !(plot.planned ?? []).isEmpty, record.stage == nil { record.stage = .incomplete }
+        }
+        return record
+    }
+
+    /// The author's synopsis and plan, as the voices read them; nil when there is none.
+    var planForDebate: String? {
+        let synopsis = (plot.synopsis ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let chapters = manifest.chapters.enumerated().map { i, ch in
+            let s = plot.chapterSynopsis(ch.id)
+            return "\(i). « \(ch.title) » (écrit\(ch.status.map { ", " + $0.rawValue } ?? ""))" + (s.isEmpty ? "" : " — " + s)
+        }
+        let planned = (plot.planned ?? []).enumerated().map { i, p in
+            "\(manifest.chapters.count + i). « \(p.title) » (pas encore écrit)" + (p.synopsis.isEmpty ? "" : " — " + p.synopsis)
+        }
+        let anySynopsis = !synopsis.isEmpty || !(plot.chapterSynopses ?? [:]).isEmpty || !planned.isEmpty
+        guard anySynopsis else { return nil }
+        var parts = ["Le plan de l'auteur, écrit par l'auteur seul :"]
+        if !synopsis.isEmpty { parts.append("Synopsis :\n" + synopsis) }
+        parts.append("Chapitre par chapitre :\n" + (chapters + planned).joined(separator: "\n"))
+        parts.append("Jugez chaque chapitre écrit à sa place dans ce plan : fait-il ce que le plan lui demande, à ce moment du livre ? Puis jugez le potentiel du plan lui-même : ce qu'il promet, ses forces, ses risques, ce qui lui manque. Ce qui n'est pas encore écrit ne compte jamais contre le livre.")
+        return parts.joined(separator: "\n\n")
     }
 }
 
@@ -334,7 +430,10 @@ struct CriticTableView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(table.record.title).font(.ui(13, .medium)).lineLimit(1)
                     if table.record.kind == .debate {
-                        Text(table.record.critics.map(\.name).joined(separator: " · ")).font(.ui(11)).foregroundStyle(.secondary).lineLimit(1)
+                        Text(([table.record.stage?.label].compactMap { $0 } + table.record.critics.map { c in
+                            c.name + (table.record.stars(of: c.id).map { " \(String(repeating: "★", count: $0))" } ?? "")
+                        }).joined(separator: " · "))
+                        .font(.ui(11)).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
                 Spacer()
@@ -345,8 +444,7 @@ struct CriticTableView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if table.record.turns.isEmpty, !table.running {
-                            Text(L("Ask about a score, a reservation, a passage: this reader wrote them."))
-                                .font(.ui(12)).foregroundStyle(.secondary)
+                            EmptyNote(L("Ask about a score, a reservation, a passage: this AI reader wrote them."))
                         }
                         ForEach(Array(table.record.turns.enumerated()), id: \.element.id) { i, turn in
                             if table.record.kind == .debate, i == 0 || (table.record.turns[i - 1].opening == true && turn.opening != true) {
@@ -355,7 +453,7 @@ struct CriticTableView: View {
                             }
                             TurnView(turn: turn, name: table.record.name(of: turn.critic), fontSize: fontSize).id(turn.id)
                         }
-                        if let e = table.lastError { Text(e).font(.ui(12)).foregroundStyle(.red).textSelection(.enabled) }
+                        if let e = table.lastError { Text(e).font(.ui(12)).foregroundStyle(Ink.error).textSelection(.enabled) }
                     }
                     .padding(.horizontal, 18).padding(.vertical, 14)
                     .frame(maxWidth: columnWidth, alignment: .leading)
@@ -378,11 +476,11 @@ struct CriticTableView: View {
                         }
                     }
                 }
-                Composer(text: $input, fontSize: 13, placeholder: table.record.kind == .debate ? L("Speak to the table…") : L("Answer the reader…"), onSend: send, height: $height)
+                Composer(text: $input, fontSize: 13, placeholder: table.record.kind == .debate ? L("Speak to the table…") : L("Answer the AI reader…"), onSend: send, height: $height)
                     .frame(height: max(height, 40))
                     .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.card))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             }
             .padding(14)
             .frame(maxWidth: columnWidth)
@@ -406,25 +504,54 @@ private struct TurnView: View {
         if turn.critic == nil {
             Text(turn.text).font(.ui(fontSize - 2)).lineSpacing(2)
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(Color.accentColor.opacity(0.10), in: UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12, bottomTrailingRadius: 4, topTrailingRadius: 12))
+                .background(Ink.accent.opacity(0.10), in: UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12, bottomTrailingRadius: 4, topTrailingRadius: 12))
                 .textSelection(.enabled)
                 .frame(maxWidth: 320, alignment: .trailing)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         } else {
+            let rated = turn.opening == true ? CriticTableRecord.rating(in: turn.text) : (stars: nil, potential: nil, text: turn.text)
             VStack(alignment: .leading, spacing: 5) {
-                Text(name).font(.ui(12, .medium)).foregroundStyle(Ink.critique)
-                MarkdownText(text: turn.text.isEmpty ? "…" : turn.text, size: fontSize)
+                HStack(spacing: 8) {
+                    Text(name).font(.ui(12, .medium)).foregroundStyle(Ink.critique)
+                    if let p = rated.potential {
+                        if let n = rated.stars { Text(L("Written")).font(.ui(11)).foregroundStyle(.secondary); Stars(count: n) }
+                        Text(L("Potential")).font(.ui(11)).foregroundStyle(.secondary); Stars(count: p)
+                    } else if let n = rated.stars { Stars(count: n) }
+                }
+                MarkdownText(text: rated.text.isEmpty ? "…" : rated.text, size: fontSize)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
+/// A rating out of five stars.
+struct Stars: View {
+    let count: Int
+    var size: CGFloat = 11
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(1...5, id: \.self) { i in
+                Image(systemName: i <= count ? "star.fill" : "star").font(.system(size: size)).foregroundStyle(i <= count ? Ink.critique : Color.secondary.opacity(0.5))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L("\(count) out of 5 stars"))
+    }
+}
+
 /// Debates on the book's home: who sits at the table, on what, and the debates already held.
 struct DebatePage: View {
     let session: BookSession
+    /// Opens the synopsis the debate judges against.
+    var openSynopsis: () -> Void = {}
     @State private var chosen: Set<String> = ["gallimard", "lemonde", "menagere"]
-    @State private var scope = ""
+    @State private var scope = ChapterScopeMode.book.rawValue
+    @State private var statusList = "edited,final"
+    @State private var picked: Set<String> = []
+    /// Nil: from the chapters' statuses.
+    @State private var stage: CriticTableRecord.Stage?
     @State private var mine: [Critic] = []
     @State private var newName = ""
     @State private var newHorizon = ""
@@ -450,13 +577,37 @@ struct DebatePage: View {
         .onAppear(perform: reload)
     }
 
+    private var chapters: [ChapterEntry] {
+        ChapterScopePicker.chapters(session.manifest, scope: scope, statusList: statusList, picked: picked)
+    }
+
+    /// Unfinished while chapters are still planned; a draft as long as one of the chapters is still one.
+    private var derivedStage: CriticTableRecord.Stage {
+        if !(session.plot.planned ?? []).isEmpty { return .incomplete }
+        return chapters.contains { ($0.status ?? .draft) == .draft } ? .draft : .finished
+    }
+
+    /// The book as the plan sees it: the written chapters, then the ones still to write, dashed.
+    private var planStrip: some View {
+        HStack(spacing: 3) {
+            ForEach(session.manifest.chapters) { ch in
+                RoundedRectangle(cornerRadius: 3).fill(Ink.accent.opacity(0.18)).frame(height: 8).help(ch.title)
+            }
+            ForEach(session.plot.planned ?? []) { p in
+                RoundedRectangle(cornerRadius: 3).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 2])).foregroundStyle(Ink.hairline)
+                    .frame(height: 8).help(p.title)
+            }
+        }
+    }
+
     private func reload() {
         mine = Critic.mine(session.root)
+        if picked.isEmpty, let id = session.selectedChapterID { picked = [id] }
         let dir = BookStore(root: session.root).chatDir.appendingPathComponent("tables")
         let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
         past = files.filter { $0.lastPathComponent.hasPrefix("debate-") }
             .sorted { ((try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) > ((try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) }
-            .compactMap { (try? Data(contentsOf: $0)).flatMap { try? JSONDecoder().decode(CriticTableRecord.self, from: $0) } }
+            .compactMap { JSONFile.read(CriticTableRecord.self, at: $0) }
     }
 
     private var setup: some View {
@@ -466,11 +617,32 @@ struct DebatePage: View {
                     Text(L("Debate")).font(.system(size: 28, design: .serif))
                     Text(L("Each gives their view alone, then they argue. You can step in at any time.")).foregroundStyle(.secondary)
                 }
-                Picker(L("On"), selection: $scope) {
-                    Text(L("The whole book", ctx: "Tout le livre")).tag("")
-                    ForEach(session.manifest.chapters) { Text($0.title).tag($0.id) }
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionLabel(L("On", ctx: "Sur"))
+                    ChapterScopePicker(session: session, scope: $scope, statusList: $statusList, picked: $picked, pickHint: L("A scene, a sequence, the opening…"))
+                        .frame(maxWidth: 520)
                 }
-                .frame(maxWidth: 360)
+                if session.planForDebate != nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionLabel(L("Against", ctx: "Face à"))
+                        HStack(spacing: 6) {
+                            Button(L("Your synopsis"), action: openSynopsis).buttonStyle(.link)
+                            Text(L("and your plan, chapter by chapter")).foregroundStyle(.secondary)
+                        }
+                        .font(.ui(13))
+                        planStrip.frame(maxWidth: 520)
+                        Text(L("Each written chapter is judged at its place in the plan, then the plan for its potential. What isn’t written yet never counts against the book."))
+                            .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(L("The text is"))
+                    Segmented(options: CriticTableRecord.Stage.allCases.map { ($0, $0.label) },
+                              selection: Binding(get: { stage ?? derivedStage }, set: { stage = $0 }))
+                        .frame(maxWidth: 520)
+                    Text(L("The voices judge it for what it is now: a draft for its promise, not its polish."))
+                        .font(.ui(12)).foregroundStyle(.secondary)
+                }
                 ForEach(Critic.groups, id: \.self) { group in
                     let list = (Critic.panel + mine.map { var c = $0; c.group = "mine"; return c }).filter { $0.group == group }
                     if !list.isEmpty || group == "mine" {
@@ -494,20 +666,23 @@ struct DebatePage: View {
                 }
                 Text(L("Imagined voices: what they say commits neither the people nor the houses they evoke."))
                     .font(.ui(12)).foregroundStyle(.secondary)
-                if scope.isEmpty {
-                    Text(L("On the whole book, each voice reads every chapter first: this takes a while and uses a good deal of your subscription."))
+                if chapters.count > 1 {
+                    Text(L("Each voice reads these chapters first: this takes a while and uses a good deal of your subscription."))
                         .font(.ui(12)).foregroundStyle(.secondary)
                 }
                 Button(L("Start the debate"), action: start)
                     .buttonStyle(.ink)
-                    .disabled(chosen.count < 2 || engine == nil)
+                    .disabled(chosen.count < 2 || engine == nil || chapters.isEmpty)
                 if !past.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(L("Earlier debates")).font(.ui(11, .medium)).foregroundStyle(.secondary)
                         ForEach(past) { r in
                             Button { open(r) } label: {
                                 VStack(alignment: .leading, spacing: 1) {
-                                    Text(r.title).font(.ui(13))
+                                    HStack(spacing: 8) {
+                                        Text(r.title).font(.ui(13))
+                                        if let mean = r.meanStars { Stars(count: Int(mean.rounded()), size: 10) }
+                                    }
                                     Text(r.critics.map(\.name).joined(separator: " · ")).font(.ui(12)).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5).contentShape(Rectangle())
@@ -561,7 +736,8 @@ struct DebatePage: View {
         guard let engine else { return }
         let all = Critic.panel + mine
         let critics = all.filter { chosen.contains($0.id) }
-        let record = session.debateTable(critics: critics, chapter: scope.isEmpty ? nil : scope, agent: engine, model: model)
+        let record = session.debateTable(critics: critics, chapters: chapters, wholeBook: scope == ChapterScopeMode.book.rawValue,
+                                         stage: stage ?? derivedStage, agent: engine, model: model)
         open(record)
         session.debate?.openDebate()
     }

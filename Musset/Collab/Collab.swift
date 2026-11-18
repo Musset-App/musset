@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Observation
 
@@ -28,6 +29,19 @@ final class Collab {
     @ObservationIgnored var again = Set<String>()
     @ObservationIgnored var waitingRemovals: [String: [String]] = [:]
     var lastError: String?
+    /// The plan (free or writer) and the rest musset-api knows; nil until asked.
+    var account: AccountInfo?
+    /// The people I know on Musset, and those I invited by e-mail.
+    var circle: [CirclePerson] = []
+    /// What happened in the books I read or write, newest first.
+    var activity: [ActivityItem] = []
+    /// The books on the account, mine and shared with me, as last asked (Home asks when it shows).
+    var online: [Repo] = []
+    /// Notices that could not be sent (offline), for the next sync.
+    var pendingNotices: [[String: Any]] {
+        get { (UserDefaults.standard.array(forKey: "collabPendingNotices") as? [[String: Any]]) ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: "collabPendingNotices") }
+    }
 
     /// What the books' sync is doing, for the status bar.
     var sync = SyncStatus.off
@@ -48,12 +62,16 @@ final class Collab {
 
     // MARK: Account
 
-    func signUp(username: String, email: String, password: String) async throws {
+    /// A free account. The user name may be left empty: the server makes one from the e-mail.
+    func signUp(username: String = "", email: String, password: String, name: String = "", invitation: String? = nil) async throws {
         struct Out: Decodable { let username: String; let token: String }
-        let out: Out = try await request("POST", Self.server.appendingPathComponent("musset-api/signup"),
-                                         body: ["username": username, "email": email, "password": password, "device": Host.current().localizedName ?? "Mac"])
+        var body: [String: Any] = ["username": username, "email": email, "password": password, "name": name,
+                                   "lang": UILang.current.localeID, "device": Host.current().localizedName ?? "Mac"]
+        if let invitation { body["invitation"] = invitation }
+        let out: Out = try await request("POST", Self.server.appendingPathComponent("musset-api/signup"), body: body)
         Secrets.set(Self.tokenKey, out.token)
         self.username = out.username
+        await refreshAccount()
     }
 
     func signIn(username: String, password: String) async throws {
@@ -64,12 +82,17 @@ final class Collab {
                                          basic: (username, password))
         Secrets.set(Self.tokenKey, out.sha1)
         self.username = username
+        await refreshAccount()
     }
 
     func signOut() {
         Secrets.set(Self.tokenKey, "")
         sync = .off
         username = nil
+        account = nil
+        circle = []
+        activity = []
+        online = []
     }
 
     // MARK: Books on the server
@@ -107,18 +130,29 @@ final class Collab {
 
     func isOwner(_ git: GitService) -> Bool { link(git).map { $0.owner == username } ?? false }
     /// An editor: changes stay corrections, on their own branch. Until the server says otherwise, anyone who isn't the owner.
-    func isReviewer(_ git: GitService) -> Bool { link(git) != nil && role(git) == .editor }
+    func isReviewer(_ git: GitService) -> Bool { link(git) != nil && (role(git)?.reviews ?? false) }
 
     /// How someone takes part in a book.
     enum Role: String, CaseIterable, Identifiable {
-        case editor, collaborator
+        /// Reads, marks up and leaves notes; suggests no changes.
+        case reader, editor, collaborator
         var id: String { rawValue }
-        var label: String { self == .editor ? L("Editor") : L("Collaborator") }
-        var help: String {
-            self == .editor
-                ? L("Proposes corrections and notes. You accept or reject each one.")
-                : L("Writes in the text with you, and sees the documents.")
+        var label: String {
+            switch self {
+            case .reader: L("Reader")
+            case .editor: L("Editor")
+            case .collaborator: L("Co-writer")
+            }
         }
+        var help: String {
+            switch self {
+            case .reader: L("Marks up the text and leaves notes.")
+            case .editor: L("Proposes corrections and notes. You accept or reject each one.")
+            case .collaborator: L("Writes in the text with you, and sees the documents.")
+            }
+        }
+        /// Whether their changes come back as corrections (on their own branch) rather than into the text.
+        var reviews: Bool { self != .collaborator }
     }
 
     private var knownRoles: [String: String] = UserDefaults.standard.dictionary(forKey: "collabRoles") as? [String: String] ?? [:] {
@@ -137,7 +171,8 @@ final class Collab {
         guard let l = link(git), l.owner != username else { return nil }
         struct Branch: Decodable { let `protected`: Bool?; let user_can_push: Bool? }
         let main: Branch = try await request("GET", api("repos/\(l.owner)/\(l.repo)/branches/main"))
-        let role: Role = main.protected == true && main.user_can_push == true ? .collaborator : .editor
+        var role: Role = main.protected == true && main.user_can_push == true ? .collaborator : .editor
+        if role == .editor, await serverRole(in: git) == .reader { role = .reader }
         knownRoles["\(l.owner)/\(l.repo)"] = role.rawValue
         return role
     }
@@ -149,15 +184,17 @@ final class Collab {
         if on { keptLocal.insert(path) } else { keptLocal.remove(path); opened(session) }
     }
 
-    /// Creates the book's private repository and sends the book to it.
+    /// Creates the book's private repository and sends the book to it. Only a writer account puts books online.
     func share(_ session: BookSession) async throws {
         guard let creds = credentials else { throw failure(L("Sign in first.")) }
+        if account == nil { await refreshAccount() }
+        guard canSync else { throw NeedsSubscription() }
         session.flushSave()
         session.commitNow("musset: before sharing")
-        let slug = session.title.lowercased().folding(options: .diacriticInsensitive, locale: nil)
-            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: "-")
+        let slug = session.title.slug()
         let repo = try await createRepo(slug.isEmpty ? "livre" : slug, description: session.title)
         if session.git.remotes()["musset"] == nil { try session.git.addRemote("musset", url: repo.clone_url) }
+        session.forgetRepoStatus()
         let git = session.git
         let branch = git.currentBranch ?? "main"
         try await Task.detached { try git.push("musset", refspecs: ["refs/heads/\(branch):refs/heads/main"], credentials: creds) }.value
@@ -170,6 +207,11 @@ final class Collab {
             do {
                 return try await request("POST", api("user/repos"), body: ["name": candidate, "private": true, "description": description])
             } catch let e as NSError where e.code == 409 { continue }
+            catch let e as NSError where e.code == 403 || e.code == 422 && !(e.localizedDescription.contains("exist")) {
+                // Forgejo refuses repositories to an account with no repository allowance: a free one.
+                await refreshAccount()
+                throw NeedsSubscription()
+            }
         }
         throw failure(L("This name is taken."))
     }
@@ -180,7 +222,13 @@ final class Collab {
         struct U: Decodable { let login: String }
         let users: [U] = try await request("GET", api("repos/\(l.owner)/\(l.repo)/collaborators"))
         let writers = try await protectMain(l.owner, l.repo)
-        return users.map { ($0.login, writers.contains($0.login) ? .collaborator : .editor) }
+        struct Roles: Decodable { let roles: [String: String] }
+        let repo = "\(l.owner)/\(l.repo)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let known = (try? await request("GET", URL(string: Self.server.appendingPathComponent("musset-api/roles").absoluteString + "?repo=" + repo)!) as Roles)?.roles ?? [:]
+        return users.map { u in
+            if writers.contains(u.login) { return (u.login, .collaborator) }
+            return (u.login, known[u.login] == "reader" ? .reader : .editor)
+        }
     }
 
     /// Only those named here can push to main: anyone else invited can only push their own branch.
@@ -209,6 +257,7 @@ final class Collab {
 
     func setRole(_ role: Role, of user: String, in session: BookSession) async throws {
         guard let l = link(session.git) else { return }
+        await recordRole(role, of: user, in: session)
         var writers = try await protectMain(l.owner, l.repo)
         writers.removeAll { $0 == user }
         if role == .collaborator { writers.append(user) }
@@ -234,6 +283,12 @@ final class Collab {
             if batch.count < 50 { break }
         }
         return all.filter { !$0.name.hasSuffix(Self.documentsSuffix) }
+    }
+
+    /// Asks again for the books on the account. A failure leaves the last answer in place.
+    func refreshOnline() async throws {
+        guard signedIn else { online = []; return }
+        online = try await onlineBooks()
     }
 
     /// Downloads a book into `folder`. An editor goes to their own branch; the others write in the main text.
@@ -273,7 +328,7 @@ final class Collab {
         let open: [Review] = try await request("GET", api("repos/\(l.owner)/\(l.repo)/pulls?state=open"))
         if open.contains(where: { $0.head.ref == branch }) { return }
         let _: Review = try await request("POST", api("repos/\(l.owner)/\(l.repo)/pulls"),
-                                          body: ["head": branch, "base": "main", "title": L("Review by ") + user, "body": message])
+                                          body: ["head": branch, "base": "main", "title": L("Review by \(user)"), "body": message])
     }
 
     /// The reader starts over from the author's latest version (after their review was read).
@@ -291,8 +346,8 @@ final class Collab {
         return try await request("GET", api("repos/\(l.owner)/\(l.repo)/pulls?state=open"))
     }
 
-    /// Brings a review into the author's chapters as corrections to accept or reject, and its notes into the margin.
-    /// Returns how many corrections were placed, and those that could not be (turned into notes).
+    /// Brings a review into the author's chapters as corrections to accept or reject, and everything the reader said
+    /// into the conversations. Returns how many corrections were placed, and those that could not be (now conversations).
     func importReview(_ review: Review, into session: BookSession) async throws -> (placed: Int, unplaced: Int) {
         guard let creds = credentials, let l = link(session.git) else { return (0, 0) }
         session.flushSave()
@@ -301,31 +356,7 @@ final class Collab {
         try await Task.detached { try git.fetch(l.remote, credentials: creds) }.value
         let theirs = "\(l.remote)/\(review.head.ref)"
         guard let base = git.mergeBase("HEAD", theirs) ?? git.resolve("\(l.remote)/main") else { throw failure(L("No common version.")) }
-        var placed = 0, unplaced = 0
-        for ch in session.manifest.chapters {
-            guard let them = git.show(theirs, path: ch.file) else { continue }
-            let baseText = ParagraphCodec.decode(git.show(base, path: ch.file) ?? "")
-            let theirText = ParagraphCodec.decode(them)
-            guard theirText != baseText else { continue }
-            let current = session.editorText(of: ch.id)
-            let out = ReviewImport.apply(base: baseText, reviewer: theirText, current: current, reader: review.user.login)
-            placed += out.placed
-            unplaced += out.unplaced.count
-            var text = out.text
-            if !out.unplaced.isEmpty {
-                text += "\n" + out.unplaced.map { "{>>\(review.user.login) : \($0)<<}" }.joined(separator: " ") + "\n"
-            }
-            if ch.id == session.selectedChapterID { session.replaceText(text) }
-            else { try session.store.write(ParagraphCodec.encode(text), to: ch) }
-            // The reader's margin notes join the author's.
-            // A reader on an older Musset still sends JSON.
-            let readers = git.show(theirs, path: ".musset/notes/\(ch.id).md").map(NoteMarkdown.decode)
-                ?? git.data(theirs, path: ".musset/notes/\(ch.id).json").map(NoteStore.readJSON)
-            if let readers {
-                session.notes.importNotes(readers, chapter: ch.id, from: review.user.login)
-                if ch.id == session.selectedChapterID { session.notes.resolveAll(in: session.text) }
-            }
-        }
+        let (placed, unplaced) = try session.adoptReview(theirs: theirs, base: base, reader: review.user.login)
         session.countAllWords()
         session.commitNow("musset: review by \(review.user.login), as corrections\n\nMusset-Author: \(review.user.login)")
         let _: Empty = try await request("POST", api("repos/\(l.owner)/\(l.repo)/issues/\(review.number)/comments"),
@@ -383,7 +414,10 @@ final class Collab {
 /// A review comes back as corrections on the author's text as it is now, even if they kept writing: what the reader
 /// changed (base → reviewer) is placed where the same words still stand; what can't be placed comes back as a comment.
 enum ReviewImport {
-    struct Result { let text: String; let placed: Int; let unplaced: [String] }
+    /// Something the reader said in the text: a comment on the passage they highlighted (or on the words before it).
+    /// `at` is where the passage stands in the resulting text, nil when the author has rewritten it since.
+    struct Remark: Equatable { let quote: String; let body: String; let at: Int? }
+    struct Result { let text: String; let placed: Int; let unplaced: [String]; let remarks: [Remark] }
 
     private struct Hunk {
         let old: String
@@ -394,7 +428,7 @@ enum ReviewImport {
         var paragraph = false
     }
 
-    static func apply(base: String, reviewer: String, current: String, reader: String) -> Result {
+    static func apply(base: String, reviewer: String, current: String) -> Result {
         // The reader's own marks: what they propose is the text with them accepted; their comments travel apart.
         let target = Revisions.resolveAll(reviewer, accept: true)
         var hunks: [Hunk] = []
@@ -429,74 +463,51 @@ enum ReviewImport {
         var edits: [(NSRange, String)] = []
         var unplaced: [String] = []
         for h in hunks {
+            let mark = h.paragraph ? "\n{++" + h.new + "++}" : h.old.isEmpty ? "{++" + h.new + "++}"
+                : h.new.isEmpty ? "{--" + h.old + "--}" : "{~~" + h.old + "~>" + h.new + "~~}"
+            // The same review brought in before: its correction already stands there, waiting.
+            if ns.range(of: h.before + mark).location != NSNotFound, h.after.isEmpty || ns.range(of: mark + h.after).location != NSNotFound { continue }
             guard let r = locate(h, in: ns) else {
                 unplaced.append(h.old.isEmpty ? L("adds « \(h.new) »")
                                 : h.new.isEmpty ? L("removes « \(h.old) »")
-                                : "« \(h.old) » → « \(h.new) »")
+                                : inQuotes(h.old) + " → " + inQuotes(h.new))
                 continue
             }
             if edits.contains(where: { NSIntersectionRange($0.0, r).length > 0 || ($0.0.location == r.location && r.length == 0) }) { continue }
-            let mark = h.paragraph ? "\n{++" + h.new + "++}" : h.old.isEmpty ? "{++" + h.new + "++}"
-                : h.new.isEmpty ? "{--" + h.old + "--}" : "{~~" + h.old + "~>" + h.new + "~~}"
             edits.append((r, mark))
-        }
-        // The reader's comments, on the passage they highlighted (or the words before a lone comment).
-        let rns = reviewer as NSString
-        for m in Revisions.marks(in: reviewer) where m.kind == .highlight || m.kind == .comment {
-            guard let c = m.second, c.length > 0 else { continue }
-            let comment = rns.substring(with: c)
-            let quote = m.kind == .highlight ? rns.substring(with: m.first)
-                : String(Revisions.resolveAll(rns.substring(to: m.range.location), accept: false).suffix(40))
-            let r = ns.range(of: quote)
-            if r.location != NSNotFound, !edits.contains(where: { NSIntersectionRange($0.0, r).length > 0 }) {
-                edits.append((r, m.kind == .highlight ? "{==" + quote + "==}{>>\(reader) : \(comment)<<}" : quote + "{>>\(reader) : \(comment)<<}"))
-            } else {
-                unplaced.append(comment)
-            }
         }
         let out = NSMutableString(string: current)
         for (r, text) in edits.sorted(by: { $0.0.location > $1.0.location }) { out.replaceCharacters(in: r, with: text) }
-        return Result(text: out as String, placed: edits.count, unplaced: unplaced)
+        // The reader's comments, on the passage they highlighted (or the words before a lone comment): they leave no
+        // mark in the author's text, only where their passage is now.
+        let rns = reviewer as NSString
+        var remarks: [Remark] = []
+        for m in Revisions.marks(in: reviewer) where m.kind == .highlight || m.kind == .comment {
+            guard let c = m.second, c.length > 0 else { continue }
+            var quote = m.kind == .highlight ? rns.substring(with: m.first)
+                : String(Revisions.resolveAll(rns.substring(to: m.range.location), accept: false).suffix(40))
+            // The words before a lone comment, from a whole word on.
+            if m.kind == .comment, quote.count == 40, let space = quote.firstIndex(of: " ") { quote = String(quote[quote.index(after: space)...]) }
+            let r = quote.isEmpty ? NSRange(location: NSNotFound, length: 0) : ns.range(of: quote)
+            var at: Int?
+            if r.location != NSNotFound, !edits.contains(where: { NSIntersectionRange($0.0, r).length > 0 }) {
+                at = r.location + edits.filter { $0.0.location <= r.location }.reduce(0) { $0 + ($1.1 as NSString).length - $1.0.length }
+                if let spot = at, out.substring(with: NSRange(location: spot, length: r.length)) != quote { at = nil }
+            }
+            remarks.append(Remark(quote: quote, body: rns.substring(with: c), at: at))
+        }
+        return Result(text: out as String, placed: edits.count, unplaced: unplaced, remarks: remarks)
     }
 
     /// Changes inside an edited paragraph, word by word, each with a few words of context.
     private static func wordHunks(_ a: String, _ b: String) -> [Hunk] {
-        func tokens(_ s: String) -> [String] {
-            var out: [String] = [], cur = ""
-            for ch in s {
-                if ch.isWhitespace != (cur.last?.isWhitespace ?? ch.isWhitespace), !cur.isEmpty { out.append(cur); cur = "" }
-                cur.append(ch)
-            }
-            if !cur.isEmpty { out.append(cur) }
-            return out
+        let x = Diff.tokens(a), y = Diff.tokens(b)
+        // Each stretch that differs is one hunk.
+        return Diff.gaps(x, y).map { gap in
+            Hunk(old: x[gap.old].joined(), new: y[gap.new].joined(),
+                 before: x[max(0, gap.old.lowerBound - 6)..<gap.old.lowerBound].joined(),
+                 after: x[gap.old.upperBound..<min(x.count, gap.old.upperBound + 6)].joined())
         }
-        let x = tokens(a), y = tokens(b)
-        let diff = y.difference(from: x)
-        var removed = Set<Int>(), added: [Int: String] = [:]
-        for c in diff {
-            switch c {
-            case .remove(let o, _, _): removed.insert(o)
-            case .insert(let o, let e, _): added[o] = e
-            }
-        }
-        // Walk both token lists together, grouping each run of changes into one hunk.
-        var hunks: [Hunk] = []
-        var i = 0, j = 0
-        while i < x.count || j < y.count {
-            if (i < x.count && removed.contains(i)) || (j < y.count && added[j] != nil) {
-                let start = i
-                var old = "", new = ""
-                while i < x.count, removed.contains(i) { old += x[i]; i += 1 }
-                while j < y.count, added[j] != nil { new += y[j]; j += 1 }
-                while i < x.count, removed.contains(i) { old += x[i]; i += 1 }
-                let before = x[max(0, start - 6)..<start].joined()
-                let after = x[i..<min(x.count, i + 6)].joined()
-                hunks.append(Hunk(old: old, new: new, before: before, after: after))
-            } else {
-                i += 1; j += 1
-            }
-        }
-        return hunks
     }
 
     /// Where a change belongs in the current text: the old words with their context, else alone if they occur once.
@@ -517,5 +528,75 @@ enum ReviewImport {
         guard first.location != NSNotFound else { return nil }
         let again = text.range(of: h.old, range: NSRange(location: NSMaxRange(first), length: text.length - NSMaxRange(first)))
         return again.location == NSNotFound ? first : nil
+    }
+}
+
+extension BookSession {
+    /// A reader's review, read from their branch `theirs` (which left the book at `base`). What they changed in the
+    /// chapters becomes corrections to accept or reject; everything they said (a comment in the text, a margin note,
+    /// a conversation) becomes conversations kept with the book, each once however many times the review is brought in.
+    @discardableResult
+    func adoptReview(theirs: String, base: String, reader: String) throws -> (placed: Int, unplaced: Int) {
+        var placed = 0, unplaced = 0
+        for ch in manifest.chapters {
+            var said = Talk.decode(git.data(theirs, path: Talk.path(reader, ch.id)))
+            if let them = git.show(theirs, path: ch.file) {
+                let baseText = ParagraphCodec.decode(git.show(base, path: ch.file) ?? "")
+                let theirText = ParagraphCodec.decode(them)
+                if theirText != baseText {
+                    let out = ReviewImport.apply(base: baseText, reviewer: theirText, current: editorText(of: ch.id))
+                    placed += out.placed
+                    unplaced += out.unplaced.count
+                    if out.text != editorText(of: ch.id) { try writeChapterText(ch.id, out.text) }
+                    said += out.remarks.map { ReviewImport.entry($0, in: out.text, chapter: ch.id, reader: reader) }
+                    said += out.unplaced.map { ReviewImport.entry(.init(quote: "", body: $0, at: nil), in: out.text, chapter: ch.id, reader: reader) }
+                }
+            }
+            // Their margin notes: the ones they wrote (not the author's own, which their branch carries too), unless
+            // an earlier Musset already brought them in as notes. A reader on an older Musset still sends JSON.
+            func notes(_ rev: String) -> [Note] {
+                git.show(rev, path: ".musset/notes/\(ch.id).md").map(NoteMarkdown.decode)
+                    ?? git.data(rev, path: ".musset/notes/\(ch.id).json").map(NoteStore.readJSON) ?? []
+            }
+            let mine = Set((notes(base) + noteStore(for: ch.id).notes(of: ch.id)).map(\.id))
+            said += notes(theirs).filter { !mine.contains($0.id) }.flatMap { ReviewImport.entries($0, chapter: ch.id, reader: reader) }
+            talk.adopt(said, chapter: ch.id, from: reader)
+        }
+        return (placed, unplaced)
+    }
+}
+
+extension ReviewImport {
+    /// The same remark always has the same id, so it is kept once.
+    static func stableID(_ parts: String...) -> UUID {
+        let hash = Array(SHA256.hash(data: Data(parts.joined(separator: "\u{0}").utf8)))
+        return UUID(uuid: (hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
+                           hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]))
+    }
+
+    /// A comment the reader left in the text, as the start of a conversation on its passage in `text`.
+    static func entry(_ remark: Remark, in text: String, chapter: String, reader: String) -> TalkEntry {
+        let id = stableID(reader, chapter, remark.quote, remark.body)
+        let length = (remark.quote as NSString).length
+        let anchor: NoteAnchor? = remark.quote.isEmpty ? nil
+            : remark.at.map { Anchoring.capture(NSRange(location: $0, length: length), in: text as NSString, version: nil) }
+            ?? NoteAnchor(quote: remark.quote, prefix: "", suffix: "", start: 0, version: nil)
+        return TalkEntry(id: id, thread: id, kind: .note, by: reader, body: remark.body, chapter: chapter, anchor: anchor,
+                         mark: anchor == nil ? .margin : .highlight, color: Person.palette.firstIndex(of: Person.color(reader)) ?? 0)
+    }
+
+    /// A margin note from the reader's own notes, as a conversation: the note, what was answered under it on their
+    /// side, and whether they had settled it.
+    static func entries(_ note: Note, chapter: String, reader: String) -> [TalkEntry] {
+        func words(_ author: Note.Author, _ body: String) -> String { author.isAI ? "\(author.label) : \(body)" : body }
+        let tone = [.note, .text].contains(note.kind) ? nil : note.kind.rawValue
+        var out = [TalkEntry(id: note.id, thread: note.id, kind: .note, by: reader, at: note.created, body: words(note.author, note.body),
+                             chapter: chapter, anchor: note.hasPassage ? note.anchor : nil, mark: .margin,
+                             color: Person.palette.firstIndex(of: Person.color(reader)) ?? 0, tone: tone)]
+        out += note.replies.map { TalkEntry(id: $0.id, thread: note.id, kind: .reply, by: reader, at: $0.created, body: words($0.author, $0.body), chapter: chapter) }
+        if note.isClosed {
+            out.append(TalkEntry(id: stableID(note.id.uuidString, "resolve"), thread: note.id, kind: .resolve, by: reader, at: note.updated, chapter: chapter))
+        }
+        return out
     }
 }

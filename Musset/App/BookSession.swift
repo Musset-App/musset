@@ -8,14 +8,44 @@ final class BookSession: Identifiable {
     let root: URL
     let store: BookStore
     let git: GitService
-    /// Passage notes (yours and the AI's), kept beside the text in .musset/notes.
-    let notes: NoteStore
+    /// Passage notes (yours and the AI's) of the chapter one is in, kept beside the text in .musset/notes.
+    var notes: NoteStore { focused?.notes ?? noChapterNotes }
+    /// Notes when no chapter is open: empty, never saved anywhere.
+    @ObservationIgnored private let noChapterNotes: NoteStore
+    /// The chapters open for writing, and the one the author is in. Everything that speaks of « the chapter »
+    /// (`text`, `notes`, `selectedChapterID`) speaks of that one.
+    private(set) var focused: ChapterDoc?
+    @ObservationIgnored private(set) var docs: [String: ChapterDoc] = [:]
+    /// The main window's panes and tabs, kept with the book (`.musset/state.json`).
+    let mainWorkspace: Workspace
+    /// The book's other windows (a tab torn off, « Open in New Window »), by id.
+    var windows: [String: Workspace] = [:]
+    /// The window one is in: nil for the main one.
+    var activeWindow: String? {
+        didSet { if activeWindow != oldValue { followFocusedPane() } }
+    }
+    /// The panes and tabs of the window one is in: everything that opens something goes there.
+    var workspace: Workspace { activeWindow.flatMap { windows[$0] } ?? mainWorkspace }
+    var allWorkspaces: [Workspace] { [mainWorkspace] + windows.keys.sorted().compactMap { windows[$0] } }
+    /// Conversations with the people reading the book.
+    let talk: TalkStore
     let bible: BibleModel
+    /// Spots the names the author writes for the first time and gives them a sheet.
+    @ObservationIgnored private(set) lazy var spotter = NameSpotter(session: self)
+    /// Keeps « What the book says » up to date from the chapters.
+    @ObservationIgnored private(set) lazy var keeper = BibleKeeper(session: self)
     var manifest: BookManifest
-    var selectedChapterID: String?
+    var selectedChapterID: String? { focused?.chapterID }
     /// Text of the selected chapter as shown in the editor.
-    var text: String = ""
-    var versions: [String] = []
+    var text: String {
+        get { focused?.text ?? "" }
+        set { focused?.text = newValue }
+    }
+    /// The versions of the chapter one is in.
+    var versions: [String] {
+        get { focused?.versions ?? [] }
+        set { focused?.versions = newValue }
+    }
     /// Chapters with more than one version, and how many.
     var versionCounts: [String: Int] = [:]
     /// The last « Put in the book », while it can be undone.
@@ -23,12 +53,20 @@ final class BookSession: Identifiable {
     /// Bumped whenever the version open in the editor changes: what shows it (the breadcrumb's chip) redraws.
     var versionTick = 0
     var lastError: String?
-    /// Range to select once the editor shows the chapter (search results).
+    /// Range to select once the editor shows the chapter one has just gone to (search results): asked of the window's
+    /// live editor, once.
     var pendingSelection: NSRange?
+    /// A chapter just split by Return: the editor puts its undo on ⌘Z once the new chapter is loaded.
+    @ObservationIgnored var pendingSplitUndo: ChapterSplit?
     var lastCommitAt: Date?
     var pendingCommit = false
     /// Scenes of every chapter (editor form), for the sidebar tree and the plot grid.
     var scenes: [String: [ChapterScene]] = [:]
+    /// Sections of every chapter (its `## ` and `### ` sub-headings), read when its scenes are, in a book that
+    /// reads sub-headings as sections; empty in any other, which pays nothing for them.
+    var sections: [String: [ChapterSection]] = [:]
+    /// What the Scenes page shows of each chapter's text, made once and kept while the text stands (`cardText`).
+    @ObservationIgnored var cardTexts: [String: (mark: Int, text: ChapterCardText)] = [:]
     /// The book's plot grid (.musset/plot.json).
     var plot: PlotGrid
     /// The book's Trash (.musset/trash.json).
@@ -42,19 +80,24 @@ final class BookSession: Identifiable {
     let checks = CheckerRunner()
     /// Goes up when the book's checkers change, so every place that lists them reloads.
     var checkersChanged = 0
+    /// Goes up when boards were rewritten outside their page (a sheet on them moved): an open board reads its file again.
+    var boardsRewritten = 0
 
     /// Reads the book's past for the Historique tab, and keeps what it read.
     @ObservationIgnored lazy var historyReader = HistoryReader(git: git)
 
+    /// The layouts the author named, by name.
+    var layoutNames: [String] = []
     @ObservationIgnored var state: BookUIState
-    @ObservationIgnored private var saveTask: Task<Void, Never>?
     @ObservationIgnored private var stateTask: Task<Void, Never>?
-    @ObservationIgnored private var commitTask: Task<Void, Never>?
-    @ObservationIgnored private var dirty = false
-    @ObservationIgnored var selection: Int = 0
-    /// The version shown read-only beside the editor for the open chapter, and its text.
-    private(set) var reference: String?
-    private(set) var referenceText = ""
+    @ObservationIgnored var commitTask: Task<Void, Never>?
+    /// The chapter last saved and not committed yet.
+    @ObservationIgnored var lastSaved: String?
+    /// libgit2 calls on this book, one at a time: a background commit never overlaps one made in place.
+    @ObservationIgnored let gitQueue = DispatchQueue(label: "app.musset.git")
+    /// The version shown read-only beside the editor of the chapter one is in, and its text.
+    var reference: String? { focused?.reference }
+    var referenceText: String { focused?.referenceText ?? "" }
     /// The track being written in; nil for the manuscript (the files in the book's folder).
     var piste: Piste?
     var pistes: [Piste] = []
@@ -66,30 +109,45 @@ final class BookSession: Identifiable {
 
     static let commitIdleSeconds: UInt64 = 120
 
-    init(root: URL, manifest: BookManifest) {
+    /// `countsLater`: the app's way. The window shows the chapter left last time at once; the words, the scenes and
+    /// the cast's mentions of the whole book follow, counted off the main thread (`counting`). Otherwise everything
+    /// is counted before `init` returns.
+    init(root: URL, manifest: BookManifest, countsLater: Bool = false) {
         self.root = root
         self.store = BookStore(root: root)
         self.git = GitService(root: root)
-        self.notes = NoteStore(root: root)
+        self.noChapterNotes = NoteStore(root: root)
+        self.talk = TalkStore(root: root)
         self.bible = BibleModel(root: root)
         self.manifest = manifest
-        self.plot = PlotGrid.load(root)
+        var plot = PlotGrid.load(root)
+        plot.bind(to: bible.entries)
+        self.plot = plot
         self.trash = TrashStore(root: root).load()
-        self.state = store.loadState()
-        defer { countAllWords() }
-        // French books start with the Collection Blanche rubric (editable from the chat's « Rubric… »).
-        if manifest.lang.lowercased().hasPrefix("fr"), Rubric.load(root) == nil, store.hasManifest {
-            try? Rubric.save(Rubric.blanche, root: root)
-        }
+        var state = store.loadState()
+        let adopted = state.adoptOldPreferences(of: root)
+        self.state = state
+        // The panes and tabs as they were left, without what no longer exists.
+        self.mainWorkspace = state.layout.map { Workspace(saved: $0, keep: Self.keeper(root: root, manifest: manifest)) } ?? Workspace()
+        // In a track the chapters come from its branch: counted in place.
+        let later = countsLater && state.piste == nil
+        defer { if later { countAllWordsLater() } else { countAllWords() } }
         // Once: margin notes and scratch pads become Markdown notes, in a commit of their own, so it can be undone.
         if NoteStore.migrate(root: root, chapters: manifest.chapters.map(\.id)), git.isRepo {
             _ = try? git.commit(paths: [".musset"], message: "musset: notes en Markdown")
         }
         pistes = Pistes.load(root)
+        bible.onSheetsChanged = { [weak self] in self?.bindPlot() }
         piste = state.piste.flatMap { id in pistes.first { $0.id == id && git.resolve($0.branch) != nil } }
         jalons = git.tags(matching: "jalon/*")
-        let first = state.lastChapter.flatMap { id in (manifest.chapters + (manifest.drafts ?? [])).first { $0.id == id } } ?? manifest.chapters.first
-        if let first { open(first.id) }
+        // The chapter one was in: the layout says it (an older state file names it).
+        let first = (mainWorkspace.saved.lastChapter ?? state.lastChapter).flatMap { id in (manifest.chapters + (manifest.drafts ?? [])).first { $0.id == id } } ?? manifest.chapters.first
+        if let first { open(first.id, show: workspace.activeTab == nil || workspace.activeTab?.isChapter == true) }
+        watch(mainWorkspace)
+        if adopted { stateChanged() }
+        layoutNames = (state.layouts ?? [:]).keys.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        // The cast's tiers from the start, not only once the Bible is opened.
+        if !later { refreshBibleMentions() }
     }
 
     var title: String { manifest.title }
@@ -105,35 +163,103 @@ final class BookSession: Identifiable {
     }
 
     var wordCount: Int { BookStore.wordCount(text) }
-    /// Words per chapter (active version), for the sidebar's length bars. The open chapter is updated on save.
-    var chapterWords: [String: Int] = [:]
-    var bookWordCount: Int { manifest.chapters.filter { !$0.excludeFromExport }.reduce(0) { $0 + (chapterWords[$1.id] ?? 0) } }
+    /// The open chapter in the three units, as it stands in the editor.
+    var textCounts: TextCounts { TextCounts(text) }
 
-    private var todayKey: String {
-        "wordsBaseline:\(root.standardizedFileURL.path):\(Date().formatted(.iso8601.year().month().day()))"
+    /// What the status bar asks about the book's repository each time it redraws (a file check, the repository
+    /// opened to list its remotes): kept a few seconds, and forgotten when the book is shared or synced.
+    var repoStatus: (isRepo: Bool, linked: Bool) {
+        if let known = repoFacts, Date().timeIntervalSince(known.at) < 5 { return (known.isRepo, known.linked) }
+        let isRepo = git.isRepo
+        let linked = isRepo && Collab.shared.link(git) != nil
+        repoFacts = (Date(), isRepo, linked)
+        return (isRepo, linked)
     }
+    func forgetRepoStatus() { repoFacts = nil }
+    @ObservationIgnored private var repoFacts: (at: Date, isRepo: Bool, linked: Bool)?
+    /// Each chapter's length (active version) in the three units, counted once: the sidebar, the overview and the
+    /// rest read it in the unit chosen. The open chapter is updated on save.
+    var chapterCounts: [String: TextCounts] = [:]
+    var bookCounts: TextCounts { manifest.chapters.filter { !$0.excludeFromExport }.reduce(.zero) { $0 + (chapterCounts[$1.id] ?? .zero) } }
+    var bookWordCount: Int { bookCounts.words }
 
     /// Net words written in this book today (book total minus the total when the book was first opened today).
     var wordsToday: Int {
-        let base = UserDefaults.standard.object(forKey: todayKey) as? Int ?? bookWordCount
-        return max(0, bookWordCount - base)
+        guard let base = state.wordsBaseline, base.day == BookUIState.WordsBaseline.today else { return 0 }
+        return max(0, bookWordCount - base.words)
+    }
+
+    /// The first count of the day is what « today » starts from; yesterday's is forgotten.
+    private func keepWordsBaseline() {
+        let today = BookUIState.WordsBaseline.today
+        guard state.wordsBaseline?.day != today else { return }
+        state.wordsBaseline = .init(day: today, words: bookWordCount)
+        stateChanged()
+    }
+
+    /// A chapter's length and scenes. A chapter without scene markers is one scene, whose count is the chapter's:
+    /// it is not counted twice.
+    nonisolated static func count(_ text: String) -> (counts: TextCounts, scenes: [ChapterScene]) {
+        let scenes = Scenes.parse(text)
+        if scenes.count == 1, scenes[0].marker == nil, scenes[0].range.length == (text as NSString).length { return (scenes[0].counts, scenes) }
+        return (TextCounts(text), scenes)
+    }
+
+    /// The count under way after the book opened (`countsLater`); nil once done, or when it was made in place.
+    @ObservationIgnored private(set) var counting: Task<Void, Never>?
+
+    /// Every chapter read once, off the main thread, for both the counts and the cast's mentions.
+    private func countAllWordsLater() {
+        let files = (manifest.chapters + draftChapters).map { (id: $0.id, url: store.url(for: $0)) }
+        counting = Task { [weak self] in
+            let found = await Task.detached(priority: .userInitiated) {
+                files.map { f -> (id: String, text: String, counts: TextCounts, scenes: [ChapterScene]) in
+                    let t = BookSearch.texts.text(at: f.url)
+                    let c = BookSession.count(t)
+                    return (f.id, t, c.counts, c.scenes)
+                }
+            }.value
+            guard let self else { return }
+            var texts: [String: String] = [:]
+            for f in found where self.anyChapter(f.id) != nil {
+                // A chapter open in a pane is counted as it stands there (it may have been written in meanwhile).
+                if let d = self.bookDoc(f.id) {
+                    let c = Self.count(d.text)
+                    self.chapterCounts[f.id] = c.counts
+                    self.scenes[f.id] = c.scenes
+                    texts[f.id] = d.text
+                } else {
+                    self.chapterCounts[f.id] = f.counts
+                    self.scenes[f.id] = f.scenes
+                    texts[f.id] = f.text
+                }
+            }
+            self.readSections(texts)
+            self.followHeadings(texts)
+            self.refreshVersionCounts()
+            self.keepWordsBaseline()
+            self.refreshBibleMentions()
+            self.counting = nil
+        }
     }
 
     func countAllWords() {
-        var out: [String: Int] = [:]
+        var out: [String: TextCounts] = [:]
         var sc: [String: [ChapterScene]] = [:]
         var texts: [String: String] = [:]
         for ch in manifest.chapters + draftChapters {
-            let t = editorIsBook(ch.id) ? text : ParagraphCodec.decode(chapterText(ch))
-            out[ch.id] = BookStore.wordCount(t)
-            sc[ch.id] = Scenes.parse(t)
+            let t = editorText(of: ch.id)
+            let c = Self.count(t)
+            out[ch.id] = c.counts
+            sc[ch.id] = c.scenes
             texts[ch.id] = t
         }
         followHeadings(texts)
-        chapterWords = out
+        readSections(texts)
+        chapterCounts = out
         scenes = sc
         refreshVersionCounts()
-        if UserDefaults.standard.object(forKey: todayKey) == nil { UserDefaults.standard.set(bookWordCount, forKey: todayKey) }
+        keepWordsBaseline()
     }
 
     var savedSelection: Int { selectedChapterID.flatMap { state.selections[$0] } ?? 0 }
@@ -143,13 +269,41 @@ final class BookSession: Identifiable {
 
     // MARK: Chapters
 
-    func open(_ chapterID: String) {
+    /// Opens a chapter to write in, and shows its tab (`show: false` only when restoring the window as it was left).
+    func open(_ chapterID: String, show: Bool = true) {
         flushSave()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")", background: true)
+        commitIfPending(message: editMessage, background: true)
+        // The chapter just left is read for the Bible, if it changed.
+        if let left = selectedChapterID, left != chapterID { keeper.chapterLeft(left) }
         guard let ch = anyChapter(chapterID) else { return }
-        selectedChapterID = ch.id
-        load(ch)
-        state.lastChapter = ch.id
+        focused?.notes.save()
+        if let doc = docs[ch.id] {
+            // Already open in a pane: it becomes the one written in, as it stands.
+            focused = doc
+            refreshFocus(ch)
+        } else {
+            let doc = ChapterDoc(chapterID: ch.id, root: root)
+            docs[ch.id] = doc
+            focused = doc
+            load(ch)
+        }
+        if show, workspace.activeTab != .chapter(ch.id) { workspace.open(.chapter(ch.id)) }
+    }
+
+    /// Something of the book's state on this Mac changed (`state`, or the panes): the one way `state.json` is
+    /// written, once things have settled. Closing the book or quitting writes it at once (`saveStateNow`).
+    func stateChanged() {
+        stateTask?.cancel()
+        stateTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled else { return }
+            self?.saveStateNow()
+        }
+    }
+
+    func saveStateNow() {
+        stateTask?.cancel()
+        keepLayout()
         store.saveState(state)
     }
 
@@ -161,7 +315,63 @@ final class BookSession: Identifiable {
         text = ParagraphCodec.decode(openAlternate.map { store.readVersion(ch, $0) } ?? chapterText(ch))
         notes.load(chapter: ch, text: text)
         scenes[ch.id] = Scenes.parse(text)
-        loadReference()
+        readSections(ch.id, text)
+        loadReference(known: versions)
+    }
+
+    /// What follows the chapter one is in, when one goes back to a chapter already open: its versions, scenes, side text.
+    private func refreshFocus(_ ch: ChapterEntry) {
+        versions = piste == nil ? store.versions(of: ch) : []
+        scenes[ch.id] = Scenes.parse(text)
+        readSections(ch.id, text)
+        loadReference(known: versions)
+        versionTick += 1
+    }
+
+    /// The chapter's document, open or opened (without making it the one written in).
+    func doc(for chapterID: String) -> ChapterDoc? {
+        if let d = docs[chapterID] { return d }
+        guard let ch = anyChapter(chapterID) else { return nil }
+        let d = ChapterDoc(chapterID: ch.id, root: root)
+        d.text = ParagraphCodec.decode(alternate(of: ch).map { store.readVersion(ch, $0) } ?? chapterText(ch))
+        d.notes.load(chapter: ch, text: d.text)
+        docs[ch.id] = d
+        return d
+    }
+
+    /// The notes of any chapter (or of the book, `NoteStore.bookPage`) are read and written through this: the chapter's
+    /// open document if it has one, so what a pane holds is never written over from disk; else the files.
+    func noteStore(for chapterID: String) -> NoteStore { docs[chapterID]?.notes ?? notes }
+
+    /// Notes just put into a chapter from outside (a reader's, one back from the Trash) find their passage, if it is open.
+    func resolveNotes(in chapterID: String) {
+        if let d = docs[chapterID] { d.notes.resolveAll(in: d.text) }
+    }
+
+    /// A reader's notes join a chapter's own.
+    func importNotes(_ theirs: [Note], chapter: String, from reader: String) {
+        noteStore(for: chapter).importNotes(theirs, chapter: chapter, from: reader)
+        resolveNotes(in: chapter)
+    }
+
+    /// Notes that follow their scene to another chapter, each side through its own open document.
+    func transferNotes(_ ids: Set<UUID>, from source: String, to target: String) {
+        guard !ids.isEmpty, source != target else { return }
+        let from = noteStore(for: source).notes(of: source)
+        noteStore(for: source).replaceAll(from.filter { !ids.contains($0.id) }, in: source)
+        let to = noteStore(for: target)
+        to.replaceAll(to.notes(of: target) + from.filter { ids.contains($0.id) }, in: target)
+    }
+
+    /// Documents no pane shows any more are saved and let go.
+    func pruneDocs() { pruneDocs(keeping: shownChapters) }
+
+    func pruneDocs(keeping shown: Set<String>) {
+        for (id, d) in docs where id != selectedChapterID && !shown.contains(id) {
+            flushSave(d)
+            d.notes.save()
+            docs[id] = nil
+        }
     }
 
     /// A chapter's Markdown where one is writing: the book's folder, or the track.
@@ -173,152 +383,123 @@ final class BookSession: Identifiable {
     }
 
     func textDidChange(_ newText: String) {
-        guard newText != text else { return }
-        text = newText
-        dirty = true
-        saveTask?.cancel()
-        saveTask = Task { [weak self] in
+        guard let doc = focused, newText != doc.text else { return }
+        doc.text = newText
+        // Writing in a chapter keeps its tab: it is no longer the preview.
+        if workspace.activeTab == .chapter(doc.chapterID) { workspace.pin() }
+        doc.dirty = true
+        doc.saveTask?.cancel()
+        doc.saveTask = Task { [weak self, weak doc] in
             try? await Task.sleep(nanoseconds: 600_000_000)
-            guard !Task.isCancelled else { return }
-            self?.flushSave()
+            guard !Task.isCancelled, let doc else { return }
+            // Saved into its own chapter, even if the author has gone to another pane meanwhile.
+            self?.flushSave(doc)
         }
     }
 
     func rememberPiste(_ id: String?) {
         state.piste = id
-        store.saveState(state)
+        stateChanged()
     }
 
     func rememberSelection(_ location: Int) {
         guard let id = selectedChapterID, state.selections[id] != location else { return }
         state.selections[id] = location
         // Written soon after the caret stops: a quit that skips close() still finds its place.
-        stateTask?.cancel()
-        stateTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            guard !Task.isCancelled, let self else { return }
-            self.store.saveState(self.state)
-        }
+        stateChanged()
     }
 
+    /// Saves every chapter open for writing, the one one is in first.
     func flushSave() {
-        saveTask?.cancel()
-        guard dirty, let ch = selectedChapter else { return }
+        if let f = focused { flushSave(f) }
+        for d in docs.values where d !== focused { flushSave(d) }
+    }
+
+    func flushSave(_ doc: ChapterDoc) {
+        doc.saveTask?.cancel()
+        guard doc.dirty, let ch = anyChapter(doc.chapterID) else { return }
+        let other = alternate(of: ch)
         do {
             if let piste {
                 let u = Pistes.cacheDir(root, piste).appendingPathComponent(ch.file)
                 try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try ParagraphCodec.encode(text).write(to: u, atomically: true, encoding: .utf8)
-            } else if let other = openAlternate {
+                try ParagraphCodec.encode(doc.text).write(to: u, atomically: true, encoding: .utf8)
+            } else if let other {
                 // Another version being tried: its own file; the book's chapter and its notes stay as they are.
-                try store.saveVersion(ch, name: other, text: ParagraphCodec.encode(text))
+                try store.saveVersion(ch, name: other, text: ParagraphCodec.encode(doc.text))
             } else {
-                try store.write(ParagraphCodec.encode(text), to: ch)
+                try store.write(ParagraphCodec.encode(doc.text), to: ch)
                 // Notes belong to the manuscript's text.
-                notes.recapture(text: text)
+                doc.notes.recapture(text: doc.text)
             }
-            dirty = false
-            refreshScenes()
-            if openAlternate == nil {
-                chapterWords[ch.id] = wordCount
-                followHeadings([ch.id: text])
+            doc.dirty = false
+            lastSaved = ch.id
+            refreshScenes(of: ch.id, text: doc.text)
+            if other == nil {
+                chapterCounts[ch.id] = TextCounts(doc.text)
+                followHeadings([ch.id: doc.text])
             }
             scheduleCommit()
         } catch {
-            lastError = L("Could not save \(ch.file): ") + error.localizedDescription
+            lastError = L("Could not save \(ch.file): \(error.localizedDescription)")
         }
     }
 
-    private func scheduleCommit() {
-        pendingCommit = true
-        commitTask?.cancel()
-        let id = selectedChapterID ?? ""
-        commitTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: Self.commitIdleSeconds * 1_000_000_000)
-            guard !Task.isCancelled else { return }
-            self?.commitIfPending(message: "musset: edit \(id)", background: true)
-        }
-    }
-
-    func commitIfPending(message: String, background: Bool = false) {
-        guard pendingCommit else { return }
-        commitTask?.cancel()
-        if background { commitInBackground(message) } else { commitNow(message) }
-    }
-
-    /// libgit2 calls on this book, one at a time: a background commit never overlaps one made in place.
-    @ObservationIgnored private let gitQueue = DispatchQueue(label: "app.musset.git")
-
-    func commitNow(_ message: String) {
-        guard git.isRepo else { pendingCommit = false; return }
-        if piste != nil { commitPiste(message); return }
-        let git = git, paths = trackedPaths
-        do {
-            committed(try gitQueue.sync { try git.commit(paths: paths, message: message) })
-        } catch {
-            lastError = "git: \(error.localizedDescription)"
-        }
-    }
-
-    /// The same, off the main thread: a commit takes ~100 ms on a real book, and leaving a chapter one
-    /// has just written in must not wait for it.
-    func commitInBackground(_ message: String) {
-        guard git.isRepo else { pendingCommit = false; return }
-        // A track's commit touches no files and takes a few milliseconds.
-        if piste != nil { commitPiste(message); return }
-        pendingCommit = false
-        let git = git, paths = trackedPaths
-        gitQueue.async { [weak self] in
-            let result = Result { try git.commit(paths: paths, message: message) }
-            Task { @MainActor in
-                guard let self else { return }
-                switch result {
-                case .success(let made): self.committed(made)
-                case .failure(let error): self.lastError = "git: \(error.localizedDescription)"; self.pendingCommit = true
-                }
-            }
-        }
-    }
-
-    private func committed(_ made: Bool) {
-        // A later commit went through: the earlier failure no longer holds.
-        if lastError?.hasPrefix("git:") == true { lastError = nil }
-        if made {
-            lastCommitAt = Date()
-            // A shared book follows the author's saves on the server.
-            Collab.shared.sync(self)
-        }
-        pendingCommit = false
-    }
-
-    /// What the sync brought was written to disk: everything shown follows. The chapter being written only moves if its text changed.
+    /// What the sync brought was written to disk: everything shown follows. A chapter open in a pane only moves if its text changed.
     func reloadAfterSync() {
+        forgetRepoStatus()
         if let m = try? store.loadManifest() { manifest = m }
         plot = PlotGrid.load(root)
         pistes = Pistes.load(root)
         jalons = git.tags(matching: "jalon/*")
         bible.reload()
         trash = TrashStore(root: root).load()
-        if selectedChapter == nil, let first = manifest.chapters.first { selectedChapterID = first.id; state.lastChapter = first.id }
-        if piste == nil, let ch = selectedChapter {
-            versions = store.versions(of: ch)
-            let fresh = ParagraphCodec.decode(openAlternate.map { store.readVersion(ch, $0) } ?? store.read(ch))
-            if fresh != text { text = fresh; dirty = false }
-            notes.load(chapter: ch, text: text)
+        if selectedChapter == nil, let first = manifest.chapters.first { open(first.id) }
+        if piste == nil {
+            if let ch = selectedChapter { versions = store.versions(of: ch) }
+            for d in docs.values { reloadFromDisk(d) }
         }
         countAllWords()
     }
 
-    /// Called when the app quits or the book is switched away.
-    func close() {
-        flushSave()
-        notes.save()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")")
-        store.saveState(state)
+    /// An open chapter follows its file, written by something else than its editor: its text if it changed, and its notes.
+    /// The file wins over what was typed since the last save, as the sync saves everything before it writes.
+    private func reloadFromDisk(_ doc: ChapterDoc) {
+        guard let ch = anyChapter(doc.chapterID) else { return }
+        let fresh = ParagraphCodec.decode(alternate(of: ch).map { store.readVersion(ch, $0) } ?? store.read(ch))
+        if fresh != doc.text {
+            doc.saveTask?.cancel()
+            doc.text = fresh
+            doc.dirty = false
+        }
+        doc.notes.load(chapter: ch, text: doc.text)
     }
 
+    /// No chapter open any more (the last one went to the Drafts or the Trash).
+    func closeChapter() {
+        if let f = focused {
+            flushSave(f)
+            f.notes.save()
+            docs[f.chapterID] = nil
+        }
+        focused = nil
+    }
+
+    /// Called when the app quits or the book is switched away. `background`: going to another book, the commit
+    /// (~100 ms on a real book) is made off the main thread; quitting waits for it.
+    func close(background: Bool = false) {
+        flushSave()
+        for d in docs.values { d.notes.save() }
+        commitIfPending(message: editMessage, background: background)
+        commitBesideTrack()
+        saveStateNow()
+    }
+
+    /// The one way the book's settings and chapter list are written (`book.json`): saved at once, and committed like
+    /// the text, so a status, a pseudonym or a dedication reaches the history and the account without waiting for an edit.
     func saveManifest() {
-        do { try store.saveManifest(manifest) } catch { lastError = error.localizedDescription }
+        do { try store.saveManifest(manifest) } catch { lastError = error.localizedDescription; return }
+        scheduleCommit()
     }
 
     /// Anything else dropped on the list (text dragged from the page) moves nothing.
@@ -329,7 +510,7 @@ final class BookSession: Identifiable {
         manifest.chapters.move(fromOffsets: source, toOffset: destination)
         guard manifest.chapters.map(\.id) != before else { return }
         saveManifest()
-        commitNow("musset: reorder chapters")
+        commitInBackground("musset: reorder chapters")
     }
 
     /// A chapter is called what its heading says. In a track the book's folder doesn't change: the title only shows.
@@ -347,7 +528,6 @@ final class BookSession: Identifiable {
         }
         guard changed, piste == nil else { return }
         saveManifest()
-        pendingCommit = true
     }
 
     /// Renaming rewrites the heading. A chapter without one keeps its text and takes the name.
@@ -355,22 +535,26 @@ final class BookSession: Identifiable {
         let title = title.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty, inManuscript(), let i = manifest.chapters.firstIndex(where: { $0.id == id }) else { return }
         if let renamed = BookStore.retitled(editorText(of: id), to: title) {
-            if id == selectedChapterID {
-                replaceText(renamed)
-            } else {
-                do { try store.write(ParagraphCodec.encode(renamed), to: manifest.chapters[i]) } catch { lastError = error.localizedDescription; return }
-                chapterWords[id] = BookStore.wordCount(renamed)
-            }
+            do { try writeChapterText(id, renamed) } catch { lastError = error.localizedDescription; return }
         }
         if manifest.chapters[i].title != title {
             manifest.chapters[i].title = title
             saveManifest()
         }
-        commitNow("musset: rename chapter \(id)")
+        commitInBackground("musset: rename chapter \(id)")
     }
+
+    /// The first chapter of a book marked done: Musset speaks once, then never again for this book.
+    static let firstChapterDone = Notification.Name("MussetFirstChapterDone")
 
     func setStatus(_ id: String, _ status: ChapterStatus) {
         let value = status == .draft ? nil : status
+        if status == .done, ((manifest.chapters.first { $0.id == id })?.status ?? .draft) == .draft, state.firstChapterDone != true,
+           !manifest.chapters.contains(where: { ($0.status ?? .draft) != .draft }) {
+            state.firstChapterDone = true
+            stateChanged()
+            NotificationCenter.default.post(name: Self.firstChapterDone, object: self, userInfo: ["chapter": id])
+        }
         if let i = manifest.chapters.firstIndex(where: { $0.id == id }) { manifest.chapters[i].status = value }
         else if let i = draftChapters.firstIndex(where: { $0.id == id }) { manifest.drafts?[i].status = value }
         else { return }
@@ -389,17 +573,16 @@ final class BookSession: Identifiable {
             try? store.write("# \(title)\n\n", to: entry)
         }
         manifest.chapters.append(entry)
-        chapterWords[entry.id] = BookStore.wordCount(store.read(entry))
+        chapterCounts[entry.id] = TextCounts(store.read(entry))
         saveManifest()
-        commitNow("musset: add chapter \(entry.id)")
+        commitInBackground("musset: add chapter \(entry.id)")
         open(entry.id)
     }
 
     /// A free id and file for a new chapter, beside the book's last one.
     func newChapterEntry(title: String) -> ChapterEntry {
         let n = manifest.chapters.count
-        let slug = title.lowercased().folding(options: .diacriticInsensitive, locale: nil)
-            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: "_")
+        let slug = title.slug("_")
         let dir = manifest.chapters.last.map { ($0.file as NSString).deletingLastPathComponent } ?? ""
         var id = String(format: "%02d_%@", n, slug.isEmpty ? "chapitre" : slug)
         let taken = (manifest.chapters + draftChapters + trash.compactMap(\.chapter)).map(\.id)
@@ -415,21 +598,54 @@ final class BookSession: Identifiable {
 
     // MARK: Scenes
 
-    /// Re-reads the open chapter's scenes; a renamed marker carries its plot row along when it is the only change.
+    /// Re-reads the open chapter's scenes.
     func refreshScenes() {
-        guard let id = selectedChapterID else { return }
-        let new = Scenes.parse(text)
-        let old = scenes[id] ?? []
-        if old.count == new.count {
-            for (a, b) in zip(old, new) where a.key != b.key && plot.rows[id]?[b.key] == nil { plot.rename(id, from: a.key, to: b.key); savePlot() }
-        }
-        scenes[id] = new
+        if let id = selectedChapterID { refreshScenes(of: id, text: text) }
     }
 
-    /// The text of a chapter in editor form (the open one as edited).
+    /// A chapter's scenes after its text was edited: a marker renamed carries its plot row along (`PlotGrid.follow`).
+    private func refreshScenes(of id: String, text: String) {
+        let followed = plot.follow(id, from: scenes[id] ?? [], to: Scenes.parse(text))
+        scenes[id] = followed.scenes
+        if followed.moved { savePlot() }
+        readSections(id, text)
+    }
+
+    // MARK: Sections
+
+    /// A chapter's sections as its text now has them. Nothing is read in a book whose sub-headings are not sections.
+    func readSections(_ id: String, _ text: String) {
+        guard manifest.textFeatures.subheadings else {
+            if !sections.isEmpty { sections = [:] }
+            return
+        }
+        let found = Sections.parse(text)
+        if (sections[id] ?? []) != found { sections[id] = found.isEmpty ? nil : found }
+    }
+
+    private func readSections(_ texts: [String: String]) {
+        guard manifest.textFeatures.subheadings else {
+            if !sections.isEmpty { sections = [:] }
+            return
+        }
+        sections = texts.mapValues(Sections.parse).filter { !$0.value.isEmpty }
+    }
+
+    /// Every chapter's sections again: the book started, or stopped, reading its sub-headings as sections.
+    func refreshSections() {
+        readSections(Dictionary((manifest.chapters + draftChapters).map { ($0.id, editorText(of: $0.id)) }, uniquingKeysWith: { a, _ in a }))
+    }
+
+    /// The open document that holds the book's text of a chapter, if a pane has one (not one open on another version).
+    private func bookDoc(_ chapterID: String) -> ChapterDoc? { editorIsBook(chapterID) ? docs[chapterID] : nil }
+
+    /// The one way to read a chapter's text, in editor form: as it stands in a pane if it is open, else its file.
     func editorText(of chapterID: String) -> String {
-        if editorIsBook(chapterID) { return text }
+        if let d = bookDoc(chapterID) { return d.text }
         guard let ch = anyChapter(chapterID) else { return "" }
+        // A closed chapter of the manuscript: as last read, while its file has not changed. The Bible's counts, the
+        // notes of the whole book and the reading view each ask for every chapter.
+        if piste == nil, store.revision == nil { return BookSearch.texts.text(at: store.url(for: ch)) }
         return ParagraphCodec.decode(chapterText(ch))
     }
 
@@ -440,24 +656,28 @@ final class BookSession: Identifiable {
         savePlot()
     }
 
-    func savePlot() {
-        do { try plot.save(root); pendingCommit = true } catch { lastError = error.localizedDescription }
+    /// The grid's index tied to the Bible's sheets again: after the sheets changed, or names joined the index.
+    func bindPlot() {
+        var bound = plot
+        if bound.bind(to: bible.entries) { plot = bound }
     }
 
-    /// Renames a scene of a chapter that is not open: rewrites its marker on disk. (The open chapter goes through the editor.)
-    func renameSceneOnDisk(_ chapterID: String, _ scene: ChapterScene, to title: String) {
-        guard inManuscript() else { return }
-        guard chapterID != selectedChapterID, let marker = scene.marker,
-              let ch = manifest.chapters.first(where: { $0.id == chapterID }) else { return }
-        let t = editorText(of: chapterID) as NSString
-        let updated = t.replacingCharacters(in: marker, with: Scenes.markerLine(title))
-        do {
-            try store.write(ParagraphCodec.encode(updated), to: ch)
-            plot.rename(chapterID, from: scene.key, to: title)
-            savePlot()
-            scenes[chapterID] = Scenes.parse(updated)
-            commitNow("musset: rename scene in \(chapterID)")
-        } catch { lastError = error.localizedDescription }
+    /// A name of the index renamed from the grid. A tag that is a sheet is renamed there, where its name is kept,
+    /// and the grid follows; the name of another tag merges the two.
+    func renameTag(_ tag: PlotGrid.Tag, to name: String) {
+        let name = name.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, name != tag.name else { return }
+        if var sheet = tag.sheet.flatMap(bible.entry(path:)), !plot.tags.contains(where: { $0.column == tag.column && $0.name == name }) {
+            sheet.title = name
+            do { try bible.save(sheet) } catch { lastError = error.localizedDescription; return }
+        } else {
+            plot.renameTag(tag.name, to: name, column: tag.column)
+        }
+        savePlot()
+    }
+
+    func savePlot() {
+        do { try plot.save(root); pendingCommit = true } catch { lastError = error.localizedDescription }
     }
 
     /// What it takes to put a scene back: the editor's undo stops at the chapter.
@@ -468,15 +688,20 @@ final class BookSession: Identifiable {
     }
     var lastSceneMove: SceneMoveUndo?
 
-    private func writeChapterText(_ id: String, _ new: String) throws {
-        guard let ch = manifest.chapters.first(where: { $0.id == id }) else { return }
-        if id == selectedChapterID {
-            replaceText(new)
+    /// The one way to write a chapter's text in the book from outside its editor (a rename, a track taken back,
+    /// corrections, going back): through its open document if a pane has one, whichever pane, so no pane keeps an
+    /// old text to save over the new one; else to its file. `file`: the Markdown to write as it is, when it comes
+    /// from the history, for a chapter that is not open.
+    func writeChapterText(_ id: String, _ new: String, file: String? = nil) throws {
+        guard let ch = anyChapter(id) else { return }
+        if let d = bookDoc(id) {
+            replaceText(new, in: d)
         } else {
-            try store.write(ParagraphCodec.encode(new), to: ch)
+            try store.write(file ?? ParagraphCodec.encode(new), to: ch)
         }
-        chapterWords[id] = BookStore.wordCount(new)
+        chapterCounts[id] = TextCounts(new)
         scenes[id] = Scenes.parse(new)
+        readSections(id, new)
     }
 
     /// Moves a scene with its text, its notes and its plot row, to any place in the book, in one commit.
@@ -490,7 +715,7 @@ final class BookSession: Identifiable {
         guard sourceScenes.indices.contains(index) else { return }
         let scene = sourceScenes[index]
         let undo = SceneMoveUndo(title: scene.title ?? opening,
-                                 chapters: [(source, sourceText, notes.notes(of: source))] + (source == target ? [] : [(target, targetText, notes.notes(of: target))]),
+                                 chapters: [(source, sourceText, noteStore(for: source).notes(of: source))] + (source == target ? [] : [(target, targetText, noteStore(for: target).notes(of: target))]),
                                  plot: plot)
         do {
             if source == target {
@@ -509,10 +734,10 @@ final class BookSession: Identifiable {
                 }
                 let put = Scenes.insert(block, into: targetText, at: slot, openingTitle: opening)
                 // The notes whose passage is in the scene leave with it.
-                let leaving = notes.notes(of: source).filter { n in
+                let leaving = noteStore(for: source).notes(of: source).filter { n in
                     (Anchoring.resolve(n.anchor, in: sourceText)).map { NSIntersectionRange($0, scene.range).length == $0.length } ?? false
                 }
-                notes.transfer(Set(leaving.map(\.id)), from: source, to: target)
+                transferNotes(Set(leaving.map(\.id)), from: source, to: target)
                 if let row = plot.rows[source]?[scene.key] {
                     plot.rows[source]?[scene.key] = nil
                     plot.rows[target, default: [:]][title] = row
@@ -534,7 +759,7 @@ final class BookSession: Identifiable {
         flushSave()
         do {
             for c in undo.chapters {
-                notes.replaceAll(c.notes, in: c.id)
+                noteStore(for: c.id).replaceAll(c.notes, in: c.id)
                 try writeChapterText(c.id, c.text)
             }
             plot = undo.plot
@@ -555,7 +780,7 @@ final class BookSession: Identifiable {
 
     func refreshVersions() {
         if let ch = selectedChapter { versions = store.versions(of: ch) }
-        loadReference()
+        loadReference(known: selectedChapter == nil ? nil : versions)
     }
 
     /// Shows `version` read-only beside the editor for the open chapter (nil closes it). Remembered per chapter.
@@ -565,25 +790,26 @@ final class BookSession: Identifiable {
         var refs = state.references ?? [:]
         refs[id] = version
         state.references = refs.isEmpty ? nil : refs
-        store.saveState(state)
+        stateChanged()
         loadReference()
     }
 
     /// A reference that became the active version, or was deleted, closes.
-    func loadReference() {
+    /// `known`: the chapter's versions, when the caller has just listed them.
+    func loadReference(known: [String]? = nil) {
+        guard let doc = focused, let ch = selectedChapter else { return }
         if piste != nil {
-            guard let ch = selectedChapter, manuscriptBeside else { reference = nil; referenceText = ""; return }
-            reference = L("The manuscript")
-            referenceText = ParagraphCodec.decode(store.read(ch))
+            doc.reference = manuscriptBeside ? L("The manuscript") : nil
+            doc.referenceText = manuscriptBeside ? ParagraphCodec.decode(store.read(ch)) : ""
             return
         }
-        guard let ch = selectedChapter, let name = state.references?[ch.id],
-              name != editingVersion, store.versions(of: ch).contains(name) else {
-            reference = nil; referenceText = ""
+        guard let name = state.references?[ch.id],
+              name != editingVersion, (known ?? store.versions(of: ch)).contains(name) else {
+            doc.reference = nil; doc.referenceText = ""
             return
         }
-        reference = name
-        referenceText = ParagraphCodec.decode(store.readVersion(ch, name))
+        doc.reference = name
+        doc.referenceText = ParagraphCodec.decode(store.readVersion(ch, name))
     }
 
     /// Starts the chapter again on a blank page, as a new active version named by the date;
@@ -603,21 +829,6 @@ final class BookSession: Identifiable {
         } catch { lastError = error.localizedDescription }
     }
 
-    /// Saves the current text as a new alternate version (the active one is unchanged).
-    func newVersion(named name: String, text body: String? = nil, activate: Bool = false) {
-        guard inManuscript() else { return }
-        flushSave()
-        guard let ch = selectedChapter else { return }
-        let vname = store.uniqueVersionName(ch, base: name)
-        do {
-            // `body` comes from outside (an AI revision, git history): already standard Markdown.
-            try store.saveVersion(ch, name: vname, text: body ?? ParagraphCodec.encode(text))
-            if activate { try activateVersion(vname, commit: false) }
-            refreshVersions()
-            commitNow("musset: new version \(vname) of \(ch.id)")
-        } catch { lastError = error.localizedDescription }
-    }
-
     func activateVersion(_ name: String) {
         guard inManuscript() else { return }
         do { try activateVersion(name, commit: true) } catch { lastError = error.localizedDescription }
@@ -634,7 +845,7 @@ final class BookSession: Identifiable {
         versions = store.versions(of: updated)
         text = ParagraphCodec.decode(openAlternate.map { store.readVersion(updated, $0) } ?? store.read(updated))
         notes.resolveAll(in: text)
-        chapterWords[ch.id] = BookStore.wordCount(ParagraphCodec.decode(store.read(updated)))
+        chapterCounts[ch.id] = TextCounts(ParagraphCodec.decode(store.read(updated)))
         refreshScenes()
         if openAlternate == nil { followHeadings([ch.id: text]) }
         refreshVersions()
@@ -651,7 +862,7 @@ final class BookSession: Identifiable {
             updateEntry(updated)
             // The editor and the side keep showing it under its new name.
             if state.openVersions?[ch.id] == old { rememberOpenVersion(fresh, for: ch.id) }
-            if state.references?[ch.id] == old { var r = state.references ?? [:]; r[ch.id] = fresh; state.references = r; store.saveState(state) }
+            if state.references?[ch.id] == old { var r = state.references ?? [:]; r[ch.id] = fresh; state.references = r; stateChanged() }
             refreshVersions()
             commitNow("musset: rename version \(old) → \(new) for \(ch.id)")
         } catch { lastError = error.localizedDescription }
@@ -666,23 +877,11 @@ final class BookSession: Identifiable {
         } catch { lastError = error.localizedDescription }
     }
 
-    func importRevisions(_ items: [(name: String, url: URL)]) {
-        guard inManuscript() else { return }
-        guard let ch = selectedChapter else { return }
-        for item in items {
-            guard let body = try? String(contentsOf: item.url, encoding: .utf8) else { continue }
-            let name = store.uniqueVersionName(ch, base: item.name)
-            try? store.saveVersion(ch, name: name, text: body)
-        }
-        refreshVersions()
-        commitNow("musset: import \(items.count) revision(s) for \(ch.id)")
-    }
-
     /// How many typographic fixes each chapter needs (active versions).
     func typographyPreview() -> (edits: Int, chapters: Int) {
         var edits = 0, chapters = 0
         for ch in manifest.chapters {
-            let n = Typography.correctedDocument(editorIsBook(ch.id) ? text : store.read(ch), lang: manifest.lang).count
+            let n = Typography.correctedDocument(bookDoc(ch.id)?.text ?? store.read(ch), lang: manifest.lang, lists: manifest.listOptions).count
             if n > 0 { edits += n; chapters += 1 }
         }
         return (edits, chapters)
@@ -692,15 +891,15 @@ final class BookSession: Identifiable {
     func applyTypographyToBook() {
         guard inManuscript() else { return }
         flushSave()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")")
+        commitIfPending(message: editMessage)
         for ch in manifest.chapters {
-            let current = editorIsBook(ch.id) ? text : store.read(ch)
-            let fixed = Typography.correctedDocument(current, lang: manifest.lang)
+            let open = bookDoc(ch.id)
+            let fixed = Typography.correctedDocument(open?.text ?? store.read(ch), lang: manifest.lang, lists: manifest.listOptions)
             guard fixed.count > 0 else { continue }
-            if editorIsBook(ch.id) {
-                replaceText(fixed.text)   // editor form in, editor form out
+            if let open {
+                replaceText(fixed.text, in: open)   // editor form in, editor form out
             } else {
-                do { try store.write(fixed.text, to: ch) } catch { lastError = L("Could not save \(ch.file): ") + error.localizedDescription }
+                do { try store.write(fixed.text, to: ch) } catch { lastError = L("Could not save \(ch.file): \(error.localizedDescription)") }
             }
         }
         pendingCommit = true
@@ -709,9 +908,15 @@ final class BookSession: Identifiable {
 
     /// Replaces the editor text (used by history restore); goes through the normal save/commit path.
     func replaceText(_ newText: String) {
-        textDidChange(newText)
+        guard let f = focused else { return }
+        replaceText(newText, in: f)
+    }
+
+    /// The text of an open chapter, replaced (history restore, typography, a rename) and saved at once.
+    func replaceText(_ newText: String, in doc: ChapterDoc) {
+        if doc === focused { textDidChange(newText) } else if newText != doc.text { doc.text = newText; doc.dirty = true }
         // The live ranges belong to the old text: saving now must not write them back as anchors.
-        notes.resolveAll(in: newText)
-        flushSave()
+        doc.notes.resolveAll(in: newText)
+        flushSave(doc)
     }
 }

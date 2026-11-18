@@ -1,0 +1,30 @@
+[package]
+name = "musset-typeset"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Musset's reading engine: a Musset book composed by the Typst library into pages, bitmaps and text maps."
+publish = false
+
+[lib]
+name = "musset_typeset"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+# One Typst for reading and for the PDF export, so both break pages alike.
+typst = "=0.14.2"
+typst-render = "=0.14.2"
+# The PDF of the same composed pages: what the app exports.
+typst-pdf = "=0.14.2"
+typst-kit = { version = "=0.14.2", default-features = false, features = ["fonts", "embed-fonts"] }
+comemo = "=0.5.1"
+regex = "1"
+unicode-segmentation = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = false
+codegen-units = 8
+strip = "debuginfo"

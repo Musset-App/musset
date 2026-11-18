@@ -31,6 +31,21 @@ struct RepetitionAnalysis {
     var close: [Occurrence] = []
     var counts: [Count] = []
 
+    /// The same analysis after an edit, until the chapter is counted again: what came before the edit stays, what
+    /// came after moves with it, the words under it are left out.
+    func moved(by edit: (range: NSRange, delta: Int)) -> RepetitionAnalysis {
+        let oldEnd = NSMaxRange(edit.range) - edit.delta
+        func moved(_ r: NSRange) -> NSRange? {
+            if NSMaxRange(r) <= edit.range.location { return r }
+            if r.location >= oldEnd { return NSRange(location: r.location + edit.delta, length: r.length) }
+            return nil
+        }
+        var out = self
+        out.words = words.compactMap { w in moved(w.range).map { Word(range: $0, stem: w.stem, ordinal: w.ordinal) } }
+        out.close = close.compactMap { o in moved(o.range).map { Occurrence(range: $0, stem: o.stem, strength: o.strength) } }
+        return out
+    }
+
     func occurrences(of stem: String) -> [NSRange] {
         words.filter { $0.stem == stem }.map(\.range)
     }

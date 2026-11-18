@@ -2,7 +2,7 @@
 # Publishes Musset's open-source tree to github.com/Musset-App/musset, signed by the project, never by a person.
 #
 # The public repository lives in .public/ (ignored by this one). Each run copies the app, its tests and scripts into
-# it — never the sync server, the reports, the books in fixtures/, local signing files or the generated Xcode
+# it — never the sync server, the reports, the to-do list, the books in fixtures/, local signing files or the generated Xcode
 # project — and adds one commit on top, signed « Musset <hello@musset.app> ». Hooks in .public/ refuse any commit or
 # push under another name. gitleaks scans the result. Nothing is pushed unless you pass --push.
 #
@@ -46,7 +46,7 @@ chmod +x "$PUB/.git/hooks/pre-commit" "$PUB/.git/hooks/pre-push"
 # The files to publish: what git knows here, minus what stays private.
 STAGE=$(mktemp -d)
 git ls-files --cached --others --exclude-standard -z \
-  | grep -zvE '^(server/|reports/|research_notes/|docs/|fixtures/|Musset\.xcodeproj/|build/|\.claude/|\.public/)' \
+  | grep -zvE '^(server/|reports/|research_notes/|docs/|fixtures/|Musset\.xcodeproj/|build/|\.claude/|\.public/|todos\.md$)' \
   | xargs -0 -I{} rsync -R "{}" "$STAGE/"
 rsync -a --delete --exclude .git "$STAGE/" "$PUB/"
 rm -rf "$STAGE"
@@ -60,7 +60,8 @@ if git diff --cached --quiet; then echo "Nothing changed since the last publicat
 fi
 
 if command -v gitleaks >/dev/null; then
-  gitleaks git --no-banner --redact . && echo "gitleaks: no secrets found"
+  if gitleaks git --no-banner --redact .; then echo "gitleaks: no secrets found"
+  else echo "refused: gitleaks found a secret in $PUB; nothing was pushed" >&2; exit 1; fi
 else
   echo "warning: gitleaks not installed; scan for secrets before pushing" >&2
 fi

@@ -30,7 +30,13 @@ struct NotesPanel: View {
     /// The corrections waiting in the open chapter, and across the book. They live in the text; these are read from it.
     @State private var pending: [Revisions.Pending] = []
     @State private var bookPending: [String: [Revisions.Pending]] = [:]
-    @State private var refusingAll = false
+    /// The AI reading whose notes are about to be dismissed, once confirmed.
+    @State private var dismissingRun: String?
+    /// Where each note's passage starts in the open chapter, as of the last pause in typing: the list is ordered from
+    /// this, not from the live ranges, which move at every letter typed above them.
+    @State private var places: [UUID: Int] = [:]
+    /// Rows built at once; the rest on request.
+    @State private var shownRows = 200
 
     private var page: String { session.selectedChapterID ?? NoteStore.bookPage }
     private var threadNote: UUID? {
@@ -55,13 +61,17 @@ struct NotesPanel: View {
         VStack(spacing: 0) {
             header
             Divider()
+            if Collab.shared.link(session.git) != nil {
+                ConversationsSection(session: session, bridge: bridge)
+                Divider()
+            }
             if let status = annotator.status ?? annotator.lastError {
                 HStack(spacing: 6) {
                     if annotator.running { ProgressView().controlSize(.small) }
-                    Text(status).font(.ui(11)).foregroundStyle(annotator.lastError != nil ? .orange : .secondary).lineLimit(3)
+                    Text(status).font(.ui(11)).foregroundStyle(annotator.lastError != nil ? Ink.warning : .secondary).lineLimit(3)
                     Spacer()
                     if let run = annotator.lastRun, !annotator.running {
-                        Button(L("Dismiss all")) { session.notes.deleteRun(run); annotator.lastRun = nil; annotator.status = nil; bridge.refreshHighlights() }
+                        Button(L("Dismiss all…")) { dismissingRun = run }
                             .controlSize(.small)
                     }
                 }
@@ -70,13 +80,20 @@ struct NotesPanel: View {
             }
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
+                    // Eager and bounded: rows that unfold in place inside a LazyVStack that is scrolled to by id are
+                    // what spun forever in SwiftUI's prefetch in the chat.
+                    VStack(alignment: .leading, spacing: 4) {
                         if wholeBook { bookRows } else { chapterRows }
                         composerRow.id("composer")
                     }
                     .padding(.vertical, 10)
                 }
-                .onChange(of: bridge.openNoteID) { _, id in if let id { withAnimation { proxy.scrollTo(id, anchor: .center) } } }
+                .onChange(of: bridge.openNoteID) { _, id in
+                    guard let id else { return }
+                    // A note further down than what is shown: shown first.
+                    if !wholeBook, let i = entries.firstIndex(where: { $0.id == id.uuidString }), i >= shownRows { shownRows = i + 50 }
+                    withAnimation { proxy.scrollTo(id, anchor: .center) }
+                }
             }
             if let deleted {
                 HStack(spacing: 8) {
@@ -92,12 +109,27 @@ struct NotesPanel: View {
             footer
         }
         .onAppear { refreshIssues(); reloadBook(); refreshPending() }
-        .onChange(of: session.text) { _, _ in refreshPending() }
+        // The text is watched from a view of its own: typing does not evaluate the list, and the corrections are
+        // read again once it pauses.
+        .background(WhenTypingPauses(session: session) { refreshPending(typed: true) })
+        .onChange(of: session.notes.notes) { _, _ in places = session.notes.live.mapValues(\.location) }
         .onChange(of: proof.issueCount) { _, _ in refreshIssues() }
         .onChange(of: session.selectedChapterID) { _, _ in refreshIssues(); justClosed = []; openIssue = nil; refreshPending() }
         .onChange(of: wholeBook) { _, _ in reloadBook(); refreshPending() }
         .onChange(of: session.shelfChanges) { _, _ in reloadBook(); refreshPending() }
         .onChange(of: showFinished) { _, _ in justClosed = [] }
+        .confirmationDialog(L("Dismiss all the notes of this AI reading?"),
+                            isPresented: Binding(get: { dismissingRun != nil }, set: { if !$0 { dismissingRun = nil } })) {
+            Button(L("Dismiss all…").titled, role: .destructive) {
+                if let run = dismissingRun {
+                    session.notes.deleteRun(run); annotator.lastRun = nil; annotator.status = nil; bridge.refreshHighlights()
+                }
+                dismissingRun = nil
+            }
+            Button(L("Cancel"), role: .cancel) { dismissingRun = nil }
+        } message: {
+            Text(L("The notes the AI just left on this chapter are deleted, with the replies under them."))
+        }
         .alert(L("Annotate with \(customTask?.label ?? "")"), isPresented: Binding(get: { customTask != nil }, set: { if !$0 { customTask = nil } })) {
             TextField(L("What should it look for?"), text: $customText)
             Button(L("Annotate")) { if let e = customTask { run(.custom, e) }; customTask = nil }
@@ -109,16 +141,14 @@ struct NotesPanel: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Segmented(options: [(false, L("This chapter")), (true, L("Whole book"))], selection: $wholeBook)
+            Segmented(options: [(false, session.words.thisPiece), (true, L("Whole book"))], selection: $wholeBook)
             Button { filtering.toggle() } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "line.3.horizontal.decrease").font(.ui(11))
                     Text("\(visibleCount)").font(.ui(12).monospacedDigit())
                 }
-                .padding(.horizontal, 10).frame(height: 28)
                 .foregroundStyle(filtersAreDefault ? AnyShapeStyle(.primary) : AnyShapeStyle(Ink.accent))
-                .background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
-                .contentShape(Rectangle())
+                .toolbarButton(.panel)
             }
             .buttonStyle(.plain)
             .help(L("Filter the notes"))
@@ -175,9 +205,18 @@ struct NotesPanel: View {
         scopePending.filter(keeps).sorted { ($0.chapter, $0.location) < ($1.chapter, $1.location) }
     }
 
-    private func refreshPending() {
-        pending = session.selectedChapterID.map { Revisions.pending(in: session.text, chapter: $0) } ?? []
+    /// `typed`: only the open chapter moved, the others are as they were last read.
+    private func refreshPending(typed: Bool = false) {
+        let now = session.notes.live.mapValues(\.location)
+        if now != places { places = now }
+        let found = session.selectedChapterID.map { Revisions.pending(in: session.text, chapter: $0) } ?? []
+        if found != pending { pending = found }
         guard wholeBook else { return }
+        if typed {
+            guard let id = session.selectedChapterID, (bookPending[id] ?? []) != found else { return }
+            bookPending[id] = found.isEmpty ? nil : found
+            return
+        }
         var all: [String: [Revisions.Pending]] = [:]
         for ch in session.manifest.chapters + session.draftChapters {
             let found = Revisions.pending(in: session.editorText(of: ch.id), chapter: ch.id)
@@ -217,40 +256,62 @@ struct NotesPanel: View {
 
     /// Notes and faults as they come in the text; what has no passage comes after, in the order it was written.
     private var entries: [Entry] {
-        let all = session.notes.ordered.filter(keeps)
-        let placed = all.filter(\.hasPassage).map { (session.notes.live[$0.id]?.location ?? $0.anchor.start, Entry.note($0)) }
+        let all = session.notes.notes.sorted { (places[$0.id] ?? Int.max, $0.created) < (places[$1.id] ?? Int.max, $1.created) }.filter(keeps)
+        let placed = all.filter(\.hasPassage).map { (places[$0.id] ?? $0.anchor.start, Entry.note($0)) }
         let faults = hidden.contains("faults") ? [] : issues.map { ($0.range.location, Entry.issue($0)) }
         let waiting = pending.filter(keeps).map { ($0.location, Entry.correction($0)) }
         return (placed + faults + waiting).sorted { $0.0 < $1.0 }.map(\.1) + all.filter { !$0.hasPassage }.map(Entry.note)
     }
 
     @ViewBuilder private var chapterRows: some View {
+        let entries = entries
         decideAll
-        ForEach(entries) { e in
+        ForEach(entries.prefix(shownRows)) { e in
             switch e {
             case .correction(let p): correctionRow(p)
             case .note(let n): noteRow(n, chapter: page).id(n.id)
             case .issue(let i): issueRow(i)
             }
         }
+        if entries.count > shownRows { showMore }
         if showFinished { corrections }
         if entries.isEmpty && composer.isEmpty {
-            Text(session.notes.notes.isEmpty && issues.isEmpty ? L("Nothing yet. Write below, or select a passage and press ⌥⌘N.") : L("Nothing with these filters."))
-                .font(.ui(12)).foregroundStyle(.secondary).padding(.horizontal, 14).padding(.vertical, 8)
+            EmptyNote(session.notes.notes.isEmpty && issues.isEmpty ? L("Nothing yet. Write below, or select a passage and press \(AppCommand.glyphs("write.note")).") : L("Nothing with these filters."))
+                .padding(.horizontal, 14).padding(.vertical, 8)
         }
     }
 
     @ViewBuilder private var bookRows: some View {
         decideAll
-        ForEach(bookPages, id: \.id) { p in
+        let pages = boundedBookPages
+        ForEach(pages.shown, id: \.id) { p in
+            Text(p.title).font(.ui(11, .medium)).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 2)
+            ForEach(p.waiting) { correctionRow($0) }
+            ForEach(p.notes) { noteRow($0, chapter: p.id).id($0.id) }
+        }
+        if pages.more { showMore }
+    }
+
+    private var showMore: some View {
+        Button(L("Show more")) { shownRows += 200 }.buttonStyle(.link).font(.ui(12)).padding(.horizontal, 16).padding(.vertical, 8)
+    }
+
+    /// The whole book's rows, page by page, up to the number shown at once.
+    private var boundedBookPages: (shown: [(id: String, title: String, waiting: [Revisions.Pending], notes: [Note])], more: Bool) {
+        var out: [(id: String, title: String, waiting: [Revisions.Pending], notes: [Note])] = []
+        var left = shownRows, more = false
+        for p in bookPages {
             let list = p.notes.filter(keeps)
             let waiting = (bookPending[p.id] ?? []).filter(keeps)
-            if !list.isEmpty || !waiting.isEmpty {
-                Text(p.title).font(.ui(11, .medium)).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 2)
-                ForEach(waiting) { correctionRow($0) }
-                ForEach(list) { noteRow($0, chapter: p.id).id($0.id) }
-            }
+            guard !list.isEmpty || !waiting.isEmpty else { continue }
+            guard left > 0 else { more = true; break }
+            let w = Array(waiting.prefix(left))
+            let n = Array(list.prefix(left - w.count))
+            if w.count + n.count < waiting.count + list.count { more = true }
+            left -= w.count + n.count
+            out.append((p.id, p.title, w, n))
         }
+        return (out, more)
     }
 
     // MARK: Corrections
@@ -260,17 +321,15 @@ struct NotesPanel: View {
         let shown = visiblePending
         if shown.count > 1 {
             HStack(spacing: 10) {
-                Text("\(shown.count) " + L("corrections")).font(.ui(12)).foregroundStyle(.secondary)
+                Text(L("\(shown.count) corrections")).font(.ui(12)).foregroundStyle(.secondary)
                 Spacer()
                 Button(L("Accept all")) { session.decide(shown, accept: true, bridge: bridge); bridge.refreshHighlights() }
-                Button(L("Refuse all")) { refusingAll = true }
+                Button(L("Reject all…")) {
+                    RejectAll.confirm(shown.count) { session.decide(shown, accept: false, bridge: bridge); bridge.refreshHighlights() }
+                }
             }
             .buttonStyle(.plain).font(.ui(12)).foregroundStyle(Ink.accent)
             .padding(.horizontal, 16).padding(.vertical, 4)
-            .confirmationDialog(L("Refuse these \(shown.count) corrections?"), isPresented: $refusingAll) {
-                Button(L("Refuse all"), role: .destructive) { session.decide(shown, accept: false, bridge: bridge); bridge.refreshHighlights() }
-                Button(L("Cancel"), role: .cancel) {}
-            }
         }
     }
 
@@ -280,8 +339,8 @@ struct NotesPanel: View {
             Button { show(p) } label: {
                 VStack(alignment: .leading, spacing: 3) {
                     Group {
-                        if p.kind == .insertion { Text(shown(p.new)).foregroundStyle(Color(red: 0.18, green: 0.54, blue: 0.34)) }
-                        else if p.kind == .deletion { Text(shown(p.old)).strikethrough().foregroundStyle(Color(red: 0.76, green: 0.22, blue: 0.18)) }
+                        if p.kind == .insertion { Text(shown(p.new)).foregroundStyle(Ink.positive) }
+                        else if p.kind == .deletion { Text(shown(p.old)).strikethrough().foregroundStyle(Ink.revision) }
                         else {
                             Text(shown(p.old)).strikethrough().foregroundStyle(.secondary) + Text("  →  ").foregroundStyle(.tertiary) + Text(shown(p.new))
                         }
@@ -300,7 +359,7 @@ struct NotesPanel: View {
                 .help(L("Accept")).accessibilityLabel(L("Accept"))
             Button { session.decide(p, accept: false, bridge: bridge); bridge.refreshHighlights() } label: { Image(systemName: "xmark").frame(width: 24, height: 24).contentShape(Rectangle()) }
                 .buttonStyle(.plain).foregroundStyle(.secondary)
-                .help(L("Refuse")).accessibilityLabel(L("Refuse"))
+                .help(L("Reject")).accessibilityLabel(L("Reject"))
         }
         .font(.ui(11, .medium))
         .padding(.horizontal, 8).padding(.vertical, 8)
@@ -318,8 +377,8 @@ struct NotesPanel: View {
 
     private func reloadBook() {
         guard wholeBook else { return }
-        bookPages = (session.manifest.chapters + session.draftChapters).map { ($0.id, $0.title, session.notes.notes(of: $0.id)) }
-            + [(NoteStore.bookPage, L("The book"), session.notes.notes(of: NoteStore.bookPage))]
+        bookPages = (session.manifest.chapters + session.draftChapters).map { ($0.id, $0.title, session.noteStore(for: $0.id).notes(of: $0.id)) }
+            + [(NoteStore.bookPage, L("The book"), session.noteStore(for: NoteStore.bookPage).notes(of: NoteStore.bookPage))]
     }
 
     private func noteRow(_ note: Note, chapter: String) -> some View {
@@ -327,7 +386,7 @@ struct NotesPanel: View {
             if note.kind == .text {
                 FreeTextRow(note: note, drag: .note(chapter: chapter, id: note.id)) { edited in
                     if edited.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { delete(note, chapter: chapter) }
-                    else { session.notes.change(note.id, in: chapter) { $0.body = edited } }
+                    else { session.noteStore(for: chapter).change(note.id, in: chapter) { $0.body = edited } }
                 }
             } else {
                 NoteRow(note: note, session: session, chapter: chapter, open: bridge.openNoteID == note.id,
@@ -361,7 +420,7 @@ struct NotesPanel: View {
     private func tick(_ note: Note, chapter: String) {
         let next: Note.Status = note.isClosed ? .open : .done
         if next != .open { justClosed.insert(note.id) }
-        session.notes.change(note.id, in: chapter) { $0.status = next }
+        session.noteStore(for: chapter).change(note.id, in: chapter) { $0.status = next }
         session.pendingCommit = true
         bridge.refreshHighlights()
         reloadBook()
@@ -370,7 +429,7 @@ struct NotesPanel: View {
     private func resolve(_ note: Note, chapter: String) {
         let next: Note.Status = note.status == .resolved ? .open : .resolved
         if next != .open { justClosed.insert(note.id) }
-        session.notes.change(note.id, in: chapter) { $0.status = next }
+        session.noteStore(for: chapter).change(note.id, in: chapter) { $0.status = next }
         session.pendingCommit = true
         withAnimation(.easeOut(duration: 0.16)) { bridge.openNote(nil) }
         bridge.refreshHighlights()
@@ -378,7 +437,7 @@ struct NotesPanel: View {
     }
 
     private func delete(_ note: Note, chapter: String) {
-        guard let i = session.notes.remove(note.id, in: chapter) else { return }
+        guard let i = session.noteStore(for: chapter).remove(note.id, in: chapter) else { return }
         withAnimation { deleted = (note, chapter, i) }
         if bridge.openNoteID == note.id { bridge.openNote(nil) }
         session.pendingCommit = true
@@ -394,8 +453,8 @@ struct NotesPanel: View {
 
     private func undoDelete(_ d: (note: Note, chapter: String, index: Int)) {
         deletedTask?.cancel()
-        session.notes.restore(d.note, in: d.chapter, at: d.index)
-        session.notes.resolveAll(in: session.text)
+        session.noteStore(for: d.chapter).restore(d.note, in: d.chapter, at: d.index)
+        session.resolveNotes(in: d.chapter)
         withAnimation { deleted = nil }
         bridge.refreshHighlights()
         reloadBook()
@@ -471,14 +530,14 @@ struct NotesPanel: View {
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 8)
-        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
         .padding(.horizontal, 8).padding(.vertical, open ? 4 : 0)
     }
 
     /// What the proofreader already changed by itself.
     @ViewBuilder private var corrections: some View {
         if proof.typographyFixed > 0 {
-            Text(L("\(proof.typographyFixed) typographic fixes this session"))
+            Text(L("\(proof.typographyFixed) automatic typographic fixes since Musset opened"))
                 .font(.ui(11)).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.vertical, 6)
         }
         ForEach(proof.corrections) { c in
@@ -536,11 +595,11 @@ struct NotesPanel: View {
         let line = TodoSyntax.normalize(text)
         let chapter = wholeBook ? NoteStore.bookPage : page
         if let task = TodoSyntax.parse(Substring(line)) {
-            session.notes.addPlain(task.text, kind: .todo, in: chapter)
+            session.noteStore(for: chapter).addPlain(task.text, kind: .todo, in: chapter)
         } else if composerIsTask {
-            session.notes.addPlain(text, kind: .todo, in: chapter)
+            session.noteStore(for: chapter).addPlain(text, kind: .todo, in: chapter)
         } else {
-            session.notes.addPlain(text, kind: .text, in: chapter)
+            session.noteStore(for: chapter).addPlain(text, kind: .text, in: chapter)
         }
         session.pendingCommit = true
         composer = ""
@@ -555,30 +614,29 @@ struct NotesPanel: View {
     private var footer: some View {
         HStack(spacing: 8) {
             Menu {
-                Toggle(L("Proofread while I write", ctx: "Relire pendant que j’écris"), isOn: Binding(get: { proof.enabled }, set: { proof.enabled = $0 }))
-                Toggle(L("Correct obvious mistakes automatically", ctx: "Corriger automatiquement les fautes évidentes"), isOn: Binding(get: { proof.autoCorrect }, set: { proof.autoCorrect = $0 }))
-                Toggle(L("Apply the book's typography"), isOn: Binding(get: { proof.typography }, set: { proof.typography = $0 }))
+                // The same three switches as Settings ▸ Proofreading, under the same names.
+                Toggle(L("Proofread while I write", ctx: "Corriger pendant que j’écris"), isOn: Binding(get: { proof.enabled }, set: { proof.enabled = $0 }))
+                Toggle(L("Fix obvious mistakes"), isOn: Binding(get: { proof.autoCorrect }, set: { proof.autoCorrect = $0 }))
+                Toggle(L("The book’s typography"), isOn: Binding(get: { proof.typography }, set: { proof.typography = $0 }))
                 Divider()
                 Button(L("Check chapter again")) { proof.recheckAll() }
-                Button(L("Dictionary…")) { NotificationCenter.default.post(name: .mussetProofExceptions, object: nil) }
+                Button(L("Dictionary & Exceptions…")) { NotificationCenter.default.post(name: .mussetProofExceptions, object: nil) }
             } label: { Image(systemName: "gearshape").font(.ui(12)) }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help(L("Proofreading", ctx: "Relecture"))
+            .help(L("Proofreading"))
             if proof.running > 0 { ProgressView().controlSize(.mini) }
             if let e = proof.lastError ?? proof.languageToolError {
-                Text(e).font(.ui(11)).foregroundStyle(.orange).lineLimit(2)
+                Text(e).font(.ui(11)).foregroundStyle(Ink.warning).lineLimit(2)
             }
             Spacer(minLength: 4)
             if AIStatus.shared.isOn { annotateMenu } else {
                 Button { bridge.textView?.beginNote() } label: {
                     HStack(spacing: 5) { Image(systemName: "plus.bubble").font(.ui(10)); Text(L("Note")).font(.ui(12, .medium)).lineLimit(1) }
                         .fixedSize()
-                        .padding(.horizontal, 10).frame(height: 26)
-                        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline))
-                        .contentShape(Rectangle())
+                        .toolbarButton()
                 }
                 .buttonStyle(.plain)
-                .help(L("Add a note on the selection (⌥⌘N)"))
+                .help(AppCommand.hint(L("Add a note on the selection"), "write.note"))
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
@@ -593,8 +651,7 @@ struct NotesPanel: View {
                 }) {
             HStack(spacing: 5) { Image(systemName: "sparkles").font(.ui(10)); Text(L("Annotate")).font(.ui(12, .medium)).lineLimit(1) }
                 .fixedSize()
-                .padding(.horizontal, 10).frame(height: 26)
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline))
+                .toolbarButton()
         }
         .disabled(annotator.running)
         .help(L("Ask Claude or Codex to leave notes on the chapter, or on the selection"))
@@ -652,8 +709,8 @@ struct NoteFilters: View {
                 }
             }
             Divider().padding(.vertical, 2)
-            line(L("Finished", ctx: "Terminées"), count: finished, on: showFinished) { showFinished = $0 }
-            line(L("Finished ones in the text too"), on: showResolvedInText) { showResolvedInText = $0 }
+            line(L("Resolved", ctx: "Résolues"), count: finished, on: showFinished) { showFinished = $0 }
+            line(L("Resolved ones in the text too"), on: showResolvedInText) { showResolvedInText = $0 }
         }
         .padding(14)
         .frame(width: 250)
@@ -683,11 +740,11 @@ struct NoteCase: View {
         Button(action: action) {
             ZStack {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(status == .done ? Color.accentColor : .clear)
+                    .fill(status == .done ? Ink.accent : .clear)
                 RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(status == .done ? Color.accentColor : Color.secondary.opacity(0.8), lineWidth: 1.5)
+                    .strokeBorder(status == .done ? Ink.accent : Color.secondary.opacity(0.8), lineWidth: 1.5)
                 if status == .done {
-                    Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                    Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(Ink.onAccent)
                 } else if status == .resolved {
                     RoundedRectangle(cornerRadius: 1).fill(Color.secondary).frame(width: 7, height: 1.5)
                 }
@@ -732,7 +789,7 @@ private struct NoteRow: View {
         if let source = note.source { parts.append(source) }
         if note.status == .resolved {
             let last = note.replies.last?.body.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            parts.append(last.isEmpty ? L("Resolved") : L("Resolved: ") + last)
+            parts.append(last.isEmpty ? L("Resolved") : L("Resolved: \(last)"))
         } else if note.orphaned {
             parts.append(L("Lost passage"))
         } else if note.hasPassage {
@@ -766,25 +823,25 @@ private struct NoteRow: View {
                         Label("\(note.replies.count)", systemImage: "bubble.left").font(.ui(11)).foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(L("Open the discussion"))
+                    .help(L("Open Thread"))
                 }
             }
             if open { details }
         }
         .padding(.horizontal, 8).padding(.vertical, 8)
-        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(open ? Ink.hairline : .clear))
+        .background(open ? Ink.panel : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
+        .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(open ? Ink.hairline : .clear))
         .padding(.horizontal, 8).padding(.vertical, open ? 4 : 0)
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("", text: Binding(get: { note.body }, set: { new in session.notes.change(note.id, in: chapter) { $0.body = new }; session.pendingCommit = true }), axis: .vertical)
+            TextField("", text: Binding(get: { note.body }, set: { new in session.noteStore(for: chapter).change(note.id, in: chapter) { $0.body = new }; session.pendingCommit = true }), axis: .vertical)
                 .textFieldStyle(.plain).font(.ui(13))
                 .accessibilityLabel(L("The note"))
             if note.hasPassage, !note.orphaned {
                 Button(action: showPassage) {
-                    Text("« \(note.anchor.quote) »").font(.uiMono(12)).italic().foregroundStyle(.secondary).lineLimit(4).multilineTextAlignment(.leading)
+                    Text(inQuotes(note.anchor.quote)).font(.uiMono(12)).italic().foregroundStyle(.secondary).lineLimit(4).multilineTextAlignment(.leading)
                 }
                 .buttonStyle(.plain)
                 .help(L("Show the passage in the text"))
@@ -800,13 +857,13 @@ private struct NoteRow: View {
             }
             Button(action: thread) {
                 HStack(spacing: 8) {
-                    Text(L("Discussion")).font(.ui(13))
+                    Text(L("Thread")).font(.ui(13))
                     Spacer()
                     Text("\(note.replies.count)").font(.ui(12).monospacedDigit()).foregroundStyle(.secondary)
                     Image(systemName: "chevron.right").font(.ui(10)).foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal, 8).frame(height: 28)
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.row))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -814,7 +871,7 @@ private struct NoteRow: View {
                 Button(note.status == .resolved ? L("Reopen") : L("Resolve"), action: resolve).controlSize(.small)
                 Menu(note.kind.label) {
                     ForEach(Note.Kind.choices, id: \.self) { k in
-                        Button(k.label) { session.notes.change(note.id, in: chapter) { $0.kind = k }; session.pendingCommit = true }
+                        Button(k.label) { session.noteStore(for: chapter).change(note.id, in: chapter) { $0.kind = k }; session.pendingCommit = true }
                     }
                 }
                 .controlSize(.small).fixedSize()
@@ -822,8 +879,8 @@ private struct NoteRow: View {
                 Spacer()
                 Button(action: delete) { Image(systemName: "trash").font(.ui(12)).foregroundStyle(.secondary) }
                     .buttonStyle(.plain)
-                    .help(L("Delete the note"))
-                    .accessibilityLabel(L("Delete the note"))
+                    .help(L("Delete Note"))
+                    .accessibilityLabel(L("Delete Note"))
             }
         }
         .padding(.leading, 22).padding(.top, 6).padding(.bottom, 4)

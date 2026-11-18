@@ -10,7 +10,10 @@ struct MussetApp: App {
     @State private var proof = AutoProofreader()
     @State private var annotator = Annotator()
 
-    init() { Typefaces.register(); TaskModels.migrate() }
+    init() { _ = GitService.start; Typefaces.register(); TaskModels.migrate(); Updates.shared.start() }
+
+    /// A command's menu item, from the one table of commands.
+    private func item(_ id: String) -> some View { AppCommand.menuItem(id, CommandContext(app: app, bridge: bridge)) }
 
     var body: some Scene {
         WindowGroup {
@@ -20,29 +23,38 @@ struct MussetApp: App {
                 .onAppear {
                     bridge.proof = proof
                     bridge.annotator = annotator
+                    bridge.openSheet = { [app] path in app.open(.sheet(path)) }
+                    bridge.renameEntry = { [app] path in app.renaming = .init(path: path) }
+                    bridge.openSources = { [app] in app.open(.sources) }
                     proof.bridge = bridge
                     delegate.app = app; delegate.chat = chat; delegate.proof = proof
                 }
                 .task { await AIStatus.shared.detect() }
+                .onOpenURL { app.open(mussetURL: $0) }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
+            // Every item below is a row of `AppCommand.all`: its name, shortcut, and when it applies are set there.
             CommandGroup(replacing: .newItem) {
-                Button(L("All Books")) { app.showHome = true }.keyboardShortcut("h", modifiers: [.command, .shift])
-                Button(L("Capture a Note…")) { CaptureController.shared.toggle() }
+                item("go.home")
+                item("app.capture")
                 Divider()
-                Button(L("New Book…")) { app.showNewBook = true }.keyboardShortcut("n")
-                Button(L("Open Book Folder…")) { app.addBookViaPanel() }.keyboardShortcut("o")
+                item("app.newBook")
+                item("app.openBook")
+            }
+            PaneCommands(app: app, bridge: bridge)
+            CommandGroup(after: .appInfo) {
+                item("app.updates")
             }
             CommandGroup(after: .appSettings) {
-                Button(Collab.shared.signedIn ? L("Musset Account…") : L("Sign In to Musset…")) { app.showAccount = true }
+                item("app.account")
             }
             CommandGroup(after: .newItem) {
-                Button(L("Command Bar…")) { app.showQuickOpen = true }.keyboardShortcut("k")
-                Button(L("Book Settings…")) { app.showBookSettings = true }.keyboardShortcut(",", modifiers: [.command, .option]).disabled(app.current == nil)
-                Button(L("Cover & Special Pages")) { app.specialPage = .cover }.disabled(app.current == nil)
-                Button(L("Export…")) { app.showExport = true }.keyboardShortcut("e").disabled(app.current == nil)
-                Button(L("Bring In a Corrected Word File…")) { app.showWordReview = true }.disabled(app.current == nil)
+                item("app.palette")
+                item("book.settings")
+                item("book.special")
+                item("book.export")
+                item("book.wordReview")
                 Divider()
                 ForEach(Array(app.books.prefix(9).enumerated()), id: \.element.path) { i, b in
                     Button(b.title) { app.switchToBook(index: i) }
@@ -51,74 +63,115 @@ struct MussetApp: App {
             }
             CommandGroup(after: .textEditing) {
                 Section {
-                    Button(L("Find…")) { bridge.openFind() }.keyboardShortcut("f")
-                    Button(L("Find and Replace…")) { bridge.openFind(replace: true) }.keyboardShortcut("f", modifiers: [.command, .option])
-                    Button(L("Find Next")) { bridge.findNext() }.keyboardShortcut("g")
-                    Button(L("Find Previous")) { bridge.findNext(forward: false) }.keyboardShortcut("g", modifiers: [.command, .shift])
-                    Button(L("Search the Book…")) { app.openSearch() }.keyboardShortcut("f", modifiers: [.command, .shift])
+                    item("find.find")
+                    item("find.replace")
+                    item("find.next")
+                    item("find.previous")
+                    item("book.search")
                 }
             }
             CommandMenu(L("Format")) {
-                Button(L("Bold")) { bridge.textView?.toggleInline("**") }.keyboardShortcut("b")
-                Button(L("Italic")) { bridge.textView?.toggleInline("*") }.keyboardShortcut("i")
+                item("format.bold")
+                item("format.italic")
                 Divider()
-                Button(L("Heading 1")) { bridge.textView?.setHeading(1) }.keyboardShortcut("1", modifiers: [.command, .option])
-                Button(L("Heading 2")) { bridge.textView?.setHeading(2) }.keyboardShortcut("2", modifiers: [.command, .option])
-                Button(L("Heading 3")) { bridge.textView?.setHeading(3) }.keyboardShortcut("3", modifiers: [.command, .option])
-                Button(L("Body Text")) { bridge.textView?.setHeading(0) }.keyboardShortcut("0", modifiers: [.command, .option])
+                item("format.h1")
+                item("format.h2")
+                item("format.h3")
+                item("format.body")
                 Divider()
-                Button(L("Quotation")) { bridge.textView?.toggleQuote() }.keyboardShortcut("'", modifiers: [.command, .option])
-                Button(L("Footnote")) { bridge.textView?.insertFootnote() }.keyboardShortcut("6", modifiers: [.command, .option])
+                item("format.quote")
+                item("format.footnote")
                 Divider()
-                Toggle(L("Revision Mode"), isOn: Binding(get: { bridge.trackChanges }, set: { bridge.trackChanges = $0 }))
-                    .keyboardShortcut("e", modifiers: [.command, .shift])
-                Button(L("Comment", ctx: "Commenter")) {
-                    bridge.trackChanges = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { NotificationCenter.default.post(name: .mussetAskComment, object: nil) }
-                }.keyboardShortcut("m", modifiers: [.command, .shift])
-                Button(L("Next Correction")) { bridge.textView?.nextRevision() }.keyboardShortcut("]", modifiers: [.command, .option])
-                Button(L("Accept Correction")) { bridge.textView?.decideRevision(accept: true) }.keyboardShortcut(.return, modifiers: [.command, .option])
-                Button(L("Reject Correction")) { bridge.textView?.decideRevision(accept: false) }.keyboardShortcut(.delete, modifiers: [.command, .option])
-                Button(L("Accept All Corrections")) { bridge.textView?.decideRevision(accept: true, all: true) }
-                Button(L("Reject All Corrections")) { bridge.textView?.decideRevision(accept: false, all: true) }
+                item("revise.mode")
+                item("revise.comment")
+                item("revise.next")
+                item("revise.accept")
+                item("revise.reject")
+                item("revise.acceptAll")
+                item("revise.rejectAll")
                 Divider()
-                Toggle(L("Show Format Bar"), isOn: $app.formatBar)
+                item("view.formatBar")
             }
             CommandMenu(L("Write")) {
-                Toggle(L("Focus Mode"), isOn: $app.focusMode).keyboardShortcut("d", modifiers: [.command, .shift])
-                Toggle(L("Typewriter Scrolling"), isOn: $app.typewriter).keyboardShortcut("t", modifiers: [.command, .shift])
-                Toggle(L("Kiosk Mode"), isOn: $app.kiosk).keyboardShortcut("k", modifiers: [.command, .control])
-                Button(L("Ultra Focus")) { UltraFocus.shared.toggle(app) }
-                    .keyboardShortcut("u", modifiers: [.command, .control]).disabled(app.current == nil)
-                Toggle(L("Line Numbers"), isOn: $app.lineNumbers).keyboardShortcut("l", modifiers: [.command, .control])
-                Toggle(L("Minimap"), isOn: $app.minimap).keyboardShortcut("m", modifiers: [.command, .control])
-                Toggle(L("Reading Mode"), isOn: $app.reviewMode).keyboardShortcut("r", modifiers: [.command, .shift])
-                Toggle(L("Repetitions"), isOn: $app.repetitions).keyboardShortcut("r", modifiers: [.command, .control])
+                item("view.focus")
+                item("view.typewriter")
+                item("view.kiosk")
+                item("view.ultraFocus")
+                item("view.reading")
+                item("view.repetitions")
                 Divider()
-                Button(L("Next Proofreading Suggestion")) { NotificationCenter.default.post(name: .mussetProofread, object: nil) }
-                    .keyboardShortcut(";")
-                Button(L("Add Note…")) { bridge.textView?.beginNote() }.keyboardShortcut("n", modifiers: [.command, .option])
-                Button(L("New Scene Here")) { bridge.textView?.beginScene() }.keyboardShortcut("n", modifiers: [.command, .shift])
-                Button(L("Dictionary & Exceptions…")) { app.showProofExceptions = true }
-                Button(L("Apply Typography to the Whole Book…")) { app.applyTypographyToBook() }.disabled(app.current == nil)
-                Button(L("History")) { withAnimation { app.inspectorTab = .history; app.showInspector = true } }.keyboardShortcut("h", modifiers: [.command, .option])
-                Button(L("Save Snapshot (commit now)")) { app.current?.flushSave(); app.current?.commitNow("musset: snapshot") }
-                    .keyboardShortcut("s")
+                item("write.proofNext")
+                item("write.note")
+                item("write.scene")
+                item("write.dictionary")
+                item("write.typography")
+                item("book.save")
             }
             CommandGroup(after: .sidebar) {
-                Button(bridge.blameOn ? L("Hide Who Wrote What") : L("Who Wrote What")) { bridge.blameOn.toggle() }
-                    .keyboardShortcut("b", modifiers: [.command, .option]).disabled(app.current == nil)
-                Button(app.showSidebar ? L("Hide Chapters") : L("Show Chapters")) { app.showSidebar.toggle() }.keyboardShortcut("1")
-                Button(InspectorTab.edits.label) { withAnimation { app.toggleInspector(.edits) } }.keyboardShortcut("2")
-                Button(L("Chat")) { withAnimation { app.toggleInspector(.chat) } }.keyboardShortcut("3").disabled(!AIStatus.shared.isOn)
-                Button(L("Stats")) { withAnimation { app.toggleInspector(.stats) } }.keyboardShortcut("4")
-                Button(app.showPlotGrid ? L("Hide Plot Grid") : L("Plot Grid")) { withAnimation { app.showPlotGrid.toggle() } }.keyboardShortcut("5").disabled(app.current == nil)
-                Button(L("Plan")) { withAnimation { app.toggleInspector(.plan) } }.keyboardShortcut("6")
-                Button(InspectorTab.history.label) { withAnimation { app.toggleInspector(.history) } }.keyboardShortcut("7")
+                item("view.blame")
+                item("view.sidebar")
+                item("view.notes")
+                item("view.chat")
+                item("view.stats")
+                item("view.grid")
+                item("view.sceneCards")
+                item("view.plan")
+                item("view.history")
             }
+            #if DEBUG
+            PageDemoCommands()
+            #endif
         }
 
-        Settings { SettingsView().font(.ui(13)) }
+        // The book's other windows: a tab torn off, « Open in New Window ».
+        WindowGroup(id: PaneWindow.sceneID, for: WindowRef.self) { $ref in
+            PaneWindow(app: app, bridge: bridge, proof: proof, ref: ref)
+                .frame(minWidth: 420, minHeight: 320)
+                .font(.ui(13))
+        }
+        .defaultSize(width: 760, height: 820)
+
+        Settings { SettingsView(app: app).font(.ui(13)) }
+        #if DEBUG
+        Window("Reading Engine Demo", id: PageDemo.windowID) { PageDemo() }.defaultSize(width: 1440, height: 900)
+        #endif
+    }
+}
+
+/// ⌘W closes a tab; the Panes menu splits, cycles and opens beside.
+struct PaneCommands: Commands {
+    let app: AppState
+    let bridge: EditorBridge
+
+    private func item(_ id: String) -> some View { AppCommand.menuItem(id, CommandContext(app: app, bridge: bridge)) }
+
+    var body: some Commands {
+        CommandGroup(replacing: .saveItem) {
+            item("panes.closeTab")
+            item("panes.closeWindow")
+        }
+        CommandMenu(L("Panes")) {
+            item("panes.openBeside")
+            Divider()
+            item("panes.splitRight")
+            item("panes.splitDown")
+            Divider()
+            item("panes.nextTab")
+            item("panes.previousTab")
+            item("panes.nextPane")
+            item("panes.previousPane")
+            Divider()
+            item("panes.saveLayout")
+            if let session = app.current, !session.layoutNames.isEmpty {
+                Menu(L("Layouts")) {
+                    ForEach(session.layoutNames, id: \.self) { name in Button(name) { session.applyLayout(named: name) } }
+                    Divider()
+                    Menu(L("Delete")) {
+                        ForEach(session.layoutNames, id: \.self) { name in Button(name) { session.deleteLayout(named: name) } }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -140,6 +193,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             app?.shutdown()
             LanguageToolServer.stopNow()
         }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Windows closing as the app quits stay with the book, to open again.
+        MainActor.assumeIsolated { app?.quitting = true }
+        return .terminateNow
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }

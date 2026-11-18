@@ -47,8 +47,8 @@ final class ChatActionTests: XCTestCase {
         let manifest = BookManifest(title: "T", chapters: [ChapterEntry(id: "01", file: "01.md", title: "Un"), ChapterEntry(id: "02", file: "02.md", title: "Deux")])
         try BookStore(root: root).saveManifest(manifest)
         let session = BookSession(root: root, manifest: manifest)
-        // French book: seeded with the Blanche rubric.
-        XCTAssertTrue(Rubric.load(root)?.contains("Seuil de travail : 80/100") == true)
+        // Nothing is written into the book at open: the old Markdown rubric is only read, where a book still has one.
+        XCTAssertNil(Rubric.load(root))
         XCTAssertTrue(ChatAction.continuity.prompt(book: session, selection: "").contains("`02.md`"))
         XCTAssertTrue(ChatAction.style.prompt(book: session, selection: "un passage").contains("Work only on the passage"))
     }
@@ -111,7 +111,6 @@ final class WritingPartnerTests: XCTestCase {
         let session = BookSession(root: root, manifest: BookManifest(title: "Le Sel", chapters: [ChapterEntry(id: "03_nice", file: "03_nice.md", title: "Nice")]))
         let chat = ChatModel()
         chat.attach(root)
-        chat.allowRewrites = false
         chat.input = "Réécris le premier paragraphe pour qu'il soit plus fort."
         chat.send(session: session, selection: "", model: "haiku")
         let start = Date()

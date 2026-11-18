@@ -1,0 +1,323 @@
+{
+ "uiLang": "it",
+ "bookLang": "it-IT",
+ "title": "La strada del sale",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "Il traghetto",
+   "text": "# Il traghetto\n\n<!-- scene: Traversata del mattino -->\n\nIl traghetto partì alle sei, prima che i gabbiani si svegliassero. Nora stava al parapetto con il cappotto del padre sul braccio, come se lui potesse ancora chiederlo. Il ponte era bagnato e nessun altro era salito; gli altri passeggeri erano sotto, nella sala calda che odorava di caffè e di gasolio, e dormivano appoggiati al proprio riflesso nei finestrini.\n\nSotto di lei, il mare custodiva i suoi segreti. Per cinquecento chilometri aveva ripetuto quello che avrebbe detto al fratello, e adesso ogni frase sembrava di qualcun altro. Le riprovò sottovoce, una dopo l'altra, e nessuna resistette al vento.\n\n«Sei venuta» avrebbe detto lui. Oppure non avrebbe detto niente, che era peggio e gli somigliava di più.\n\nNon si parlavano dal funerale della madre, undici anni prima, quando Tom era rimasto in fondo alla chiesa con un abito preso in prestito ed era uscito prima dell'ultimo inno. Lei lo aveva ritrovato dopo, nel parcheggio, a fumare con l'impresario delle pompe funebri, e lui l'aveva guardata come un'estranea che gli avesse chiesto la strada.\n\nUn uomo con una giacca arancione passò lungo il ponte con un rotolo di cima e le fece un cenno senza fermarsi. Lei ricambiò. Era la prima volta che qualcuno la guardava dall'autostrada in poi.\n\n<!-- scene: L'isola -->\n\nL'isola emerse dalla foschia a pezzi: una chiesa, una fila di case bianche, il lungo tetto grigio della salina dove la madre aveva contato sacchi per vent'anni. Poi il muro del porto, la gru, le due auto in attesa sullo scivolo con i fari ancora accesi, benché ormai fosse giorno e nessuno ne avesse bisogno.\n\nRipiegò il cappotto ancora una volta. Sapeva di tabacco e di pioggia, e dell'inverno che lui aveva passato a fingere di non essere malato. Nella tasca interna c'erano un biglietto del traghetto di marzo, una matita e una lista scritta di suo pugno che lei non era riuscita a leggere in ospedale e non riusciva a leggere nemmeno adesso: *sale, vetro, la barca blu, Tom.*\n\nI motori cambiarono nota. Da qualche parte, più in basso, sbatté una porta, e i passeggeri cominciarono a salire le scale con le borse, strizzando gli occhi, infilandosi i cappotti. Un bambino chiese se quella era l'isola. La madre disse di sì. Il bambino guardò l'isola a lungo e disse che era più piccola che nel libro.\n\nNora rimise la lista dove l'aveva trovata.\n\n<!-- scene: Il porto -->\n\nSulla banchina non c'era. Sapeva che non ci sarebbe stato, eppure lo cercò due volte: una tra gli uomini vicino alla gru, una sulla porta del caffè, dove una vecchia girava il cartello da *Chiuso* ad *Aperto* con grande cura, come se la parola potesse rompersi.\n\nSalì per la collina con il cappotto sul braccio e la borsa in spalla. La strada era quella che ricordava, solo più stretta. Le case avevano porte nuove. In cima, dove la strada piegava verso la salina, qualcuno aveva dipinto una barca blu sul fianco della pensilina dell'autobus, male, molto tempo prima, ed era ancora lì.\n\nSi fermò lì davanti e rise, perché era sua, e perché in undici anni nessuno ci aveva dipinto sopra, e perché non sapeva che altro fare."
+  },
+  {
+   "title": "La salina",
+   "text": "# La salina\n\nIl cancello era aperto. Sull'isola nessuno aveva {~~mai chiuso a chiave~>chiuso a chiave~~}{@Claire} niente dalla guerra in poi, e la salina meno di tutto: non c'era {--più--}{@Claire} niente da prendere a parte il sale, e il sale badava a se stesso.\n\nIl furgone di Tom era parcheggiato accanto alla vecchia pesa, {++con le portiere posteriori aperte,++}{@Claire} e un cane dormiva alla sua ombra. Il cane alzò la testa quando lei entrò dal cancello e la riabbassò, come se la stessero aspettando.\n\n{==Lo trovò sul tetto.==}{>>Troppo brusco? Non l'abbiamo ancora sentito. Forse prima la voce, poi il tetto.<<}{@Claire} Stava in ginocchio tra due file di lastre, con un martello in mano, e non si voltò.\n\n«Sopra l'essiccatoio piove dentro» disse. «Sopra l'essiccatoio è sempre piovuto dentro.»"
+  },
+  {
+   "title": "Inventario",
+   "text": "# Inventario\n\nSuo fratello aveva tenuto tutto: ricevute, tavole delle maree, un calendario del 1987 con le alte maree cerchiate di rosso.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "custodiva i suoi segreti",
+   "author": "claude",
+   "kind": "critique",
+   "body": "Un'espressione presa in prestito, in un capitolo che per il resto è tutto suo. Che cosa vede Nora nell'acqua?"
+  },
+  {
+   "anchor": "che era peggio e gli somigliava di più",
+   "author": "claude",
+   "kind": "praise",
+   "body": "Il fratello arriva prima di comparire. Da tenere."
+  },
+  {
+   "anchor": "Ripiegò il cappotto ancora una volta.",
+   "author": "claude",
+   "kind": "question",
+   "body": "Il cappotto viene piegato per la seconda volta. Eco voluta, o una di troppo?"
+  },
+  {
+   "anchor": "undici anni prima",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Verificare con il capitolo 4: lì il funerale è d'inverno."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "La traversata regge senza Tom? Ho paura che la prima scena sia tutta attesa."
+  },
+  {
+   "role": "assistant",
+   "text": "Regge, e l'attesa è proprio il punto: Tom è presente in ogni paragrafo, in ciò che Nora si ripete, nel cappotto, nella lista scritta di suo pugno. Il lettore lo incontra prima che compaia.\n\nDue cose la indeboliscono. « Custodiva i suoi segreti » è l'unica espressione presa in prestito in un capitolo che per il resto è tutto suo. E il cappotto viene piegato due volte; la seconda piega è la più forte, la prima si può togliere.\n\nHo lasciato tre note a margine. Vuoi che guardi come finisce la scena del porto?"
+  },
+  {
+   "role": "user",
+   "text": "Sì — la risata davanti alla pensilina arriva troppo presto?"
+  }
+ ],
+ "versions": {
+  "current": "Prima stesura",
+  "other": "Più cupa",
+  "edits": [
+   [
+    "Il traghetto partì alle sei, prima che i gabbiani si svegliassero.",
+    "Il traghetto partì che era ancora buio."
+   ],
+   [
+    "come se lui potesse ancora chiederlo.",
+    "come se lui potesse ancora salire le scale e chiederlo."
+   ],
+   [
+    "Sotto di lei, il mare custodiva i suoi segreti.",
+    "Sotto di lei, il mare era nero e non si muoveva."
+   ],
+   [
+    "che era peggio e gli somigliava di più.",
+    "come aveva sempre fatto."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, sull’isola",
+     "Traduttrice, sulla terraferma",
+     "Dirlo a Tom di persona",
+     "La lista nella tasca del cappotto"
+    ],
+    "body": "Torna con il cappotto del padre e nemmeno una frase che regga.\n\nPartita a diciannove anni. Cinquecento chilometri di prove, e niente di tutto questo verrà detto.\n\nRide quando non sa che altro fare. Da tenere per la fine.",
+    "facts": [
+     [
+      "01",
+      "Sta al parapetto con il cappotto del padre sul braccio.",
+      "con il cappotto del padre sul braccio"
+     ],
+     [
+      "01",
+      "Non parla con il fratello dal funerale della madre.",
+      "Non si parlavano dal funerale della madre"
+     ],
+     [
+      "01",
+      "Non riesce a leggere la lista scritta dal padre.",
+      "non riusciva a leggere nemmeno adesso"
+     ],
+     [
+      "01",
+      "Ride davanti alla barca blu sulla pensilina.",
+      "Si fermò lì davanti e rise"
+     ],
+     [
+      "02",
+      "Trova Tom sul tetto della salina.",
+      "Lo trovò sul tetto."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Tiene in piedi la salina, da solo",
+     "Che nessuno gli chieda niente",
+     "Quello che è successo nel 1987"
+    ],
+    "body": "Rimasto. Ripara quello che perde, conserva quello che andava buttato.\n\nParla con il tetto più volentieri che con le persone. Undici anni senza una parola a Nora, e la sua prima frase sarà per l’essiccatoio.\n\nLa barca blu l’ha dipinta lui, a quattordici anni. Non dirlo mai: deve riconoscerla lei.",
+    "found": [
+     "fratello"
+    ],
+    "facts": [
+     [
+      "01",
+      "Uscì dalla chiesa prima dell’ultimo inno, con un abito preso in prestito.",
+      "era uscito prima dell’ultimo inno"
+     ],
+     [
+      "01",
+      "Non parla con Nora dal funerale della madre, undici anni fa.",
+      "Non si parlavano dal funerale della madre"
+     ],
+     [
+      "02",
+      "Il suo furgone è parcheggiato accanto alla vecchia pesa; un cane dorme alla sua ombra.",
+      "Il furgone di Tom era parcheggiato accanto alla vecchia pesa"
+     ],
+     [
+      "02",
+      "Ripara da solo il tetto della salina.",
+      "in ginocchio tra due file di lastre, con un martello in mano"
+     ],
+     [
+      "02",
+      "Dice che sopra l’essiccatoio è sempre piovuto dentro.",
+      "Sopra l’essiccatoio è sempre piovuto dentro."
+     ],
+     [
+      "03",
+      "Ha tenuto tutto: ricevute, tavole delle maree, un calendario del 1987.",
+      "Suo fratello aveva tenuto tutto"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "padre"
+    ],
+    "tier": "secondary",
+    "body": "Morto prima che il libro cominci. Il suo cappotto fa tutta la traversata.\n\nUn inverno a fingere di non essere malato, e una lista che nessuno sa leggere.",
+    "facts": [
+     [
+      "01",
+      "Passò un inverno a fingere di non essere malato.",
+      "dell’inverno che lui aveva passato a fingere di non essere malato"
+     ],
+     [
+      "01",
+      "Lasciò una lista nel cappotto: sale, vetro, la barca blu, Tom.",
+      "sale, vetro, la barca blu, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "la madre"
+    ],
+    "tier": "secondary",
+    "body": "Ha contato sacchi alla salina per vent’anni.\n\nSepolta undici anni fa: l’ultima volta che Nora e Tom sono stati nella stessa stanza.",
+    "facts": [
+     [
+      "01",
+      "Ha contato sacchi alla salina per vent’anni.",
+      "dove la madre aveva contato sacchi per vent’anni"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "La signora Pell",
+    "aliases": [
+     "la vecchia del caffè"
+    ],
+    "tier": "extra",
+    "body": "Tiene il caffè del porto. Gira il cartello come se la parola potesse rompersi.",
+    "facts": [
+     [
+      "01",
+      "Gira il cartello del caffè da Chiuso ad Aperto.",
+      "una vecchia girava il cartello"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "uomo con una giacca arancione"
+    ],
+    "tier": "extra",
+    "body": "Marinaio del traghetto. Il primo a guardare Nora dall’autostrada in poi."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Tiene i conti della salina. Arriva al capitolo quattro, con le chiavi."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "La salina",
+    "aliases": [
+     "la salina"
+    ],
+    "body": "Un lungo tetto grigio, la vecchia pesa, l’essiccatoio dove piove dentro.\n\nNiente è chiuso a chiave dalla guerra: c’è solo il sale da prendere.",
+    "facts": [
+     [
+      "01",
+      "La madre vi ha contato sacchi per vent’anni.",
+      "dove la madre aveva contato sacchi per vent’anni"
+     ],
+     [
+      "02",
+      "Il cancello è aperto; niente è chiuso a chiave.",
+      "Il cancello era aperto."
+     ],
+     [
+      "02",
+      "Sopra l’essiccatoio piove dentro.",
+      "Sopra l’essiccatoio piove dentro"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "L’isola",
+    "aliases": [
+     "l’isola"
+    ],
+    "body": "Emerge dalla foschia a pezzi: una chiesa, case bianche, il tetto grigio.\n\nPiù piccola che nel libro."
+   },
+   {
+    "id": "harbour",
+    "name": "Il porto",
+    "aliases": [
+     "porto"
+    ],
+    "body": "Il muro, la gru, lo scivolo. Il caffè apre quando arriva il traghetto."
+   }
+  ]
+ },
+ "board": {
+  "title": "Il ritorno",
+  "labels": {
+   "family": "La famiglia",
+   "story": "Che cosa succede",
+   "island": "L’isola",
+   "year": "1987?"
+  },
+  "columns": [
+   "Uno · La traversata",
+   "Due · La salina"
+  ],
+  "written": [
+   "**Traversata del mattino**\nNora al parapetto. Nessuna frase provata resiste al vento.",
+   "**L’isola**\nIl cappotto, la lista di suo pugno. Lei non riesce a leggerla.",
+   "**Il porto**\nSulla banchina lui non c’è. La barca blu sulla pensilina; lei ride."
+  ],
+  "passage": "disse che era più piccola che nel libro",
+  "next": [
+   "**Il tetto**\nTom sulle lastre, di spalle. È sempre piovuto dentro, dice.",
+   "**Inventario**\nRicevute, tavole delle maree, il calendario del 1987.",
+   "**L’essiccatoio**\nLei gli porge il cappotto. Lui legge la lista ad alta voce, tutta.",
+   "**Odile**\nArriva con le chiavi, e sa che cosa vuol dire la lista."
+  ],
+  "notes": {
+   "list": "*sale, vetro, la barca blu, Tom.*\n\nUna lista della spesa, o un testamento?",
+   "boat": "Undici anni, e nessuno ha ridipinto sopra la barca. Chi ne aveva cura?",
+   "tide": "Controllare le tavole delle maree: parte un traghetto alle sei, a marzo?",
+   "year": "Le alte maree cerchiate di rosso. Che cosa è successo quell’anno?"
+  },
+  "shape": "La barca blu"
+ },
+ "history": {
+  "milestone": "Mandato a Claire",
+  "note": "I capitoli uno e due, così come li ha letti lei."
+ }
+}

@@ -133,8 +133,7 @@ enum DocxAnalyzer {
         if larger { parts.append(L("larger")) }
         if caps { parts.append(L("in capitals")) }
         if broken { parts.append(L("after a page break")) }
-        return L("No heading styles here. Musset spotted your habit: ")
-            + parts.joined(separator: ", ") + L(", \(count) times.")
+        return L("No heading styles here. Musset spotted your habit: \(parts.listed), \(count) times.")
     }
 }
 

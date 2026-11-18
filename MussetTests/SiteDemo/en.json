@@ -1,0 +1,323 @@
+{
+ "uiLang": "en",
+ "bookLang": "en-US",
+ "title": "The Salt Road",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "The Ferry",
+   "text": "# The Ferry\n\n<!-- scene: Morning crossing -->\n\nThe ferry left at six, before the gulls were awake. Nora stood at the rail with her father's coat over her arm, as if he might still ask for it. The deck was wet and nobody else had come up; the other passengers were below, in the warm room that smelled of coffee and diesel, sleeping against their own reflections in the windows.\n\nBelow, the water kept its own counsel. She had rehearsed what she would say to her brother for three hundred miles, and now every sentence sounded like someone else's. She tried them again under her breath, one after the other, and none of them survived the wind.\n\n\"You came,\" he would say. Or he would say nothing, which was worse, and which was more like him.\n\nThey had not spoken since the funeral of their mother, eleven years ago, when Tom had stood at the back of the church in a borrowed suit and left before the last hymn. She had found him afterwards in the car park, smoking with the undertaker, and he had looked at her as if she were a stranger who had asked him for directions.\n\nA man in an orange jacket came along the deck with a coil of rope and nodded at her without stopping. She nodded back. It was the first time anyone had looked at her since the motorway.\n\n<!-- scene: The island -->\n\nThe island rose out of the haze in pieces: a church, a line of white houses, the long grey roof of the salt works where their mother had counted sacks for twenty years. Then the harbour wall, the crane, the two cars waiting on the slipway with their headlights still on, though it was day now and nobody needed them.\n\nShe folded the coat once more. It smelled of tobacco and of rain, and of the winter he had spent pretending not to be ill. In the inside pocket there was a ferry ticket from March, a pencil, and a list in his handwriting that she had not been able to read in the hospital and could not read now: *salt, glass, the blue boat, Tom.*\n\nThe engines changed their note. Somewhere below, a door banged, and the passengers began to come up the stairs with their bags, blinking, putting on their coats. A child asked whether this was the island. Its mother said it was. The child looked at the island for a long time and said that it was smaller than in the book.\n\nNora put the list back where she had found it.\n\n<!-- scene: The harbour -->\n\nHe was not on the quay. She had known he would not be, and still she looked for him twice: once among the men by the crane, once in the doorway of the café, where an old woman was turning the sign from *Closed* to *Open* with great care, as if the word might break.\n\nShe walked up the hill with the coat over her arm and her bag on her shoulder. The road was the road she remembered, only narrower. The houses had new doors. At the top, where the road turned towards the salt works, someone had painted a blue boat on the side of the bus shelter, badly, a long time ago, and it was still there.\n\nShe stopped in front of it and laughed, because it was his, and because nobody had painted over it in eleven years, and because she did not know what else to do."
+  },
+  {
+   "title": "The Salt Works",
+   "text": "# The Salt Works\n\nThe gate was open. Nobody had {~~ever locked~>locked~~}{@Claire} anything on the island since the war, and the salt works least of all: there was nothing {--left--}{@Claire} to take but the salt, and the salt took care of itself.\n\nTom's van was parked by the old weighing house, {++its back doors open,++}{@Claire} with a dog asleep in the shade of it. The dog lifted its head when she came through the gate and put it down again, as if she had been expected.\n\n{==She found him on the roof.==}{>>Too sudden? We haven't heard him yet. Maybe his voice first, then the roof.<<}{@Claire} He was kneeling between two rows of slates with a hammer in his hand, and he did not look round.\n\n\"It leaks over the drying room,\" he said. \"It always leaked over the drying room.\""
+  },
+  {
+   "title": "Inventory",
+   "text": "# Inventory\n\nHer brother had kept everything: receipts, tide tables, a calendar from 1987 with the high tides ringed in red.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "kept its own counsel",
+   "author": "claude",
+   "kind": "critique",
+   "body": "A borrowed phrase in a chapter that is otherwise all hers. What does Nora see in the water?"
+  },
+  {
+   "anchor": "which was worse, and which was more like him",
+   "author": "claude",
+   "kind": "praise",
+   "body": "The brother arrives before he appears. Keep it."
+  },
+  {
+   "anchor": "She folded the coat once more.",
+   "author": "claude",
+   "kind": "question",
+   "body": "The coat is folded for the second time. Deliberate echo, or one too many?"
+  },
+  {
+   "anchor": "eleven years ago",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Check against chapter 4: the funeral is in winter there."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "Does the crossing hold without Tom in it? I’m afraid the first scene is all waiting."
+  },
+  {
+   "role": "assistant",
+   "text": "It holds, and the waiting is the point: Tom is present in every paragraph through what Nora rehearses, the coat, the list in his handwriting. The reader meets him before he appears.\n\nTwo things weaken it. « Kept its own counsel » is the only borrowed phrase in a chapter that is otherwise all hers. And the coat is folded twice; the second fold is the stronger one, so the first could go.\n\nI’ve left three notes in the margin. Would you like me to look at how the harbour scene ends?"
+  },
+  {
+   "role": "user",
+   "text": "Yes — does the laugh at the bus shelter come too soon?"
+  }
+ ],
+ "versions": {
+  "current": "First draft",
+  "other": "Darker",
+  "edits": [
+   [
+    "The ferry left at six, before the gulls were awake.",
+    "The ferry left in the dark."
+   ],
+   [
+    "as if he might still ask for it.",
+    "as if he might still come up the stairs and ask for it."
+   ],
+   [
+    "Below, the water kept its own counsel.",
+    "Below, the water was black and did not move."
+   ],
+   [
+    "which was worse, and which was more like him.",
+    "which was what he had always done."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, on the island",
+     "Translator, on the mainland",
+     "To tell Tom herself",
+     "The list in the coat pocket"
+    ],
+    "body": "Comes back with her father’s coat and not one sentence that holds.\n\nLeft at nineteen. Three hundred miles of rehearsal, and nothing of it will be said.\n\nShe laughs when she does not know what else to do. Keep that for the end.",
+    "facts": [
+     [
+      "01",
+      "Stands at the rail with her father’s coat over her arm.",
+      "with her father’s coat over her arm"
+     ],
+     [
+      "01",
+      "Has not spoken to her brother since their mother’s funeral.",
+      "They had not spoken since the funeral of their mother"
+     ],
+     [
+      "01",
+      "Cannot read the list in her father’s handwriting.",
+      "could not read now"
+     ],
+     [
+      "01",
+      "Laughs in front of the blue boat on the bus shelter.",
+      "She stopped in front of it and laughed"
+     ],
+     [
+      "02",
+      "Finds Tom on the roof of the salt works.",
+      "She found him on the roof."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Keeps the salt works standing, alone",
+     "To be asked nothing",
+     "What happened in 1987"
+    ],
+    "body": "Stayed. Mends what leaks, keeps what should have been thrown away.\n\nTalks to the roof more readily than to people. Eleven years without a word to Nora, and his first sentence will be about the drying room.\n\nHe painted the blue boat at fourteen. Never say so: let her recognise it.",
+    "found": [
+     "her brother"
+    ],
+    "facts": [
+     [
+      "01",
+      "Left the church before the last hymn, in a borrowed suit.",
+      "left before the last hymn"
+     ],
+     [
+      "01",
+      "Has not spoken to Nora since their mother’s funeral, eleven years ago.",
+      "They had not spoken since the funeral of their mother"
+     ],
+     [
+      "02",
+      "His van is parked by the old weighing house; a dog sleeps in its shade.",
+      "van was parked by the old weighing house"
+     ],
+     [
+      "02",
+      "Mends the roof of the salt works himself.",
+      "kneeling between two rows of slates with a hammer in his hand"
+     ],
+     [
+      "02",
+      "Says it always leaked over the drying room.",
+      "It always leaked over the drying room."
+     ],
+     [
+      "03",
+      "Has kept everything: receipts, tide tables, a calendar from 1987.",
+      "Her brother had kept everything"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "her father"
+    ],
+    "tier": "secondary",
+    "body": "Dead before the book begins. His coat makes the whole crossing.\n\nA winter spent pretending not to be ill, and a list nobody can read.",
+    "facts": [
+     [
+      "01",
+      "Spent a winter pretending not to be ill.",
+      "the winter he had spent pretending not to be ill"
+     ],
+     [
+      "01",
+      "Left a list in his coat: salt, glass, the blue boat, Tom.",
+      "salt, glass, the blue boat, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "their mother"
+    ],
+    "tier": "secondary",
+    "body": "Counted sacks at the salt works for twenty years.\n\nBuried eleven years ago: the last time Nora and Tom were in the same room.",
+    "facts": [
+     [
+      "01",
+      "Counted sacks at the salt works for twenty years.",
+      "where their mother had counted sacks for twenty years"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "Mrs Pell",
+    "aliases": [
+     "old woman"
+    ],
+    "tier": "extra",
+    "body": "Keeps the café on the harbour. Turns the sign as if the word might break.",
+    "facts": [
+     [
+      "01",
+      "Turns the café sign from Closed to Open.",
+      "an old woman was turning the sign"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "man in an orange jacket"
+    ],
+    "tier": "extra",
+    "body": "Deckhand on the ferry. The first to look at Nora since the motorway."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Keeps the books of the salt works. Arrives in chapter four, with the keys."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "The salt works",
+    "aliases": [
+     "the salt works"
+    ],
+    "body": "A long grey roof, the weighing house, the drying room where it leaks.\n\nNothing locked since the war: there is only the salt to take.",
+    "facts": [
+     [
+      "01",
+      "Their mother counted sacks there for twenty years.",
+      "where their mother had counted sacks for twenty years"
+     ],
+     [
+      "02",
+      "The gate is open; nothing is locked.",
+      "The gate was open."
+     ],
+     [
+      "02",
+      "The roof leaks over the drying room.",
+      "It leaks over the drying room"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "The island",
+    "aliases": [
+     "the island"
+    ],
+    "body": "Comes out of the haze in pieces: a church, white houses, the grey roof.\n\nSmaller than in the book."
+   },
+   {
+    "id": "harbour",
+    "name": "The harbour",
+    "aliases": [
+     "the harbour"
+    ],
+    "body": "The wall, the crane, the slipway. The café opens when the ferry comes in."
+   }
+  ]
+ },
+ "board": {
+  "title": "The return",
+  "labels": {
+   "family": "The family",
+   "story": "What happens",
+   "island": "The island",
+   "year": "1987?"
+  },
+  "columns": [
+   "One · The crossing",
+   "Two · The salt works"
+  ],
+  "written": [
+   "**Morning crossing**\nNora at the rail. Every rehearsed sentence fails in the wind.",
+   "**The island**\nThe coat, the list in his handwriting. She cannot read it.",
+   "**The harbour**\nHe is not on the quay. The blue boat on the bus shelter; she laughs."
+  ],
+  "passage": "said that it was smaller than in the book",
+  "next": [
+   "**The roof**\nTom on the slates, his back turned. It always leaked, he says.",
+   "**Inventory**\nReceipts, tide tables, the calendar from 1987.",
+   "**The drying room**\nShe hands him the coat. He reads the list aloud, all of it.",
+   "**Odile**\nShe comes with the keys, and knows what the list means."
+  ],
+  "notes": {
+   "list": "*salt, glass, the blue boat, Tom.*\n\nA shopping list, or a will?",
+   "boat": "Eleven years, and nobody painted over the boat. Who looked after it?",
+   "tide": "Check the tide tables: does a ferry leave at six in March?",
+   "year": "High tides ringed in red. What happened that year?"
+  },
+  "shape": "The blue boat"
+ },
+ "history": {
+  "milestone": "Sent to Claire",
+  "note": "Chapters one and two, as she read them."
+ }
+}

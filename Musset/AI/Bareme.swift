@@ -62,7 +62,6 @@ struct Bareme: Codable, Equatable, Sendable {
     static let blancheCalibration = "en littérature blanche, L'Étranger de Camus vaudrait 90/100 à ce barème, soit 18/20 en moyenne. Situe ce chapitre par rapport à cette exigence : très peu de textes l'atteignent."
 
     var version = 1
-    var presetId: String?
     var name: String
     /// What the book promises its reader, in a sentence.
     var contract: String
@@ -76,6 +75,13 @@ struct Bareme: Codable, Equatable, Sendable {
     var maluses: [MalusItem] = []
     var criteria: [Criterion] = []
 
+    /// The preset whose grids these are; nil once the author has made them their own. Not kept in the file (older
+    /// files name it; the book's genre is the manifest's): the grids say it.
+    var presetId: String? { preset()?.id }
+    func preset(in library: ScoringLibrary = .shared) -> ScoringLibrary.Preset? {
+        library.presets.first { $0.chapter.items == chapter && $0.work.items == work && $0.chapter.maluses == maluses }
+    }
+
     var weights: [String: Int] { Dictionary(uniqueKeysWithValues: chapter.map { ($0.criterionId, $0.weight) }) }
 
     func criterion(_ id: String, library: ScoringLibrary = .shared) -> Criterion? {
@@ -84,7 +90,6 @@ struct Bareme: Codable, Equatable, Sendable {
 
     /// The book takes this preset's grids and promise; its threshold and rules stay.
     mutating func adopt(_ preset: ScoringLibrary.Preset) {
-        presetId = preset.id
         name = preset.name
         contract = preset.contract
         chapter = preset.chapter.items
@@ -94,7 +99,6 @@ struct Bareme: Codable, Equatable, Sendable {
     }
 
     init(preset: ScoringLibrary.Preset) {
-        presetId = preset.id
         name = preset.name
         contract = preset.contract
         chapter = preset.chapter.items
@@ -121,18 +125,22 @@ struct Bareme: Codable, Equatable, Sendable {
 
     /// The book's rubric, or the one it would start with: saved only when the author saves it or a reading uses it.
     static func forBook(_ root: URL) -> Bareme? {
-        if let data = try? Data(contentsOf: url(root)), let b = try? JSONDecoder().decode(Bareme.self, from: data) { return b }
-        return Bareme(migrating: Rubric.load(root))
+        if let b = JSONFile.read(Bareme.self, at: url(root)) { return b }
+        // A French book with no rubric of its own starts from the Collection Blanche one, read here and written nowhere.
+        return Bareme(migrating: Rubric.load(root) ?? (bookIsFrench(root) ? Rubric.blanche : nil))
+    }
+
+    private static func bookIsFrench(_ root: URL) -> Bool {
+        struct Lang: Decodable { let lang: String? }
+        guard let data = try? Data(contentsOf: BookStore(root: root).manifestURL), let m = try? JSONDecoder().decode(Lang.self, from: data) else { return false }
+        return (m.lang ?? "fr").lowercased().hasPrefix("fr")
     }
 
     func save(_ root: URL, library: ScoringLibrary = .shared) throws {
         var copy = self
         let used = Set(chapter.map(\.criterionId) + work.map(\.criterionId) + maluses.map(\.criterionId))
         copy.criteria = used.sorted().compactMap { criterion($0, library: library) }
-        try FileManager.default.createDirectory(at: Self.url(root).deletingLastPathComponent(), withIntermediateDirectories: true)
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try enc.encode(copy).write(to: Self.url(root), options: .atomic)
+        try JSONFile.write(copy, to: Self.url(root))
     }
 }
 
@@ -282,16 +290,10 @@ struct Reading: Codable, Identifiable, Hashable, Sendable {
     static func lastTextURL(_ root: URL, _ chapter: String) -> URL { root.appendingPathComponent(".musset/readings/\(chapter).last.md") }
 
     static func load(_ root: URL, _ chapter: String) -> [Reading] {
-        guard let data = try? Data(contentsOf: url(root, chapter)) else { return [] }
-        let dec = JSONDecoder(); dec.dateDecodingStrategy = .iso8601
-        return (try? dec.decode([Reading].self, from: data)) ?? []
+        JSONFile.read(at: url(root, chapter), iso8601: true) ?? []
     }
 
     static func append(_ reading: Reading, root: URL, chapter: String) throws {
-        let file = url(root, chapter)
-        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let enc = JSONEncoder(); enc.dateEncodingStrategy = .iso8601
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try enc.encode(load(root, chapter) + [reading]).write(to: file, options: .atomic)
+        try JSONFile.write(load(root, chapter) + [reading], to: url(root, chapter), iso8601: true)
     }
 }

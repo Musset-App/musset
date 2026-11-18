@@ -1,8 +1,10 @@
 #!/bin/zsh
 # Builds Musset for distribution outside the App Store: Release, Developer ID, hardened runtime,
-# Apple silicon only: the bundled typst comes from Homebrew and has no Intel slice.
+# Apple silicon only.
 # notarized and stapled, in a DMG. Result: build/dist/Musset-<version>.dmg
-# Needs the notary credentials once: xcrun notarytool store-credentials AC_NOTARY
+# Needs the notary credentials once: xcrun notarytool store-credentials AC_NOTARY (or, in CI, an App Store Connect API
+# key: MUSSET_NOTARY_KEY (path of the .p8), MUSSET_NOTARY_KEY_ID, MUSSET_NOTARY_ISSUER).
+# MUSSET_VERSION and MUSSET_BUILD set the version and build number (scripts/release.sh passes them).
 # `--sign-only` stops before anything is sent to Apple.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,14 +12,19 @@ cd "$(dirname "$0")/.."
 # The Developer ID to sign with: MUSSET_SIGN_IDENTITY, or scripts/local.env (ignored by git) that sets it.
 [ -f scripts/local.env ] && source scripts/local.env
 IDENTITY="${MUSSET_SIGN_IDENTITY:?set MUSSET_SIGN_IDENTITY to your \"Developer ID Application: …\" certificate}"
-PROFILE="AC_NOTARY"
+if [ -n "${MUSSET_NOTARY_KEY:-}" ]; then
+  NOTARY="--key $MUSSET_NOTARY_KEY --key-id ${MUSSET_NOTARY_KEY_ID:?} --issuer ${MUSSET_NOTARY_ISSUER:?}"
+else
+  NOTARY="--keychain-profile AC_NOTARY"
+fi
 DIST="build/dist"
 DERIVED="build/release"
 
 xcodegen generate >/dev/null
 xcodebuild -project Musset.xcodeproj -scheme Musset -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DERIVED" \
-  ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COPY_PHASE_STRIP=YES build | grep -E "error:|\*\* BUILD" || true
+  ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COPY_PHASE_STRIP=YES \
+  ${MUSSET_VERSION:+MARKETING_VERSION=$MUSSET_VERSION} ${MUSSET_BUILD:+CURRENT_PROJECT_VERSION=$MUSSET_BUILD} build | grep -E "error:|\*\* BUILD" || true
 
 BUILT="$DERIVED/Build/Products/Release/Musset.app"
 [ -x "$BUILT/Contents/MacOS/Musset" ] || { echo "No build"; exit 1; }
@@ -47,6 +54,14 @@ if [ -d "$LT" ]; then
   done
 fi
 
+# Sparkle's helpers, inside out, keeping the Downloader's own entitlements (Sparkle's documented order).
+SP="$APP/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SP" ]; then
+  for x in "$SP"/Versions/B/XPCServices/*.xpc(N) "$SP/Versions/B/Autoupdate" "$SP/Versions/B/Updater.app" "$SP"; do
+    codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$IDENTITY" "$x"
+  done
+fi
+
 # Inside out: --deep doesn't reach the tools in Resources/bin, and notarization would refuse them.
 for tool in "$APP"/Contents/Resources/bin/*(N); do
   codesign --force --options runtime --timestamp --sign "$IDENTITY" "$tool"
@@ -58,7 +73,7 @@ echo "Signed $APP ($VERSION)"
 
 ZIP="$DIST/Musset.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-xcrun notarytool submit "$ZIP" --keychain-profile "$PROFILE" --wait | tee "$DIST/notary-app.log"
+xcrun notarytool submit "$ZIP" ${=NOTARY} --wait | tee "$DIST/notary-app.log"
 grep -q "status: Accepted" "$DIST/notary-app.log"
 xcrun stapler staple "$APP"
 rm -f "$ZIP"
@@ -68,10 +83,10 @@ mkdir -p "$ROOT"
 ditto "$APP" "$ROOT/Musset.app"
 ln -s /Applications "$ROOT/Applications"
 DMG="$DIST/Musset-$VERSION.dmg"
-hdiutil create -volname "Musset" -srcfolder "$ROOT" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Musset" -srcfolder "$ROOT" -ov -format ULMO "$DMG" >/dev/null
 rm -rf "$ROOT"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
-xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait | tee "$DIST/notary-dmg.log"
+xcrun notarytool submit "$DMG" ${=NOTARY} --wait | tee "$DIST/notary-dmg.log"
 grep -q "status: Accepted" "$DIST/notary-dmg.log"
 xcrun stapler staple "$DMG"
 

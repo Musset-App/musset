@@ -5,6 +5,9 @@ import Foundation
 enum WordManuscript {
     static let exportProperty = "musset_export"
     static let chapterBookmark = "mch_"
+    /// The line over a piece's title, and the title that follows it on the same page.
+    static let pieceLineStyle = "ChapterNumber"
+    static let pieceTitleStyle = "ChapterTitle"
 
     /// What was sent, kept in the book (`.musset/word-exports/<id>.json`): the reference a corrected file is compared with.
     struct Sent: Codable {
@@ -20,20 +23,13 @@ enum WordManuscript {
     static func directory(_ root: URL) -> URL { root.appendingPathComponent(".musset/word-exports", isDirectory: true) }
 
     static func save(_ sent: Sent, root: URL) throws {
-        let dir = directory(root)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let enc = JSONEncoder()
-        enc.dateEncodingStrategy = .iso8601
-        enc.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        try enc.encode(sent).write(to: dir.appendingPathComponent(sent.id + ".json"), options: .atomic)
+        try JSONFile.write(sent, to: directory(root).appendingPathComponent(sent.id + ".json"), [.sortedKeys, .withoutEscapingSlashes], iso8601: true)
     }
 
     static func allSent(root: URL) -> [Sent] {
-        let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601
         let files = (try? FileManager.default.contentsOfDirectory(at: directory(root), includingPropertiesForKeys: nil)) ?? []
         return files.filter { $0.pathExtension == "json" && $0.lastPathComponent != "imports.json" }
-            .compactMap { (try? Data(contentsOf: $0)).flatMap { try? dec.decode(Sent.self, from: $0) } }
+            .compactMap { JSONFile.read(Sent.self, at: $0, iso8601: true) }
     }
 
     // MARK: The source
@@ -41,15 +37,23 @@ enum WordManuscript {
     /// The chapters for pandoc, each inside a bookmark, its scene breaks in their style.
     static func source(_ m: BookManifest, store: BookStore) -> (text: String, chapters: [String]) {
         let chapters = m.chapters.filter { !$0.excludeFromExport }
-        let parts = m.partOpenings
+        let parts = m.groupOpenings
         var out = ""
         for (i, ch) in chapters.enumerated() {
             // Outside the chapters' bookmarks: a corrected Word file brings back only what is inside them.
+            // The group's line is never empty: « II », « Acte II », or its title for a level without numbers.
             if let p = parts[ch.id] {
-                out += "::: {custom-style=\"PartNumber\"}\n\(p.numeral)\n:::\n\n"
+                out += "::: {custom-style=\"PartNumber\"}\n\(p.line)\n:::\n\n"
                 if !p.title.isEmpty { out += "::: {custom-style=\"PartTitle\"}\n\(p.title)\n:::\n\n" }
             }
-            var text = BookStore.sceneBreaks(Revisions.resolveAll(store.read(ch), accept: false), m.sceneBreak ?? .none)
+            let source = ListLines.forPandoc(Revisions.resolveAll(store.read(ch), accept: false), m.printedListOptions)
+            // A formed book's piece: its line (« Chapitre 3 », « Prologue ») in a style of its own, and a heading for
+            // a text that has none. Outside the bookmark too: they are the form's, not the text's to correct.
+            if let opening = m.opening(of: ch, text: source) {
+                if let label = opening.label { out += "::: {custom-style=\"\(pieceLineStyle)\"}\n\(label)\n:::\n\n" }
+                if let title = opening.title { out += "# \(title)\n\n" }
+            }
+            var text = BookStore.sceneBreaks(source, m.sceneBreak ?? .none)
             text = BookStore.stripHTMLComments(text)
             text = text.components(separatedBy: "\n").map { line in
                 line == "⁂" || line == "&nbsp;" ? "::: {custom-style=\"SceneBreak\"}\n\(line)\n:::" : line
@@ -97,7 +101,7 @@ enum WordManuscript {
         }
         try edit("word/settings.xml") { settings($0, lang: wordLanguage(m.lang)) }
         if styled {
-            try edit("word/styles.xml") { styles($0, lang: m.lang) }
+            try edit("word/styles.xml") { styles($0, lang: m.lang, running: m.hasForm ? m.level(.piece).opens == .inPage : nil) }
             try edit("word/document.xml", document)
             try edit("word/footnotes.xml") { characterStyles($0) }
             try header(m).write(to: dir.appendingPathComponent("word/header1.xml"), atomically: true, encoding: .utf8)
@@ -160,13 +164,18 @@ enum WordManuscript {
         let ns = out as NSString
         var previous = ""
         var replacements: [NSRange] = []
+        var titles: [NSRange] = []
         for m in pattern.matches(in: out, range: NSRange(location: 0, length: ns.length)) {
             let style = ns.substring(with: m.range(at: 1))
             if style == "BodyText", previous == "SceneBreak" { replacements.append(m.range) }
+            // Under its line, a title stays on the line's page: the line took the new page.
+            if style == "Heading1", previous == pieceLineStyle { titles.append(m.range) }
             previous = style
         }
         let mutable = NSMutableString(string: out)
-        for r in replacements.reversed() { mutable.replaceCharacters(in: r, with: #"<w:pStyle w:val="FirstParagraph" />"#) }
+        for (r, style) in (replacements.map { ($0, "FirstParagraph") } + titles.map { ($0, pieceTitleStyle) }).sorted(by: { $0.0.location > $1.0.location }) {
+            mutable.replaceCharacters(in: r, with: #"<w:pStyle w:val="\#(style)" />"#)
+        }
         out = mutable as String
         // Only the last one is left: one page setting for the whole manuscript.
         let section = #"<w:sectPr><w:headerReference w:type="default" r:id="rIdMussetHeader"/><w:footerReference w:type="default" r:id="rIdMussetFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/><w:titlePg/></w:sectPr>"#
@@ -211,7 +220,9 @@ enum WordManuscript {
     }
 
     /// Word's own names for what it knows (it shows them in the author's language), the book's language for the rest.
-    private static func styleSet(lang: String) -> [Style] {
+    /// `running`: nil for a book without a form, whose styles are the ones Musset always wrote; in a formed book,
+    /// whether its pieces open in the page (fragments, a journal's entries), one after the other.
+    private static func styleSet(lang: String, running: Bool?) -> [Style] {
         func n(_ term: BookTerm) -> String { term.in(lang) }
         let body = #"<w:widowControl/><w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/>"#
         var styles = [
@@ -240,20 +251,37 @@ enum WordManuscript {
             Style(id: "Strong", name: "Strong", type: "character", basedOn: nil, run: "<w:b/><w:bCs/>"),
             Style(id: "FootnoteReference", name: "footnote reference", type: "character", basedOn: nil, run: #"<w:vertAlign w:val="superscript"/>"#),
         ]
-        styles.append(Style(id: "Heading1", name: "heading 1", next: "FirstParagraph",
-                            paragraph: #"<w:keepNext/><w:keepLines/><w:pageBreakBefore/><w:spacing w:before="1200" w:after="720" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>"#,
-                            run: #"<w:sz w:val="32"/><w:szCs w:val="32"/>"#))
-        for level in 2...9 {
-            styles.append(Style(id: "Heading\(level)", name: "heading \(level)", next: "FirstParagraph",
-                                paragraph: #"<w:keepNext/><w:keepLines/><w:spacing w:before="480" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="\#(level - 1)"/>"#,
-                                run: #"<w:sz w:val="26"/><w:szCs w:val="26"/>"#))
+        if running == true {
+            // A formed book whose pieces run on: the same heading, without its page.
+            styles.append(Style(id: "Heading1", name: "heading 1", next: "FirstParagraph",
+                                paragraph: #"<w:keepNext/><w:keepLines/><w:spacing w:before="720" w:after="360" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>"#,
+                                run: #"<w:sz w:val="32"/><w:szCs w:val="32"/>"#))
+        } else {
+            styles.append(Style(id: "Heading1", name: "heading 1", next: "FirstParagraph",
+                                paragraph: #"<w:keepNext/><w:keepLines/><w:pageBreakBefore/><w:spacing w:before="1200" w:after="720" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>"#,
+                                run: #"<w:sz w:val="32"/><w:szCs w:val="32"/>"#))
         }
-        return styles
+        guard let running else { return styles + headings() }
+        // A formed book's piece: its line where the heading would start, its title close under it.
+        styles.append(Style(id: pieceLineStyle, name: n(.pieceLine), next: pieceTitleStyle,
+                            paragraph: "<w:keepNext/>" + (running ? "" : "<w:pageBreakBefore/>") + #"<w:spacing w:before="\#(running ? 720 : 1200)" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/>"#,
+                            run: #"<w:sz w:val="26"/><w:szCs w:val="26"/>"#, custom: true))
+        styles.append(Style(id: pieceTitleStyle, name: n(.pieceTitle), basedOn: "Heading1", next: "FirstParagraph",
+                            paragraph: #"<w:pageBreakBefore w:val="0"/><w:spacing w:before="0" w:after="\#(running ? 360 : 720)" w:line="240" w:lineRule="auto"/>"#, custom: true))
+        return styles + headings()
+    }
+
+    private static func headings() -> [Style] {
+        (2...9).map { level in
+            Style(id: "Heading\(level)", name: "heading \(level)", next: "FirstParagraph",
+                  paragraph: #"<w:keepNext/><w:keepLines/><w:spacing w:before="480" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="\#(level - 1)"/>"#,
+                  run: #"<w:sz w:val="26"/><w:szCs w:val="26"/>"#)
+        }
     }
 
     /// The styles of the file become these; everything pandoc needs and these don't name stays.
-    static func styles(_ xml: String, lang: String) -> String {
-        let set = styleSet(lang: lang)
+    static func styles(_ xml: String, lang: String, running: Bool? = nil) -> String {
+        let set = styleSet(lang: lang, running: running)
         let code = wordLanguage(lang)
         var out = xml
         let defaults = #"<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="\#(code)" w:eastAsia="\#(code)" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault/></w:docDefaults>"#

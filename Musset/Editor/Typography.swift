@@ -34,11 +34,12 @@ enum Typography {
         return ["fr", "en", "de", "es", "it", "pt"].contains { l.hasPrefix($0) }
     }
 
+    private static let authorNote = try! NSRegularExpression(pattern: "<!--.*?-->", options: [.dotMatchesLineSeparators])
+
     /// Paragraphs the rules may touch: not blank, not a scene break, not part of a multi-paragraph author's note.
     static func paragraphRanges(in text: String) -> [NSRange] {
         let ns = text as NSString
-        let notes = (try? NSRegularExpression(pattern: "<!--.*?-->", options: [.dotMatchesLineSeparators]))?
-            .matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range) ?? []
+        let notes = ns.range(of: "<!--").location == NSNotFound ? [] : authorNote.matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range)
         var out: [NSRange] = []
         var cursor = 0
         while cursor < ns.length {
@@ -54,24 +55,25 @@ enum Typography {
     }
 
     /// The whole chapter as it should be typeset.
-    static func correctedDocument(_ text: String, lang: String) -> (text: String, count: Int) {
+    static func correctedDocument(_ text: String, lang: String, lists: ListOptions = .none) -> (text: String, count: Int) {
         guard supports(lang) else { return (text, 0) }
         var out = text as NSString
         var count = 0
         for r in paragraphRanges(in: text).reversed() {
-            let edits = self.edits(in: out.substring(with: r), lang: lang)
+            let edits = self.edits(in: out.substring(with: r), lang: lang, lists: lists)
             guard !edits.isEmpty else { continue }
             count += edits.count
-            out = out.replacingCharacters(in: r, with: corrected(out.substring(with: r), lang: lang)) as NSString
+            out = out.replacingCharacters(in: r, with: corrected(out.substring(with: r), lang: lang, lists: lists)) as NSString
         }
         return (out as String, count)
     }
 
-    /// The paragraph as it should be typeset.
-    static func corrected(_ text: String, lang: String) -> String {
+    /// The paragraph as it should be typeset. `lists`: the lists the book recognises; in a book with bullet lists,
+    /// a « - » that opens an item is its marker and stays one, where it would otherwise become a dialogue dash.
+    static func corrected(_ text: String, lang: String, lists: ListOptions = .none) -> String {
         let l = lang.lowercased()
         guard supports(l) else { return text }
-        var (s, protected) = protect(text)
+        var (s, protected) = protect(text, lists: lists)
         let book = BookLanguage(code: l)
         switch book {
         case .frFR: s = french(s)
@@ -82,8 +84,8 @@ enum Typography {
     }
 
     /// Minimal edits turning `text` into its corrected form (character-level, so notes and the caret stay put).
-    static func edits(in text: String, lang: String) -> [Edit] {
-        let fixed = corrected(text, lang: lang)
+    static func edits(in text: String, lang: String, lists: ListOptions = .none) -> [Edit] {
+        let fixed = corrected(text, lang: lang, lists: lists)
         guard fixed != text else { return [] }
         return diff(Array((text as NSString).utf16Units), Array((fixed as NSString).utf16Units))
     }
@@ -270,13 +272,26 @@ enum Typography {
         options: [.dotMatchesLineSeparators])
 
     /// Swaps protected spans for private-use placeholders so no rule can touch them.
-    private static func protect(_ s: String) -> (String, [String]) {
+    private static func protect(_ s: String, lists: ListOptions) -> (String, [String]) {
         let ns = s as NSString
         var kept: [String] = []
         var out = s
-        for m in protectRegex.matches(in: s, range: NSRange(location: 0, length: ns.length)).reversed() {
-            kept.insert(ns.substring(with: m.range), at: 0)
-            out = (out as NSString).replacingCharacters(in: m.range, with: "\u{E000}")
+        var spans = protectRegex.matches(in: s, range: NSRange(location: 0, length: ns.length)).map(\.range)
+        // A bullet's marker, with the white space around it: the start of each line that is an item.
+        if lists.bullets, ns.length > 1 {
+            var at = 0
+            while at < ns.length {
+                let line = ns.lineRange(for: NSRange(location: at, length: 0))
+                at = NSMaxRange(line)
+                guard let item = ListLines.candidate(ns, at: line.location), item.number == nil else { continue }
+                let r = NSRange(location: line.location, length: item.text - line.location)
+                if !spans.contains(where: { NSIntersectionRange($0, r).length > 0 }) { spans.append(r) }
+            }
+            spans.sort { $0.location < $1.location }
+        }
+        for r in spans.reversed() {
+            kept.insert(ns.substring(with: r), at: 0)
+            out = (out as NSString).replacingCharacters(in: r, with: "\u{E000}")
         }
         return (out, kept)
     }
@@ -299,32 +314,9 @@ enum Typography {
 
     /// Groups a UTF-16 difference into replacements on the original text.
     private static func diff(_ a: [unichar], _ b: [unichar]) -> [Edit] {
-        let changes = b.difference(from: a)
-        var removed = Set<Int>()
-        var inserted: [Int: unichar] = [:]
-        for c in changes {
-            switch c {
-            case .remove(let offset, _, _): removed.insert(offset)
-            case .insert(let offset, let element, _): inserted[offset] = element
-            }
+        Diff.gaps(a, b).map { gap in
+            Edit(range: NSRange(location: gap.old.lowerBound, length: gap.old.count), replacement: String(utf16CodeUnits: Array(b[gap.new]), count: gap.new.count))
         }
-        // Walk both strings in step and collect runs where they differ.
-        var edits: [Edit] = []
-        var i = 0, j = 0
-        while i < a.count || j < b.count {
-            if i < a.count, !removed.contains(i), j < b.count, inserted[j] == nil {
-                i += 1; j += 1; continue
-            }
-            let start = i
-            var replacement: [unichar] = []
-            while (i < a.count && removed.contains(i)) || (j < b.count && inserted[j] != nil) {
-                if i < a.count && removed.contains(i) { i += 1 }
-                if j < b.count, let e = inserted[j] { replacement.append(e); j += 1 }
-            }
-            edits.append(Edit(range: NSRange(location: start, length: i - start),
-                              replacement: String(utf16CodeUnits: replacement, count: replacement.count)))
-        }
-        return edits
     }
 
     // MARK: Cache key

@@ -13,8 +13,14 @@ extension BookSession {
     /// The version open in the editor when it isn't the book's; nil when one writes the book's.
     var openAlternate: String? {
         _ = versionTick   // `state` isn't observed: this is what tells the views.
-        guard piste == nil, let ch = selectedChapter, let name = state.openVersions?[ch.id],
-              name != ch.activeVersion, versions.contains(name) else { return nil }
+        guard let ch = selectedChapter else { return nil }
+        return alternate(of: ch, versions: versions)
+    }
+
+    /// The version a chapter is being written in when it isn't the book's (any chapter, open in any pane).
+    func alternate(of ch: ChapterEntry, versions known: [String]? = nil) -> String? {
+        guard piste == nil, let name = state.openVersions?[ch.id], name != ch.activeVersion,
+              (known ?? store.versions(of: ch)).contains(name) else { return nil }
         return name
     }
 
@@ -22,7 +28,11 @@ extension BookSession {
     var editingVersion: String? { openAlternate ?? selectedChapter?.activeVersion }
 
     /// Whether the editor holds the book's text of this chapter (so it can be read instead of the file).
-    func editorIsBook(_ chapterID: String) -> Bool { chapterID == selectedChapterID && openAlternate == nil }
+    func editorIsBook(_ chapterID: String) -> Bool {
+        guard docs[chapterID] != nil else { return false }
+        if chapterID == selectedChapterID { return openAlternate == nil }
+        return anyChapter(chapterID).map { alternate(of: $0) == nil } ?? false
+    }
 
     /// A version's name as shown: the first one, never named, is « Première version ».
     static func versionLabel(_ name: String) -> String {
@@ -33,7 +43,7 @@ extension BookSession {
         var open = state.openVersions ?? [:]
         open[chapterID] = name
         state.openVersions = open.isEmpty ? nil : open
-        store.saveState(state)
+        stateChanged()
         versionTick += 1
     }
 
@@ -68,7 +78,7 @@ extension BookSession {
         do { try activateVersion(s.previous, commit: true, keepEditor: true) } catch { lastError = error.localizedDescription }
     }
 
-    /// « Try something else »: a new version of the open chapter, a copy of what is being written or a blank
+    /// A new version of the open chapter, a copy of what is being written or a blank
     /// page, opened in the editor. The book keeps its version. `currentName` names the version left behind.
     func tryAnotherVersion(named newName: String, blank: Bool, currentName: String? = nil) {
         guard inManuscript(), let ch = selectedChapter else { return }
@@ -95,9 +105,7 @@ extension BookSession {
         guard inManuscript(), let ch = selectedChapter, name != ch.activeVersion, versions.contains(name) else { return }
         if name == openAlternate { flushSave() }
         let trashStore = TrashStore(root: root)
-        var item = TrashItem(kind: .version, title: "\(ch.title) — \(Self.versionLabel(name))")
-        item.versionChapter = ch.id
-        item.versionName = name
+        let item = TrashItem(.version(chapter: ch.id, name: name), title: "\(ch.title) — \(Self.versionLabel(name))")
         do {
             try FileManager.default.createDirectory(at: trashStore.dir, withIntermediateDirectories: true)
             try FileManager.default.moveItem(at: store.versionURL(ch, name), to: trashStore.sheetFile(item.id))
@@ -114,7 +122,7 @@ extension BookSession {
 
     /// Back among the chapter's versions, under a free name.
     func restoreVersion(_ item: TrashItem) -> Bool {
-        guard let id = item.versionChapter, let name = item.versionName, let ch = anyChapter(id) else {
+        guard case .version(let id, let name) = item.payload, let ch = anyChapter(id) else {
             lastError = L("This chapter is no longer in the book.")
             return false
         }

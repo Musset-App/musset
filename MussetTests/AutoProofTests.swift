@@ -5,6 +5,29 @@ import XCTest
 
 @MainActor
 final class AutoProofTests: XCTestCase {
+    /// Settings ▸ Proofreading writes the defaults; the proofreader that is running takes the switch at once, and a
+    /// switch flipped on the proofreader (the Notes panel's) is what Settings then shows.
+    func testASwitchInSettingsReachesTheRunningProofreader() {
+        let d = UserDefaults.standard
+        let keys = ["autoProofread", "autoCorrect", "autoTypography"]
+        let saved = keys.map { d.object(forKey: $0) }
+        defer { for (k, v) in zip(keys, saved) { d.set(v, forKey: k) } }
+        for k in keys { d.set(true, forKey: k) }
+        let proof = AutoProofreader()
+        XCTAssertTrue(proof.enabled && proof.autoCorrect && proof.typography)
+        d.set(false, forKey: "autoProofread")
+        XCTAssertFalse(proof.enabled, "switched off in Settings: off at once")
+        XCTAssertTrue(proof.autoCorrect && proof.typography, "the others stay")
+        d.set(false, forKey: "autoCorrect")
+        d.set(false, forKey: "autoTypography")
+        XCTAssertFalse(proof.autoCorrect)
+        XCTAssertFalse(proof.typography)
+        d.set(true, forKey: "autoProofread")
+        XCTAssertTrue(proof.enabled, "and back on")
+        proof.typography = true
+        XCTAssertEqual(d.object(forKey: "autoTypography") as? Bool, true, "the Notes panel's switch is the same one")
+    }
+
     func testMatchingKeepsCurlyApostrophes() {
         let src = "Mais on est jamais trop prudent, dit l’homme."
         let raw = #"[{"original":"on est jamais","replacement":"on n'est jamais","reason":"négation","kind":"suggest"},{"original":"dit l'homme","replacement":"dit l'Homme","reason":"x","kind":"obvious"}]"#

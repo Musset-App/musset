@@ -13,17 +13,24 @@ final class AppState {
     var pendingSetup: PendingSetup?
     /// The command bar (⌘K).
     var showQuickOpen = false
+    /// Asking for a name to keep the window's layout under.
+    var namingLayout = false
+    /// The command bar opened by ⇧⌘O: only what can be opened, and it opens in the next pane.
+    var openBeside = false
     var showBookSettings = false
     var showNewBook = false
-    /// The account: sign in, and the books on it.
-    var showAccount = false
+    /// Musset Sync, offered; with the book to put online once paid.
+    var showSyncOffer = false
+    var syncOfferBook: URL?
+    /// An invitation opened before signing in: accepted with the account.
+    var pendingInvitation: String?
+    /// The account lives in Home: the section its main area shows.
+    var homeSection = HomeSection.books
     /// The book settings page to open on (sharing, for instance).
     var bookSettingsSection: BookSettingsView.Section?
-    /// A special page (cover, dedication…) open in place of the editor.
-    var specialPage: SpecialPage?
     /// Book-wide search (⇧⌘F) shown in the sidebar.
     var showSearch = false
-    /// « Try something else »: a new version of the open chapter.
+    /// The sheet that makes a new version of the open chapter.
     var showTryVersion = false
     var searchQuery = ""
     var searchAllBooks = false
@@ -35,8 +42,6 @@ final class AppState {
     var bringing: BringPoint?
     /// A search to run when the Historique tab shows (« passage perdu »).
     var historyQuery: String?
-    /// The book's history: the manuscript, its tracks and milestones.
-    var showStory = false
     /// A track to open, from where; a milestone to set, where; a track being taken back.
     var newPiste: TrackStart?
     var newJalon: TrackStart?
@@ -44,42 +49,96 @@ final class AppState {
     /// Export the book as it was at this milestone.
     var exportAt: GitService.Tag?
     var showProofExceptions = false
+    /// The book's rubric, opened from the AI reader's tab or the command bar.
+    var showRubric = false
     var showSidebar = true
     /// Reading mode: the text typeset as printed (Typst), instead of the editor.
     var reviewMode = false
-    /// The plot grid: the chapter sidebar widened over the editor.
-    var showPlotGrid = false
-    /// Every book, over whatever is open.
-    var showHome = false
+    /// Every book and the Musset account, over whatever is open. Leaving it goes back to the books for next time.
+    var showHome = false { didSet { if !showHome { homeSection = .books } } }
     /// The optional AI helpers, with what they bring.
     var showHelpers = false
-    /// The book's own home, in place of the editor.
-    var showOverview = false
-    var overviewTab = OverviewTab.summary
-    /// An entry or folder of the Bible, in place of the editor.
-    var bibleRoute: BibleRoute?
+    /// The panes and tabs of the open book's window, and the tab shown in the pane one is in.
+    var workspace: Workspace? { current?.workspace }
+    var activeTab: PaneTab? { workspace?.activeTab }
+    /// Opens one of the book's pages in the pane one is in.
+    func open(_ tab: PaneTab) { workspace?.open(tab) }
 
-    /// Back to the page: whatever covered the editor goes.
-    func leaveBookPages() {
-        bibleRoute = nil
-        showOverview = false
-        specialPage = nil
-        showPlotGrid = false
+    /// A book is open and in front (not under Home): what the book's menu commands need.
+    var hasBook: Bool { current != nil && !showHome }
+    /// The pane one is in shows a chapter: what Format, Find and the other editor commands need.
+    var hasEditor: Bool { Self.editorCommands(book: hasBook, tab: workspace?.activeTab) }
+    /// The pane one is in shows a chapter of several scenes: what its scene cards need.
+    var hasScenes: Bool {
+        guard hasEditor, let id = workspace?.activeTab?.chapterID else { return false }
+        return (current?.scenes[id]?.count ?? 0) > 1
+    }
+    /// Whether the editor's menu commands can act: a book in front, and a chapter in the pane one is in.
+    static func editorCommands(book: Bool, tab: PaneTab?) -> Bool { book && tab?.isChapter == true }
+
+    /// Back to the chapter being written, in its tab.
+    func showChapter() {
+        guard let id = current?.selectedChapterID else { return }
+        workspace?.open(.chapter(id))
+    }
+    /// A character or a place being renamed (the preview sheet).
+    var renaming: RenameTarget?
+    struct RenameTarget: Identifiable { let path: String; var id: String { path } }
+
+    // MARK: Windows
+
+    /// Opens a window scene (set by the main window, which has SwiftUI's `openWindow`).
+    @ObservationIgnored var openWindow: ((WindowRef) -> Void)?
+    /// The book's windows on screen now.
+    @ObservationIgnored var shownWindows: Set<String> = []
+    /// Where a window torn off should open (its top left, on screen).
+    @ObservationIgnored var windowOrigins: [String: CGPoint] = [:]
+    /// The app is quitting: windows closing now are kept for next time.
+    @ObservationIgnored var quitting = false
+
+    /// A book open in this run, by its folder's path.
+    func loadedSession(_ path: String) -> BookSession? {
+        if let s = sessions[path] { return s }
+        return current.flatMap { $0.root.standardizedFileURL.path == path ? $0 : nil }
     }
 
-    func show(_ route: BibleRoute) {
-        leaveBookPages()
-        bibleRoute = route
+    /// A tab in a window of its own.
+    func openInNewWindow(_ tab: PaneTab, of session: BookSession, at point: CGPoint? = nil) {
+        let id = session.newWindow(with: tab)
+        if let point { windowOrigins[id] = point }
+        openWindow?(WindowRef(bookPath: session.root.standardizedFileURL.path, windowID: id))
     }
 
-    func openOverview(_ tab: OverviewTab = .summary) {
-        leaveBookPages()
-        overviewTab = tab
-        showOverview = true
+    /// A tab dragged out of every window: it leaves its pane for a window of its own (unless it is its window's last).
+    func tearOff(pane: String, index: Int, of session: BookSession, at point: CGPoint) {
+        guard let from = session.owner(ofPane: pane), from.canCloseTab,
+              let tab = from.panes.first(where: { $0.id == pane })?.tabs[safe: index] else { return }
+        openInNewWindow(tab, of: session, at: point)
+        from.close(index, in: pane)
     }
+
+    /// The windows left open with the book, open again (those the system did not bring back itself).
+    func reopenWindows(of session: BookSession) async {
+        try? await Task.sleep(for: .milliseconds(600))
+        let path = session.root.standardizedFileURL.path
+        for id in session.savedWindowIDs where !shownWindows.contains(id) {
+            openWindow?(WindowRef(bookPath: path, windowID: id))
+        }
+    }
+
+    /// A click in the sidebar: in the pane one is in, or with ⌥ in a new tab, with ⌘ in the next pane.
+    func open(_ tab: PaneTab, clicked current: () -> Void) {
+        let place = OpenPlace.click
+        guard place != .current, let session = self.current else { return current() }
+        session.open(tab, in: place)
+    }
+
+    /// The same for one of the book's pages.
+    func open(clicked tab: PaneTab) { open(tab) { self.open(tab) } }
+
     @ObservationIgnored let review = ReviewModel()
 
-    /// The right-hand inspector (Edits & Comments, Chat, Stats, Plan, Notes): open or closed, and on which tab.
+    /// The right-hand inspector (Notes, AI reader, Stats, Plan, History): open or closed, and on which tab.
     var showInspector = UserDefaults.standard.bool(forKey: "showInspector") {
         didSet { UserDefaults.standard.set(showInspector, forKey: "showInspector") }
     }
@@ -89,7 +148,7 @@ final class AppState {
 
     /// Opens the inspector on `tab`, or closes it if it is already showing that tab.
     func toggleInspector(_ tab: InspectorTab) {
-        if tab == .chat && !AIStatus.shared.isOn { return }
+        if tab == .chat && !AIHome.shown { return }
         if showInspector && inspectorTab == tab { showInspector = false } else { inspectorTab = tab; showInspector = true }
     }
     /// Kiosk mode (⌃⌘K): Musset over the whole screen, nothing else on the Mac; all of Musset stays (title bar,
@@ -144,9 +203,11 @@ final class AppState {
         }
     }
 
+    /// The library's books by name. Asked for at each redraw of the breadcrumb and the menus: an open book says its
+    /// own title, a closed one's manifest is read once (`closedManifest`), not decoded from disk each time.
     var books: [(path: String, title: String)] {
         libraryPaths.map { p in
-            let title = (try? BookStore(root: URL(fileURLWithPath: p)).loadManifest().title) ?? (p as NSString).lastPathComponent.capitalized
+            let title = (sessions[p]?.manifest ?? closedManifest(p))?.title ?? (p as NSString).lastPathComponent.capitalized
             return (p, title)
         }
     }
@@ -168,7 +229,8 @@ final class AppState {
         if !libraryPaths.contains(path) { libraryPaths.append(path) }
         if let s = sessions[path] { switchTo(s); return }
         if store.hasManifest, let m = try? store.loadManifest() {
-            let s = BookSession(root: url, manifest: m)
+            // In the app the window comes first and the book's counts follow; a test reads them right after opening.
+            let s = BookSession(root: url, manifest: m, countsLater: ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil)
             sessions[path] = s
             switchTo(s)
             UltraFocus.recover(s)
@@ -192,7 +254,7 @@ final class AppState {
             try store.saveManifest(setup.manifest)
             if git.isRepo { try git.commit(paths: [".musset"], message: "musset: add book manifest") }
         } catch {
-            alert = L("Setup failed: ") + error.localizedDescription
+            alert = L("Setup failed: \(error.localizedDescription)")
         }
         let s = BookSession(root: setup.root, manifest: setup.manifest)
         sessions[setup.root.standardizedFileURL.path] = s
@@ -207,7 +269,7 @@ final class AppState {
     }
 
     private func switchTo(_ s: BookSession) {
-        if current !== s { current?.close() }
+        if current !== s { current?.close(background: true) }
         current = s
         UserDefaults.standard.set(s.root.standardizedFileURL.path, forKey: "lastBook")
         Collab.shared.opened(s)
@@ -272,7 +334,7 @@ final class AppState {
         guard preview.edits > 0 else { alert = L("Typography is already right in every chapter."); return }
         let a = NSAlert()
         a.messageText = L("Apply typography to « \(s.title) »?")
-        a.informativeText = L("\(preview.edits) fixes") + " " + L("in \(preview.chapters) chapters") + " " + L("(spaces, quotes, apostrophes, dashes, ellipses, Latin locutions in italics). Saved as one commit, so it can be undone from History.")
+        a.informativeText = L("\(preview.edits) automatic fixes") + " " + L("in \(preview.chapters) chapters") + " " + L("(spaces, quotes, apostrophes, dashes, ellipses, Latin locutions in italics). Saved in one go, so it can be undone from History.")
         a.addButton(withTitle: L("Apply"))
         a.addButton(withTitle: L("Cancel"))
         guard a.runModal() == .alertFirstButtonReturn else { return }
@@ -280,6 +342,7 @@ final class AppState {
     }
 
     func shutdown() {
+        quitting = true
         for s in sessions.values { s.close() }
         Collab.shared.sendBeforeQuitting(Array(sessions.values))
     }

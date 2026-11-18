@@ -67,9 +67,9 @@ struct IssueCard: View {
             Divider()
             VStack(alignment: .leading, spacing: 4) {
                 if !editing {
-                    action(L("Correct it myself…"), "pencil") { custom = fix.original; editing = true; fieldFocused = true }
+                    action(L("Correct It Myself…"), "pencil") { custom = fix.original; editing = true; fieldFocused = true }
                 }
-                action(L("Keep as written"), "checkmark") { proof.ignore(fix); close() }
+                action(L("Keep as Written"), "checkmark") { proof.ignore(fix); close() }
                 let words = fix.changedWords
                 if !words.isEmpty && words.count <= 3 {
                     action(L("Add « \(words.joined(separator: " ")) » to the book dictionary"), "book.closed") {
@@ -78,7 +78,7 @@ struct IssueCard: View {
                     }
                 }
                 if fix.isLanguageTool, let rule = fix.rule {
-                    action(L("Never flag this rule in this book"), "nosign") { proof.disableRule(rule); close() }
+                    action(L("Never Flag This Rule in This Book"), "nosign") { proof.disableRule(rule); close() }
                         .help(rule)
                 }
             }
@@ -113,7 +113,7 @@ private struct FlowButtons: View {
     var body: some View {
         FlowLayout(spacing: 6) {
             ForEach(Array(choices.enumerated()), id: \.offset) { i, c in
-                Button(i == 0 ? "« \(c) »" : c) { pick(c) }.buttonStyle(ChoiceStyle(prominent: i == 0))
+                Button(i == 0 ? inQuotes(c) : c) { pick(c) }.buttonStyle(ChoiceStyle(prominent: i == 0))
             }
         }
     }
@@ -128,9 +128,9 @@ private struct ChoiceStyle: ButtonStyle {
             .font(.ui(12))
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
-            .foregroundStyle(prominent ? Color.white : Color.primary)
+            .foregroundStyle(prominent ? Ink.onAccent : Color.primary)
             .padding(.horizontal, 8).padding(.vertical, 3)
-            .background(prominent ? Color.accentColor : Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+            .background(prominent ? Ink.accent : Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.row))
             .opacity(configuration.isPressed ? 0.7 : 1)
             .contentShape(Rectangle())
     }
@@ -144,8 +144,8 @@ struct ProofExceptionsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(L("Dictionary & exceptions")).font(.ui(15, .semibold))
-            Text(L("Saved with this book in .musset/ (tracked by git). The AI, Grammalecte, Harper, LanguageTool and the spell checker all respect them."))
+            Text(L("Dictionary & Exceptions…").titled).font(.ui(15, .semibold))
+            Text(L("Saved with this book in .musset/, in its history. The AI, LanguageTool and the spell checker all respect them."))
                 .font(.ui(11)).foregroundStyle(.secondary)
             List {
                 Section(L("Book dictionary (\(proof.dictionary.count))")) {

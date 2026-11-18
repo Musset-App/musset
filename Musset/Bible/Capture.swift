@@ -10,13 +10,13 @@ struct LinkTarget: Identifiable, Hashable {
 
 extension BookSession {
     func linkTargets(matching query: String) -> [LinkTarget] {
-        let chapters = manifest.chapters.map { LinkTarget(kind: L("Chapter"), title: $0.title) }
+        let chapters = manifest.chapters.map { LinkTarget(kind: words.name(.piece), title: $0.title) }
         let sheets = bible.entries.filter { $0.kind != .cut }.map { LinkTarget(kind: $0.kind.label, title: $0.title) }
         let tags = bible.tagsWithoutSheet(plot).map { LinkTarget(kind: BibleKind.character.label, title: $0.name) }
         let all = chapters + sheets + tags
         guard !query.isEmpty else { return Array(all.prefix(6)) }
-        let f = PlotGrid.fold(query)
-        return Array(all.filter { PlotGrid.fold($0.title).contains(f) }.prefix(6))
+        let f = Fold.name(query)
+        return Array(all.filter { Fold.name($0.title).contains(f) }.prefix(6))
     }
 
     /// Files a capture: with the chapter it names, else in the Bible's To sort folder. Returns where it went, in words.
@@ -24,8 +24,9 @@ extension BookSession {
     func file(capture raw: String) -> String {
         let text = TodoSyntax.normalize(raw).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return "" }
-        let targets = BibleLinks.targets(in: text).map(PlotGrid.fold)
-        if let ch = manifest.chapters.first(where: { targets.contains(PlotGrid.fold($0.title)) }) {
+        let targets = BibleLinks.targets(in: text).map(Fold.name)
+        if let ch = manifest.chapters.first(where: { targets.contains(Fold.name($0.title)) }) {
+            let notes = noteStore(for: ch.id)
             for line in text.components(separatedBy: "\n") where !line.isEmpty {
                 if let task = TodoSyntax.parse(Substring(line)) { notes.addPlain(task.text, kind: .todo, in: ch.id) }
                 else { notes.addPlain(line, kind: .text, in: ch.id) }
@@ -60,8 +61,8 @@ struct CaptureView: View {
     private var hits: [LinkTarget] { query.map(session.linkTargets(matching:)) ?? [] }
 
     private var destination: String {
-        let t = BibleLinks.targets(in: text).map(PlotGrid.fold)
-        let chapter = session.manifest.chapters.first { t.contains(PlotGrid.fold($0.title)) }?.title
+        let t = BibleLinks.targets(in: text).map(Fold.name)
+        let chapter = session.manifest.chapters.first { t.contains(Fold.name($0.title)) }?.title
         let task = TodoSyntax.normalize(text).contains("- [ ] ") ? L("To do") : nil
         return [chapter ?? BibleStore.folderLabel("a-trier"), task].compactMap { $0 }.joined(separator: " · ")
     }
@@ -96,7 +97,7 @@ struct CaptureView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 10).frame(height: 30)
-                            .background(i == picked ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 6))
+                            .background(i == picked ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -108,7 +109,7 @@ struct CaptureView: View {
             }
             Divider()
             HStack {
-                Text(L("Goes to: ") + session.title + " · " + destination).lineLimit(1)
+                Text(L("Goes to: \(session.title) · \(destination)")).lineLimit(1)
                 Spacer()
                 Text(L("⌘↩ file · Esc close"))
             }

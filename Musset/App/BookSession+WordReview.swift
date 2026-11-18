@@ -41,24 +41,20 @@ extension BookSession {
             }
         }
         for c in plan.chapters {
-            guard let entry = anyChapter(c.id) else { continue }
+            guard anyChapter(c.id) != nil else { continue }
             let text = c.text.replacingOccurrences(of: WordReview.senderSlot, with: Revisions.sourceTag(sender))
             if text != editorText(of: c.id) {
-                if c.id == selectedChapterID {
-                    replaceText(text)
-                } else {
-                    do { try store.write(ParagraphCodec.encode(text), to: entry) }
-                    catch { lastError = error.localizedDescription; continue }
-                }
+                do { try writeChapterText(c.id, text) }
+                catch { lastError = error.localizedDescription; continue }
             }
-            notes.importNotes(signed(c.notes), chapter: c.id, from: sender)
+            importNotes(signed(c.notes), chapter: c.id, from: sender)
+            let notes = noteStore(for: c.id)
             for line in c.unplaced {
                 let n = notes.addPlain(line, kind: .note, in: c.id)
                 notes.change(n.id, in: c.id) { $0.source = sender }
             }
-            if c.id == selectedChapterID { notes.resolveAll(in: self.text) }
         }
-        notes.importNotes(signed(plan.bookNotes), chapter: NoteStore.bookPage, from: sender)
+        importNotes(signed(plan.bookNotes), chapter: NoteStore.bookPage, from: sender)
         try? WordImports.record(.init(hash: plan.hash, date: Date(), file: plan.fileName, source: sender), root: root)
         countAllWords()
         shelfChanges += 1
@@ -83,9 +79,9 @@ extension BookSession {
     private func decide(in chapter: String, accept: Bool, bridge: EditorBridge, matching: (Revisions.Mark) -> Bool) {
         if chapter == selectedChapterID, let tv = bridge.textView {
             tv.decideRevisions(accept: accept, matching: matching)
-        } else if let entry = anyChapter(chapter) {
+        } else if anyChapter(chapter) != nil {
             let out = Revisions.resolve(editorText(of: chapter), accept: accept, matching: matching)
-            do { try store.write(ParagraphCodec.encode(out), to: entry) } catch { lastError = error.localizedDescription; return }
+            do { try writeChapterText(chapter, out) } catch { lastError = error.localizedDescription; return }
         }
         pendingCommit = true
         shelfChanges += 1

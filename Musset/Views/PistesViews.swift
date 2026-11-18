@@ -8,41 +8,26 @@ extension Ink {
         ? NSColor(srgbRed: 0.91, green: 0.69, blue: 0.36, alpha: 1) : NSColor(srgbRed: 0.68, green: 0.42, blue: 0.05, alpha: 1) })
 }
 
-/// The title bar's « where I write »: the manuscript or a track, and what one does with tracks.
-struct PisteMenu: View {
+/// The title bar's reminder that one writes on a track, not in the manuscript: shown only then. A click opens the
+/// book's history, where one goes from one to the other, brings a track into the manuscript, starts another.
+struct TrackChip: View {
     let app: AppState
-    let session: BookSession
+    let piste: Piste
 
     var body: some View {
-        PopMenu(sections: sections) {
+        Button { app.open(.story) } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.triangle.branch").font(.ui(11))
-                Text(session.piste?.name ?? L("Manuscript")).font(.ui(12)).lineLimit(1).truncationMode(.middle).frame(maxWidth: 170)
+                Text(piste.name).font(.ui(12)).lineLimit(1).truncationMode(.middle).frame(maxWidth: 170)
             }
-            .foregroundStyle(session.piste == nil ? Color.secondary : Ink.piste)
+            .foregroundStyle(Ink.piste)
             .padding(.horizontal, 9).frame(height: 22)
-            .background(session.piste == nil ? Ink.panel : Ink.piste.opacity(0.14), in: Capsule())
+            .background(Ink.piste.opacity(0.14), in: Capsule())
+            .contentShape(Capsule())
         }
-        .help(L("Where you write: the manuscript, or a track beside it"))
-    }
-
-    private var sections: [PopSection] {
-        var lines = [PopItem(title: L("The manuscript"), checked: session.piste == nil,
-                             subtitle: L("the book’s folder")) { session.enter(nil) }]
-        for p in session.openPistes {
-            lines.append(PopItem(title: p.name, checked: session.piste?.id == p.id, dot: Ink.piste,
-                                 subtitle: session.isTakenBack(p) ? L("taken back") : L("from ") + p.from) { session.enter(p) })
-        }
-        var actions = [PopItem(title: L("Try something else…")) { app.newPiste = TrackStart() }]
-        if let p = session.piste {
-            actions.append(PopItem(title: L("Take this track back…")) { app.takingBack = p })
-            if session.reference == nil {
-                actions.append(PopItem(title: L("Show the manuscript beside")) { session.showBeside("") })
-            }
-        }
-        actions.append(PopItem(title: L("Set a milestone…")) { app.newJalon = TrackStart() })
-        actions.append(PopItem(title: L("The book’s history…")) { app.showStory = true })
-        return [PopSection(title: L("Where I write"), items: lines), PopSection(items: actions)]
+        .buttonStyle(.plain)
+        .help(L("You are writing on the track « \(piste.name) », beside the manuscript. Click for the book’s history."))
+        .accessibilityLabel(L("Track: \(piste.name)"))
     }
 }
 
@@ -67,14 +52,14 @@ struct NewPisteSheet: View {
     private var origins: [(rev: String, label: String)] {
         var out = [(rev: start.rev, label: start.label)]
         if start.rev != "HEAD" { out.append(("HEAD", L("the manuscript"))) }
-        out += session.jalons.map { ($0.commit, "« \($0.title) »") }
+        out += session.jalons.map { ($0.commit, inQuotes($0.title)) }
         return out
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(L("Try something else")).font(.custom("EB Garamond", size: 26))
-            Text(L("A track is a parallel draft. Write in it freely; the manuscript doesn’t move. Later, take back what works, paragraph by paragraph — or put the track away."))
+            Text(L("New Track…").titled).font(.custom("EB Garamond", size: 26))
+            Text(L("A track is a parallel manuscript. Write in it freely; the manuscript doesn’t move. Later, bring what works into the manuscript, paragraph by paragraph — or put the track away."))
                 .font(.ui(13)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("What you’re trying")).font(.ui(12, .medium))
@@ -97,7 +82,7 @@ struct NewPisteSheet: View {
             HStack {
                 Spacer()
                 Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)
-                Button(L("Open the Track"), action: open).buttonStyle(.ink)
+                Button(L("Start the Track"), action: open).buttonStyle(.ink)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
@@ -118,14 +103,17 @@ struct JalonSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var note = ""
+    /// The people the book is shared with, and whether to tell them.
+    @State private var readers: [(user: String, role: Collab.Role)] = []
+    @State private var tell: Set<String> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 10) {
                 Image(systemName: "flag").foregroundStyle(Ink.jalon)
-                Text(L("Set a milestone")).font(.custom("EB Garamond", size: 26))
+                Text(L("Set a Milestone…").titled).font(.custom("EB Garamond", size: 26))
             }
-            Text((start.rev == "HEAD" ? L("A milestone marks a state of the book you’ll want to come back to: a submission, a reading, the end of a draft. It keeps every chapter as it is today.") : L("A milestone marks a state of the book you’ll want to come back to: a submission, a reading, the end of a draft. It keeps every chapter as it was then.")))
+            Text((start.rev == "HEAD" ? L("A milestone marks a state of the book you’ll want to come back to: a submission, a review, the end of a draft. It keeps every chapter as it is today.") : L("A milestone marks a state of the book you’ll want to come back to: a submission, a review, the end of a draft. It keeps every chapter as it was then.")))
                 .font(.ui(13)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Name")).font(.ui(12, .medium))
@@ -134,19 +122,48 @@ struct JalonSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("A note for later (optional)")).font(.ui(12, .medium))
                 TextEditor(text: $note).font(.ui(13)).frame(height: 64)
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ink.hairline))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.hairline))
+            }
+            if !readers.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L("Tell the people reading this book")).font(.ui(13, .semibold))
+                    ForEach(readers, id: \.user) { r in
+                        Toggle(isOn: Binding(get: { tell.contains(r.user) }, set: { if $0 { tell.insert(r.user) } else { tell.remove(r.user) } })) {
+                            Text(name(r.user)) + Text(" · " + r.role.label).foregroundColor(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    Text(L("By e-mail, in their Musset and on their phone. They read this version; their notes follow onto the next."))
+                        .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
             }
             HStack {
                 Spacer()
                 Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)
-                Button(L("Set the Milestone")) {
-                    session.addJalon(title: title, note: note.trimmingCharacters(in: .whitespacesAndNewlines), at: start.rev)
+                Button(tell.isEmpty ? L("Set the Milestone") : L("Mark it and tell \(tell.count) people")) {
+                    let name = title.trimmingCharacters(in: .whitespaces)
+                    let words = note.trimmingCharacters(in: .whitespacesAndNewlines)
+                    session.addJalon(title: name, note: words, at: start.rev)
+                    let people = Array(tell)
+                    let s = session
+                    Task { await Collab.shared.notify(.milestone, in: s, recipients: people, tag: name, message: words) }
                     dismiss()
                 }
                 .buttonStyle(.ink).disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(28).frame(width: 520)
+        .task {
+            let collab = Collab.shared
+            guard collab.isOwner(session.git) else { return }
+            readers = (try? await collab.people(of: session)) ?? []
+            tell = Set(readers.map(\.user))
+            if collab.circle.isEmpty { await collab.refreshCircle() }
+        }
+    }
+
+    private func name(_ user: String) -> String {
+        Collab.shared.circle.first { $0.username == user }?.name ?? user
     }
 }
 
@@ -230,7 +247,7 @@ struct TakeBackView: View {
                 }
                 .buttonStyle(.inkSecondary)
             }
-            Button(remaining == 0 ? L("Bring into the Manuscript") : L("\(remaining) left to choose")) {
+            Button(remaining == 0 ? L("Bring into the Manuscript…").titled : L("\(remaining) left to choose")) {
                 var out: [String: String] = [:]
                 for c in chapters { out[c.id] = ParagraphMerge.result(c.blocks, picks: picks[c.id] ?? [:]) }
                 if let piste { session.takeBack(piste, chapters: out) }
@@ -251,17 +268,17 @@ struct TakeBackView: View {
                             HStack(spacing: 6) {
                                 Text(c.title)
                                 let n = left(c)
-                                Text(n == 0 ? "✓" : "\(n)").foregroundStyle(n == 0 ? Color.green : Ink.piste)
+                                Text(n == 0 ? "✓" : "\(n)").foregroundStyle(n == 0 ? Ink.positive : Ink.piste)
                             }
                             .font(.ui(12)).padding(.horizontal, 10).frame(height: 26)
-                            .background(c.id == chapter?.id ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 6))
+                            .background(c.id == chapter?.id ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
-            Segmented(options: [(true, L("Whole chapter", ctx: "Chapitre entier")), (false, L("In context"))], selection: $whole)
+            Segmented(options: [(true, session.words.wholePiece), (false, L("In context"))], selection: $whole)
                 .frame(width: 260)
         }
         .padding(.horizontal, 20).padding(.vertical, 8)
@@ -281,7 +298,8 @@ struct TakeBackView: View {
 
     private func body(of c: BookSession.MergeChapter) -> some View {
         ScrollView {
-            LazyVStack(spacing: 0) {
+            // Eager: one chapter's paragraphs, of every height (a LazyVStack of such rows spun forever in the chat).
+            VStack(spacing: 0) {
                 ForEach(Array(c.blocks.enumerated()), id: \.element.id) { i, b in
                     if b.isChange { change(b, in: c) }
                     else { same(b.same, first: i == 0, last: i == c.blocks.count - 1) }
@@ -349,8 +367,8 @@ struct TakeBackView: View {
         .foregroundStyle(dropped ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(kept ? tint.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(kept ? tint.opacity(0.7) : Ink.hairline))
+        .background(kept ? tint.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: Radius.control))
+        .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(kept ? tint.opacity(0.7) : Ink.hairline))
     }
 
     private func paragraph(_ p: String) -> some View {
@@ -363,8 +381,8 @@ struct TakeBackView: View {
     private func choice(_ title: String, on: Bool, tint: Color = .primary, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title).font(.ui(12)).frame(maxWidth: .infinity).frame(height: 30)
-                .background(on ? tint.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 7))
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(on ? tint.opacity(0.8) : Ink.hairline))
+                .background(on ? tint.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(on ? tint.opacity(0.8) : Ink.hairline))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

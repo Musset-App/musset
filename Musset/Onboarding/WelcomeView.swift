@@ -20,7 +20,7 @@ enum BookGenres {
     /// What choosing it changes, said plainly.
     static func effect(_ id: String) -> String {
         let columns = PlotGrid.columns(forGenre: id).dropFirst().map(\.shownTitle).joined(separator: ", ")
-        return L("Scoring set for this genre. Outline: ") + columns + "."
+        return L("Scoring set for this genre. Outline: \(columns).")
     }
 }
 
@@ -49,10 +49,15 @@ struct WelcomeView: View {
     @AppStorage(UILang.key) private var uiLanguage = UILang.system.rawValue
     @State private var title = ""
     @State private var genre = BookGenres.first[0]
+    @State private var form = BookStructure.Form.novel
+    /// The second step of a new book: its form.
+    @State private var choosingForm = false
     @State private var lang = BookLanguage.forInterface.rawValue
     @State private var author = UserDefaults.standard.string(forKey: "lastAuthor") ?? NSFullUserName()
     @State private var location = BookStore.defaultFolder
     @State private var editing = false
+    /// Musset Sync, offered once, unticked, when the book is made.
+    @State private var keepInSync = false
     @State private var plan: ImportPlan?
     @State private var working = false
     @State private var error: String?
@@ -66,9 +71,12 @@ struct WelcomeView: View {
     var body: some View {
         Group {
             if plan != nil { ImportReviewView(plan: Binding(get: { plan! }, set: { plan = $0 }), genre: $genre, lang: $lang, author: $author, location: $location, error: $error, working: working, cancel: { plan = nil }, create: importBook) }
-            else { first }
+            else if choosingForm {
+                FormChooser(form: $form, lang: lang, title: title, working: working, error: error, back: { choosingForm = false }, create: createBlank)
+            } else { first }
         }
-        .frame(minWidth: sheet ? 960 : nil, minHeight: sheet ? 680 : nil)
+        // The form step lays eight cards beside their preview: it needs the room.
+        .frame(minWidth: sheet ? (choosingForm ? 1160 : 960) : nil, minHeight: sheet ? (choosingForm ? 760 : 680) : nil)
         .background(Color(nsColor: .textBackgroundColor))
     }
 
@@ -88,13 +96,13 @@ struct WelcomeView: View {
                     .textFieldStyle(.plain).font(.uiMono(34)).focused($focused)
                     .padding(.top, 10).padding(.bottom, 12)
                     .overlay(alignment: .bottom) { Rectangle().fill(Ink.accent).frame(height: 1.5) }
-                    .onSubmit { if hasTitle { createBlank() } }
+                    .onSubmit { if hasTitle { choosingForm = true } }
                     .accessibilityLabel(L("Book title"))
                 if hasTitle { details } else {
                     Text(L("A working title will do. You can change it whenever you like."))
                         .foregroundStyle(.secondary).padding(.top, 14)
                 }
-                if let error { Text(error).font(.ui(12)).foregroundStyle(.red).padding(.top, 8) }
+                if let error { Text(error).font(.ui(12)).foregroundStyle(Ink.error).padding(.top, 8) }
                 Spacer(minLength: 16)
                 existing
             }
@@ -151,9 +159,23 @@ struct WelcomeView: View {
                 }
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button(L("Begin") + " ↩") { createBlank() }.buttonStyle(.ink).disabled(working)
+                Button(L("Continue") + " ↩") { choosingForm = true }.buttonStyle(.ink).disabled(working)
             }
             .padding(.top, 4)
+            if !Collab.shared.canSync {
+                Toggle(isOn: $keepInSync) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(L("Also keep it in Musset Sync")).fontWeight(.medium) + Text(" · " + SyncPrice.perMonth).foregroundColor(.secondary)
+                        Text(L("The book on all your Macs, with every version, and safe if this one is lost. Invite an editor or beta readers: they don’t pay."))
+                            .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.checkbox)
+                .padding(12)
+                .background(Ink.accent.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
+                .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.accent.opacity(0.2)))
+                .padding(.top, 10)
+            }
         }
         .padding(.top, 14)
     }
@@ -170,7 +192,7 @@ struct WelcomeView: View {
             HStack {
                 Text(L("You can also drop a file on this window."))
                 Spacer()
-                Button(L("Find my books with my Musset account")) { app.showAccount = true }.buttonStyle(.link)
+                Button(L("Find my books with my Musset account")) { app.showAccount(); if sheet { dismiss() } }.buttonStyle(.link)
             }
             .font(.ui(12)).foregroundStyle(.secondary)
         }
@@ -187,8 +209,8 @@ struct WelcomeView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
-            .background(Ink.panel, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+            .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -240,9 +262,12 @@ struct WelcomeView: View {
             working = true
             defer { working = false }
             do {
-                let name = lang.hasPrefix("fr") ? "Chapitre 1" : "Chapter 1"
+                // The first piece, named as the form names its pieces: « Chapitre 1 », « Entrée 1 ».
+                var shape = BookManifest(title: "", author: "", lang: lang, chapters: [])
+                shape.setForm(form)
+                let name = shape.newPieceTitle(1)
                 try await app.createBook(at: location.appendingPathComponent(slug), title: title.trimmingCharacters(in: .whitespaces), author: author, lang: lang, genre: genre,
-                                         chapters: [PlannedChapter(title: name, text: "# \(name)\n\n")])
+                                         form: form, chapters: [PlannedChapter(title: name, text: "# \(name)\n\n")])
                 finish()
             } catch { self.error = error.localizedDescription }
         }
@@ -267,6 +292,14 @@ struct WelcomeView: View {
         UserDefaults.standard.set(author, forKey: "lastAuthor")
         app.showHome = false
         if sheet { dismiss() }
+        let offer = keepInSync && !Collab.shared.canSync
+        let firstBook = !UserDefaults.standard.bool(forKey: "helpersSeen") && !AIStatus.shared.isOn
+        guard offer || firstBook else { return }
+        Task { @MainActor in
+            // After this window closes: one sheet at a time.
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            if offer { app.offerSync(for: app.current) } else { app.showHelpers = true }
+        }
     }
 }
 
@@ -366,7 +399,7 @@ struct ImportReviewView: View {
             }
             Text(plan.rule).font(.ui(12)).padding(.horizontal, 12).padding(.vertical, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Ink.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 8))
+                .background(Ink.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: Radius.control))
             Text(L("Your original file stays as it is. Musset works on a copy.")).font(.ui(12)).foregroundStyle(.secondary)
         }
         .padding(28)
@@ -396,7 +429,7 @@ struct ImportReviewView: View {
             }
             Divider()
             HStack(spacing: 8) {
-                if let error { Text(error).font(.ui(12)).foregroundStyle(.red).lineLimit(2) }
+                if let error { Text(error).font(.ui(12)).foregroundStyle(Ink.error).lineLimit(2) }
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
                 Button(L("Cancel"), action: cancel).buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)

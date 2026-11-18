@@ -10,6 +10,10 @@ struct ReferencePane: View {
     let columnWidth: Double
     let paragraphSpacing: Double
     @AppStorage("sideBySideDiff") private var showDiff = true
+    /// The text being written, as of the last pause in typing: what differs is found against this, so the comparison
+    /// (and this pane) is not made again at every letter. Nil until the pane has appeared.
+    @State private var written: String?
+    @State private var referenceCounts: TextCounts?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,10 +26,15 @@ struct ReferencePane: View {
             }
             .padding(.horizontal, 14).frame(height: 34)
             Divider()
-            ReferenceText(text: session.referenceText, other: showDiff && session.piste == nil ? session.text : nil,
-                          fontName: fontName, fontSize: fontSize, columnWidth: columnWidth, paragraphSpacing: paragraphSpacing)
+            ReferenceText(text: session.referenceText, other: showDiff && session.piste == nil ? (written ?? session.text) : nil,
+                          fontName: fontName, fontSize: fontSize, columnWidth: columnWidth, paragraphSpacing: paragraphSpacing,
+                          lists: session.manifest.listOptions)
         }
         .background(Ink.side)
+        .background(WhenTypingPauses(session: session, after: .milliseconds(400)) { if written != session.text { written = session.text } })
+        .onAppear { written = session.text }
+        .onChange(of: session.selectedChapterID) { _, _ in written = session.text }
+        .task(id: session.referenceText) { referenceCounts = TextCounts(session.referenceText) }
     }
 
     /// Beside a version: which one (any but the editor's), whether it is the book's, and the way to make it so.
@@ -45,7 +54,7 @@ struct ReferencePane: View {
                 .background(Ink.panel, in: Capsule())
             }
             .help(L("The version shown beside the one you write"))
-            Text("\(BookStore.wordCount(session.referenceText).ui) " + L("words"))
+            Text((referenceCounts ?? TextCounts(session.referenceText)).label)
                 .font(.ui(11)).foregroundStyle(.secondary)
             Spacer(minLength: 6)
             Toggle(L("What differs"), isOn: $showDiff).toggleStyle(.checkbox).font(.ui(11))
@@ -60,7 +69,7 @@ struct ReferencePane: View {
             }
             Button { session.showBeside(nil) } label: { Image(systemName: "xmark").font(.ui(10, .semibold)) }
                 .buttonStyle(.plain).foregroundStyle(.secondary)
-                .help(L("Close side by side"))
+                .help(L("Close Side by Side"))
         }
     }
 
@@ -71,7 +80,7 @@ struct ReferencePane: View {
             Text(session.reference ?? "").font(.uiMono(11)).foregroundStyle(.secondary).lineLimit(1)
             Text(L("read only")).font(.ui(11)).foregroundStyle(.tertiary)
             Spacer()
-            Text("\(BookStore.wordCount(session.referenceText).ui) " + L("words"))
+            Text((referenceCounts ?? TextCounts(session.referenceText)).label)
                 .font(.ui(11)).foregroundStyle(.secondary)
                 .padding(.horizontal, 8).frame(height: 20)
                 .background(Ink.panel, in: Capsule())
@@ -90,9 +99,7 @@ struct SplitHandle: View {
 
     var body: some View {
         Rectangle().fill(Ink.hairline).frame(width: 1)
-            .padding(.horizontal, 3)
-            .contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .resizeGrip()
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
                 .onChanged { g in
                     let from = start ?? width
@@ -116,6 +123,8 @@ private struct ReferenceText: NSViewRepresentable {
     let fontSize: Double
     let columnWidth: Double
     let paragraphSpacing: Double
+    /// The lists the book recognises, styled as in the editor.
+    var lists = ListOptions()
 
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSTextView.scrollableTextView()
@@ -138,10 +147,11 @@ private struct ReferenceText: NSViewRepresentable {
         guard let tv = scroll.documentView as? ReferenceTextView, let storage = tv.textStorage else { return }
         var theme = EditorTheme(fontName: fontName, fontSize: CGFloat(fontSize))
         theme.paragraphGap = CGFloat(paragraphSpacing)
+        theme.lists = lists
         let column = CGFloat(columnWidth)
         let lit = other.map { Self.differing(text, from: $0) } ?? []
         guard tv.string != text || tv.theme?.fontName != theme.fontName || tv.theme?.fontSize != theme.fontSize
-                || tv.theme?.paragraphGap != theme.paragraphGap || tv.column != column || tv.lit != lit else { return }
+                || tv.theme?.paragraphGap != theme.paragraphGap || tv.theme?.lists != theme.lists || tv.column != column || tv.lit != lit else { return }
         let changed = tv.string != text
         tv.theme = theme
         tv.column = column

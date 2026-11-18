@@ -1,0 +1,323 @@
+{
+ "uiLang": "pt-BR",
+ "bookLang": "pt-BR",
+ "title": "A estrada do sal",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "A balsa",
+   "text": "# A balsa\n\n<!-- scene: Travessia da manhã -->\n\nA balsa partiu às seis, antes que as gaivotas acordassem. Nora estava junto à amurada com o casaco do pai no braço, como se ele ainda pudesse pedi-lo. O convés estava molhado e ninguém mais tinha subido; os outros passageiros estavam lá embaixo, na sala aquecida que cheirava a café e a diesel, dormindo encostados ao próprio reflexo nas janelas.\n\nLá embaixo, a água guardava seus segredos. Ela tinha ensaiado ao longo de quinhentos quilômetros o que diria ao irmão, e agora cada frase soava como se fosse de outra pessoa. Repetiu-as baixinho, uma depois da outra, e nenhuma resistiu ao vento.\n\n— Você veio — ele diria. Ou não diria nada, o que seria pior e mais típico dele.\n\nNão se falavam desde o enterro da mãe, onze anos antes, quando Tom ficara no fundo da igreja num terno emprestado e saíra antes do último hino. Ela o encontrara depois no estacionamento, fumando com o agente funerário, e ele a olhara como se ela fosse uma desconhecida que lhe tivesse pedido uma informação.\n\nUm homem de jaqueta laranja passou pelo convés com um rolo de corda e a cumprimentou com a cabeça, sem parar. Ela retribuiu. Era a primeira vez que alguém olhava para ela desde a rodovia.\n\n<!-- scene: A ilha -->\n\nA ilha surgiu da névoa aos pedaços: uma igreja, uma fileira de casas brancas, o longo telhado cinzento da salina onde a mãe deles contara sacos durante vinte anos. Depois o quebra-mar, o guindaste, os dois carros esperando na rampa com os faróis ainda acesos, embora já fosse dia e ninguém precisasse deles.\n\nEla dobrou o casaco mais uma vez. Cheirava a tabaco e a chuva, e ao inverno que ele passara fingindo não estar doente. No bolso de dentro havia uma passagem da balsa de março, um lápis e uma lista com a letra dele, que ela não conseguira ler no hospital e não conseguia ler agora: *sal, vidro, o barco azul, Tom.*\n\nOs motores mudaram de tom. Em algum lugar lá embaixo uma porta bateu, e os passageiros começaram a subir a escada com suas bolsas, piscando, vestindo os casacos. Uma criança perguntou se aquela era a ilha. A mãe disse que sim. A criança ficou olhando a ilha por muito tempo e disse que era menor do que no livro.\n\nNora guardou a lista onde a tinha encontrado.\n\n<!-- scene: O porto -->\n\nEle não estava no cais. Ela sabia que não estaria, e mesmo assim o procurou duas vezes: uma entre os homens perto do guindaste, outra na porta do café, onde uma velha virava a placa de *Fechado* para *Aberto* com muito cuidado, como se a palavra pudesse quebrar.\n\nSubiu a ladeira com o casaco no braço e a bolsa no ombro. A estrada era a estrada de que se lembrava, só que mais estreita. As casas tinham portas novas. No alto, onde a estrada virava para a salina, alguém tinha pintado um barco azul na lateral do abrigo do ponto de ônibus, mal, muito tempo atrás, e ele continuava lá.\n\nParou diante dele e riu, porque era dele, e porque ninguém o cobrira de tinta em onze anos, e porque não sabia o que mais fazer."
+  },
+  {
+   "title": "A salina",
+   "text": "# A salina\n\nO portão estava aberto. Ninguém {~~nunca tinha trancado~>trancava~~}{@Claire} nada na ilha desde a guerra, muito menos a salina: não havia {--mais--}{@Claire} nada para levar além do sal, e o sal se cuidava sozinho.\n\nA van de Tom estava estacionada junto à velha casa da balança, {++as portas de trás abertas,++}{@Claire} com um cachorro dormindo à sombra. O cachorro levantou a cabeça quando ela passou pelo portão e voltou a baixá-la, como se já a esperassem.\n\n{==Ela o encontrou no telhado.==}{>>Repentino demais? Ainda não ouvimos a voz dele. Talvez primeiro a voz, depois o telhado.<<}{@Claire} Ele estava ajoelhado entre duas fileiras de telhas, com um martelo na mão, e não se virou.\n\n— Tem goteira em cima da sala de secagem — disse ele. — Sempre teve goteira em cima da sala de secagem."
+  },
+  {
+   "title": "Inventário",
+   "text": "# Inventário\n\nO irmão tinha guardado tudo: recibos, tábuas de marés, um calendário de 1987 com as marés altas circuladas de vermelho.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "a água guardava seus segredos",
+   "author": "claude",
+   "kind": "critique",
+   "body": "Uma expressão emprestada num capítulo que, fora isso, é todo dela. O que Nora vê na água?"
+  },
+  {
+   "anchor": "o que seria pior e mais típico dele",
+   "author": "claude",
+   "kind": "praise",
+   "body": "O irmão chega antes de aparecer. Mantenha."
+  },
+  {
+   "anchor": "Ela dobrou o casaco mais uma vez.",
+   "author": "claude",
+   "kind": "question",
+   "body": "O casaco é dobrado pela segunda vez. Eco proposital ou uma vez a mais?"
+  },
+  {
+   "anchor": "onze anos antes",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Conferir com o capítulo 4: lá o enterro é no inverno."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "A travessia se sustenta sem o Tom? Tenho medo de que a primeira cena seja só espera."
+  },
+  {
+   "role": "assistant",
+   "text": "Sustenta, sim, e a espera é justamente o ponto: Tom está presente em cada parágrafo, no que Nora ensaia, no casaco, na lista com a letra dele. O leitor o conhece antes que ele apareça.\n\nDuas coisas a enfraquecem. “A água guardava seus segredos” é a única expressão emprestada num capítulo que, fora isso, é todo dela. E o casaco é dobrado duas vezes; a segunda dobra é a mais forte, então a primeira pode sair.\n\nDeixei três notas na margem. Quer que eu veja como termina a cena do porto?"
+  },
+  {
+   "role": "user",
+   "text": "Quero — a risada no ponto de ônibus não vem cedo demais?"
+  }
+ ],
+ "versions": {
+  "current": "Primeira versão",
+  "other": "Mais sombria",
+  "edits": [
+   [
+    "A balsa partiu às seis, antes que as gaivotas acordassem.",
+    "A balsa partiu no escuro."
+   ],
+   [
+    "como se ele ainda pudesse pedi-lo.",
+    "como se ele ainda pudesse subir a escada e pedi-lo."
+   ],
+   [
+    "Lá embaixo, a água guardava seus segredos.",
+    "Lá embaixo, a água era negra e não se movia."
+   ],
+   [
+    "o que seria pior e mais típico dele.",
+    "o que ele sempre tinha feito."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, na ilha",
+     "Tradutora, no continente",
+     "Contar ela mesma a Tom",
+     "A lista no bolso do casaco"
+    ],
+    "body": "Volta com o casaco do pai e nenhuma frase que se sustente.\n\nFoi embora aos dezenove. Quinhentos quilômetros de ensaio, e nada disso será dito.\n\nEla ri quando não sabe o que mais fazer. Guardar para o fim.",
+    "facts": [
+     [
+      "01",
+      "Está junto à amurada, com o casaco do pai no braço.",
+      "com o casaco do pai no braço"
+     ],
+     [
+      "01",
+      "Não fala com o irmão desde o enterro da mãe.",
+      "Não se falavam desde o enterro da mãe"
+     ],
+     [
+      "01",
+      "Não consegue ler a lista escrita com a letra do pai.",
+      "não conseguia ler agora"
+     ],
+     [
+      "01",
+      "Ri diante do barco azul no abrigo do ponto de ônibus.",
+      "Parou diante dele e riu"
+     ],
+     [
+      "02",
+      "Encontra Tom no telhado da salina.",
+      "Ela o encontrou no telhado."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Mantém a salina de pé, sozinho",
+     "Que ninguém lhe pergunte nada",
+     "O que aconteceu em 1987"
+    ],
+    "body": "Ficou. Conserta o que vaza, guarda o que devia ter ido para o lixo.\n\nFala com o telhado mais facilmente do que com as pessoas. Onze anos sem uma palavra a Nora, e sua primeira frase será sobre a sala de secagem.\n\nFoi ele quem pintou o barco azul, aos quatorze. Nunca dizer: deixar que ela o reconheça.",
+    "found": [
+     "irmão"
+    ],
+    "facts": [
+     [
+      "01",
+      "Saiu da igreja antes do último hino, num terno emprestado.",
+      "saíra antes do último hino"
+     ],
+     [
+      "01",
+      "Não fala com Nora desde o enterro da mãe, há onze anos.",
+      "Não se falavam desde o enterro da mãe"
+     ],
+     [
+      "02",
+      "Sua van está estacionada junto à velha casa da balança; um cachorro dorme à sombra.",
+      "A van de Tom estava estacionada junto à velha casa da balança"
+     ],
+     [
+      "02",
+      "Conserta ele mesmo o telhado da salina.",
+      "ajoelhado entre duas fileiras de telhas, com um martelo na mão"
+     ],
+     [
+      "02",
+      "Diz que sempre teve goteira em cima da sala de secagem.",
+      "Sempre teve goteira em cima da sala de secagem."
+     ],
+     [
+      "03",
+      "Guardou tudo: recibos, tábuas de marés, um calendário de 1987.",
+      "O irmão tinha guardado tudo"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "pai"
+    ],
+    "tier": "secondary",
+    "body": "Morto antes de o livro começar. Seu casaco faz a travessia inteira.\n\nUm inverno fingindo não estar doente, e uma lista que ninguém consegue ler.",
+    "facts": [
+     [
+      "01",
+      "Passou um inverno fingindo não estar doente.",
+      "ao inverno que ele passara fingindo não estar doente"
+     ],
+     [
+      "01",
+      "Deixou uma lista no casaco: sal, vidro, o barco azul, Tom.",
+      "sal, vidro, o barco azul, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "a mãe deles"
+    ],
+    "tier": "secondary",
+    "body": "Contou sacos na salina durante vinte anos.\n\nEnterrada há onze: a última vez que Nora e Tom estiveram na mesma sala.",
+    "facts": [
+     [
+      "01",
+      "Contou sacos na salina durante vinte anos.",
+      "onde a mãe deles contara sacos durante vinte anos"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "Dona Pell",
+    "aliases": [
+     "a velha do café"
+    ],
+    "tier": "extra",
+    "body": "Cuida do café do porto. Vira a placa como se a palavra pudesse quebrar.",
+    "facts": [
+     [
+      "01",
+      "Vira a placa do café de Fechado para Aberto.",
+      "uma velha virava a placa"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "homem de jaqueta laranja"
+    ],
+    "tier": "extra",
+    "body": "Marinheiro da balsa. O primeiro a olhar para Nora desde a rodovia."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Cuida das contas da salina. Chega no capítulo quatro, com as chaves."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "A salina",
+    "aliases": [
+     "a salina"
+    ],
+    "body": "Um longo telhado cinzento, a casa da balança, a sala de secagem com goteira.\n\nNada é trancado desde a guerra: só há o sal para levar.",
+    "facts": [
+     [
+      "01",
+      "A mãe contou sacos ali durante vinte anos.",
+      "onde a mãe deles contara sacos durante vinte anos"
+     ],
+     [
+      "02",
+      "O portão está aberto; nada é trancado.",
+      "O portão estava aberto."
+     ],
+     [
+      "02",
+      "Tem goteira em cima da sala de secagem.",
+      "Tem goteira em cima da sala de secagem"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "A ilha",
+    "aliases": [
+     "a ilha"
+    ],
+    "body": "Surge da névoa aos pedaços: uma igreja, casas brancas, o telhado cinzento.\n\nMenor do que no livro."
+   },
+   {
+    "id": "harbour",
+    "name": "O porto",
+    "aliases": [
+     "o porto"
+    ],
+    "body": "O quebra-mar, o guindaste, a rampa. O café abre quando a balsa chega."
+   }
+  ]
+ },
+ "board": {
+  "title": "O retorno",
+  "labels": {
+   "family": "A família",
+   "story": "O que acontece",
+   "island": "A ilha",
+   "year": "1987?"
+  },
+  "columns": [
+   "Um · A travessia",
+   "Dois · A salina"
+  ],
+  "written": [
+   "**Travessia da manhã**\nNora na amurada. Nenhuma frase ensaiada resiste ao vento.",
+   "**A ilha**\nO casaco, a lista com a letra dele. Ela não consegue ler.",
+   "**O porto**\nEle não está no cais. O barco azul no abrigo do ônibus; ela ri."
+  ],
+  "passage": "disse que era menor do que no livro",
+  "next": [
+   "**O telhado**\nTom sobre as telhas, de costas. Sempre teve goteira, ele diz.",
+   "**Inventário**\nRecibos, tábuas de marés, o calendário de 1987.",
+   "**A sala de secagem**\nEla lhe entrega o casaco. Ele lê a lista em voz alta, inteira.",
+   "**Odile**\nChega com as chaves, e sabe o que a lista quer dizer."
+  ],
+  "notes": {
+   "list": "*sal, vidro, o barco azul, Tom.*\n\nUma lista de compras, ou um testamento?",
+   "boat": "Onze anos, e ninguém cobriu o barco de tinta. Quem cuidava dele?",
+   "tide": "Conferir a tábua de marés: sai uma balsa às seis, em março?",
+   "year": "As marés altas circuladas de vermelho. O que houve naquele ano?"
+  },
+  "shape": "O barco azul"
+ },
+ "history": {
+  "milestone": "Enviado a Claire",
+  "note": "Os capítulos um e dois, como ela os leu."
+ }
+}

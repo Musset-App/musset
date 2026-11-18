@@ -11,8 +11,8 @@ struct SettingsView: View {
             case .general: L("General")
             case .editor: L("Editor")
             case .keys: L("Keyboard")
-            case .ultra: "Ultra Focus"
-            case .proof: L("Proofreading", ctx: "Correction")
+            case .ultra: L("Ultra Focus")
+            case .proof: L("Proofreading")
             case .ai: L("AI")
             case .advanced: L("Advanced")
             }
@@ -31,8 +31,10 @@ struct SettingsView: View {
     }
 
     @State private var pane: Pane
+    /// The app the editor's switches act on.
+    let app: AppState?
 
-    init(pane: Pane = Self.initialPane) { _pane = State(initialValue: pane) }
+    init(app: AppState? = nil, pane: Pane = Self.initialPane) { self.app = app; _pane = State(initialValue: pane) }
 
     /// `-musset-settings ai` opens a pane directly (screenshots).
     static var initialPane: Pane {
@@ -55,7 +57,7 @@ struct SettingsView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 10).frame(height: 30)
-                        .background(pane == p ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 7))
+                        .background(pane == p ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -72,7 +74,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     switch pane {
                     case .general: GeneralPane()
-                    case .editor: EditorPane()
+                    case .editor: EditorPane(app: app)
                     case .keys: KeyboardPane()
                     case .ultra: UltraFocusPane()
                     case .proof: ProofPane()
@@ -103,61 +105,6 @@ private struct PaneHeader: View {
     }
 }
 
-/// Rows in a rounded hairline box, a hairline between each.
-private struct Card<Content: View>: View {
-    @ViewBuilder let content: Content
-    var body: some View {
-        Group {
-            if #available(macOS 15, *) {
-                VStack(spacing: 0) {
-                    Group(subviews: content) { rows in
-                        ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
-                            if i > 0 { CardHairline() }
-                            row
-                        }
-                    }
-                }
-            } else {
-                // macOS 14 has no Group(subviews:): the older way to walk a view's rows.
-                _VariadicView.Tree(CardRows()) { content }
-            }
-        }
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
-    }
-}
-
-private struct CardHairline: View {
-    var body: some View { Rectangle().fill(Ink.hairline.opacity(0.6)).frame(height: 1) }
-}
-
-private struct CardRows: _VariadicView_MultiViewRoot {
-    func body(children: _VariadicView.Children) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(children.enumerated()), id: \.offset) { i, row in
-                if i > 0 { CardHairline() }
-                row
-            }
-        }
-    }
-}
-
-private struct Row<Trailing: View>: View {
-    let title: String
-    var hint: String? = nil
-    @ViewBuilder let trailing: Trailing
-    var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.ui(13, .medium))
-                if let hint { Text(hint).font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
-            }
-            Spacer(minLength: 12)
-            trailing
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-    }
-}
-
 private struct SliderRow: View {
     let title: String
     @Binding var value: Double
@@ -165,7 +112,7 @@ private struct SliderRow: View {
     let step: Double
     let shown: String
     var body: some View {
-        Row(title: title) {
+        SettingsRow(title: title) {
             Slider(value: $value, in: range, step: step).frame(width: 180).controlSize(.small)
             Text(shown).font(.uiMono(12)).foregroundStyle(.secondary).frame(width: 72, alignment: .trailing)
         }
@@ -188,8 +135,8 @@ private struct Field<Leading: View>: View {
         }
         .font(.ui(13))
         .padding(.horizontal, 10).frame(width: width, height: 30)
-        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
-        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline))
+        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.control))
+        .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline))
     }
 }
 
@@ -199,24 +146,21 @@ extension Field where Leading == EmptyView {
     }
 }
 
-private struct Switch: View {
-    @Binding var on: Bool
-    var body: some View { Toggle("", isOn: $on).toggleStyle(.switch).labelsHidden().controlSize(.small) }
-}
-
-private struct GroupTitle: View {
-    let text: String
-    var body: some View { Text(text.uppercased()).font(.ui(11, .semibold)).tracking(0.6).foregroundStyle(.secondary) }
-}
-
 // MARK: General
 
 private struct GeneralPane: View {
     @AppStorage(UILang.key) private var uiLanguage = UILang.system.rawValue
+    /// Read from the defaults, so the row follows a choice made from the command bar.
+    @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
     var body: some View {
         PaneHeader(title: L("General"), subtitle: L("For every book."))
-        Card {
-            Row(title: L("Interface language"),
+        SettingsCard {
+            SettingsRow(title: L("Appearance")) {
+                Segmented(options: [(Appearance.system, L("System")), (.light, L("Light", ctx: "Clair")), (.dark, L("Dark"))],
+                          selection: Binding(get: { Appearance(rawValue: appearance) ?? .system }, set: { $0.choose() }))
+                    .frame(width: 240)
+            }
+            SettingsRow(title: L("Interface language"),
                 hint: L("Each book’s own language is set in the book.")) {
                 PopMenu(UILang.allCases.map { l in PopItem(title: l.label, checked: l.rawValue == uiLanguage) { uiLanguage = l.rawValue } }) {
                     Field(text: (UILang(rawValue: uiLanguage) ?? .system).label)
@@ -229,6 +173,10 @@ private struct GeneralPane: View {
 // MARK: Editor
 
 private struct EditorPane: View {
+    /// The app whose editor these switches act on at once; without it (a preview), they are kept for the next launch.
+    let app: AppState?
+    @AppStorage("lineNumbers") private var lineNumbers = false
+    @AppStorage("minimap") private var minimap = false
     @AppStorage("fontName") private var fontName = Typefaces.manuscript
     @AppStorage("fontSize") private var fontSize = 17.0
     @AppStorage("columnWidth") private var columnWidth = 640.0
@@ -241,8 +189,8 @@ private struct EditorPane: View {
 
     var body: some View {
         PaneHeader(title: L("Editor"), subtitle: L("The page you write on."))
-        Card {
-            Row(title: L("Manuscript font")) {
+        SettingsCard {
+            SettingsRow(title: L("Manuscript font")) {
                 PopMenu(fonts.filter { NSFont(name: $0, size: 12) != nil }.map { f in
                     PopItem(title: display(f), checked: f == fontName) { fontName = f }
                 }) { Field(text: display(fontName), width: 220) }
@@ -250,15 +198,25 @@ private struct EditorPane: View {
             SliderRow(title: L("Size"), value: $fontSize, range: 13...28, step: 1, shown: "\(Int(fontSize)) pt")
             SliderRow(title: L("Column width"), value: $columnWidth, range: 480...900, step: 20, shown: "\(Int(columnWidth)) px")
             SliderRow(title: L("Space between paragraphs"), value: $paragraphSpacing, range: 0...1.5, step: 0.1,
-                      shown: String(format: "%.1f", paragraphSpacing) + L(" line"))
-            SliderRow(title: L("Partner text size"), value: $chatFontSize, range: 11...24, step: 1, shown: "\(Int(chatFontSize)) pt")
+                      shown: L("\(paragraphSpacing.formatted(.number.precision(.fractionLength(1)).locale(UILang.locale))) line"))
+            SliderRow(title: L("Chat text size"), value: $chatFontSize, range: 11...24, step: 1, shown: "\(Int(chatFontSize)) pt")
         }
+        // A programmer's editor has these in its menus; a novelist sets them once, if ever. Both stay in the command bar.
+        SettingsCard {
+            SettingsRow(title: L("Line Numbers")) {
+                SettingsSwitch(on: Binding(get: { app?.lineNumbers ?? lineNumbers }, set: { if let app { app.lineNumbers = $0 } else { lineNumbers = $0 } }))
+            }
+            SettingsRow(title: L("Minimap"), hint: L("The whole chapter: click or drag to move")) {
+                SettingsSwitch(on: Binding(get: { app?.minimap ?? minimap }, set: { if let app { app.minimap = $0 } else { minimap = $0 } }))
+            }
+        }
+        .padding(.top, 16)
         Text(L("The ferry left at six, before the gulls were awake. She stood at the rail with her father’s coat over her arm."))
             .font(.custom(fontName, size: fontSize))
             .lineSpacing(fontSize * 0.78)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 28).padding(.vertical, 24)
-            .background(Ink.side, in: RoundedRectangle(cornerRadius: 10))
+            .background(Ink.side, in: RoundedRectangle(cornerRadius: Radius.card))
             .padding(.top, 20)
     }
 }
@@ -289,39 +247,39 @@ private struct ProofPane: View {
     }
 
     var body: some View {
-        PaneHeader(title: L("Proofreading", ctx: "Correction"),
+        PaneHeader(title: L("Proofreading"),
                    subtitle: L("As you write, in the book’s language. LanguageTool runs inside Musset: nothing leaves this Mac."))
-        Card {
-            Row(title: L("Proofread while I write", ctx: "Corriger pendant que j’écris"),
-                hint: L("Underlines mistakes, paragraph by paragraph.")) { Switch(on: $autoProofread) }
-            Row(title: L("Also proofread with AI"),
-                hint: L("Sends the current paragraph to the AI. Off by default.")) { Switch(on: $proofWithAI) }
-            Row(title: L("Fix obvious mistakes"),
-                hint: L("Missing accents and ligatures, and with the AI certain typos, outside the paragraph being written.")) { Switch(on: $autoCorrect) }
-            Row(title: L("The book’s typography"),
-                hint: L("Non-breaking spaces, apostrophes, quotes.")) { Switch(on: $autoTypography) }
-            Row(title: L("Grammar checker"),
+        SettingsCard {
+            SettingsRow(title: L("Proofread while I write", ctx: "Corriger pendant que j’écris"),
+                hint: L("Underlines mistakes, paragraph by paragraph.")) { SettingsSwitch(on: $autoProofread) }
+            SettingsRow(title: L("Also proofread with AI"),
+                hint: L("Sends the current paragraph to the AI. Off by default.")) { SettingsSwitch(on: $proofWithAI) }
+            SettingsRow(title: L("Fix obvious mistakes"),
+                hint: L("Missing accents and ligatures, and with the AI certain typos, outside the paragraph being written.")) { SettingsSwitch(on: $autoCorrect) }
+            SettingsRow(title: L("The book’s typography"),
+                hint: L("Non-breaking spaces, apostrophes, quotes.")) { SettingsSwitch(on: $autoTypography) }
+            SettingsRow(title: L("Grammar checker"),
                 hint: L("Underlined in blue, never applied automatically.")) {
                 PopMenu(LocalProofreader.Checker.allCases.map { c in
                     PopItem(title: c.label, checked: c.rawValue == ruleChecker, subtitle: note(c)) { ruleChecker = c.rawValue }
                 }) { Field(text: short(LocalProofreader.Checker(rawValue: ruleChecker) ?? .local), width: 240) }
             }
             if ruleChecker == LocalProofreader.Checker.local.rawValue {
-                Row(title: L("Have the AI check grammar alerts"),
-                    hint: L("Agreement, confusion and other grammar alerts are underlined only if the AI confirms them, as a rule-based checker can’t tell what a sentence means. Sends those passages to the AI. Off by default.")) { Switch(on: $proofArbiter) }
+                SettingsRow(title: L("Have the AI check grammar alerts"),
+                    hint: L("Agreement, confusion and other grammar alerts are underlined only if the AI confirms them, as a rule-based checker can’t tell what a sentence means. Sends those passages to the AI. Off by default.")) { SettingsSwitch(on: $proofArbiter) }
             }
             if ruleChecker == LocalProofreader.Checker.languageTool.rawValue {
-                Row(title: "LanguageTool") {
+                SettingsRow(title: "LanguageTool") {
                     PopMenu([LanguageTool.Mode.local, .publicAPI].map { m in PopItem(title: m.label, checked: m.rawValue == languageTool) { languageTool = m.rawValue } }) {
                         Field(text: (LanguageTool.Mode(rawValue: languageTool) ?? .local).label, width: 240)
                     }
                 }
-                Row(title: L("Local server")) {
+                SettingsRow(title: L("Local server")) {
                     TextField("", text: $languageToolLocalURL).textFieldStyle(.roundedBorder).font(.uiMono(12)).frame(width: 240)
                 }
             }
-            Row(title: L("Repetitions"),
-                hint: L("Flags a word repeated within this many words (⌃⌘R).")) {
+            SettingsRow(title: L("Repetitions"),
+                hint: L("Flags a word repeated within this many words (\(AppCommand.glyphs("view.repetitions"))).")) {
                 Slider(value: Binding(get: { Double(repetitionWindow) }, set: { repetitionWindow = Int($0) }), in: 10...300, step: 10)
                     .frame(width: 160).controlSize(.small)
                 Text("\(repetitionWindow) " + L("words")).font(.uiMono(12)).foregroundStyle(.secondary).frame(width: 72, alignment: .trailing)
@@ -334,6 +292,7 @@ private struct ProofPane: View {
 
 private struct AIPane: View {
     @State private var catalog = ModelCatalog.shared
+    @AppStorage("keepBible") private var keepBible = true
     @State private var custom: AITask?
     @State private var customID = ""
     @State private var pangramKey = ""
@@ -343,13 +302,12 @@ private struct AIPane: View {
 
     private var note: String {
         if !ai.enabled {
-            return L("Off. No partner, no annotations, no AI proofreading or plot grid. Everything else works the same.")
+            return L("Off. No AI reader, no annotations, no AI proofreading or plot grid. Everything else works the same.")
         }
         if ai.installed.isEmpty {
             return L("Neither claude nor codex is installed on this Mac: the AI features are hidden.")
         }
-        return L("Uses ") + ai.installed.map(\.rawValue).joined(separator: L(" and "))
-            + L(", through your own login. Each task has its model.")
+        return L("Uses \(ai.installed.map(\.rawValue).formatted(.list(type: .and).locale(UILang.locale))), through your own login. Each task has its model.")
     }
 
     /// The engine a task runs on, and its model as the catalog names it.
@@ -366,33 +324,39 @@ private struct AIPane: View {
         HStack(alignment: .top, spacing: 16) {
             PaneHeader(title: L("AI"), subtitle: note)
             Spacer()
-            Switch(on: Binding(get: { ai.enabled }, set: { ai.enabled = $0 }))
+            SettingsSwitch(on: Binding(get: { ai.enabled }, set: { ai.enabled = $0 }))
         }
         if ai.isOn {
             HStack(spacing: 6) {
-                GroupTitle(text: L("Models"))
+                SectionLabel(L("Models"), tracking: 0.6)
                 Spacer()
                 ForEach(AgentKind.allCases) { e in
                     let on = ai.installed.contains(e)
                     HStack(spacing: 6) {
-                        Circle().fill(on ? Color(red: 0.18, green: 0.54, blue: 0.34) : Color(nsColor: .tertiaryLabelColor)).frame(width: 6, height: 6)
+                        Circle().fill(on ? Ink.positive : Color(nsColor: .tertiaryLabelColor)).frame(width: 6, height: 6)
                         Text(e.rawValue + " " + (on ? L("connected") : L("missing")))
                     }
                     .font(.ui(11, .medium))
-                    .foregroundStyle(on ? Color(red: 0.13, green: 0.40, blue: 0.24) : .secondary)
+                    .foregroundStyle(on ? Ink.positive : .secondary)
                     .padding(.horizontal, 9).frame(height: 22)
-                    .background(on ? Color(red: 0.93, green: 0.96, blue: 0.94) : Ink.selected, in: Capsule())
+                    .background(on ? Ink.positive.opacity(0.12) : Ink.selected, in: Capsule())
                 }
             }
             .padding(.bottom, 8)
-            Card {
+            SettingsCard {
                 ForEach(AITask.allCases) { task in
-                    Row(title: task.label, hint: task.hint) { modelMenu(task) }
+                    SettingsRow(title: task.label, hint: task.hint) {
+                        HStack(spacing: 10) {
+                            // The Bible's reading runs on its own, after pauses: it can be turned off.
+                            if task == .bible { Toggle("", isOn: $keepBible).toggleStyle(.switch).controlSize(.mini).labelsHidden().accessibilityLabel(L("Keep the Bible up to date")) }
+                            modelMenu(task)
+                        }
+                    }
                 }
             }
             if let task = custom {
                 HStack(spacing: 10) {
-                    Text(L("Model id for ") + task.label).font(.ui(13, .medium))
+                    Text(L("Model id for \(task.label)")).font(.ui(13, .medium))
                     TextField("claude-opus-5-5", text: $customID).textFieldStyle(.roundedBorder).font(.uiMono(12))
                     Button(L("Use")) {
                         let id = customID.trimmingCharacters(in: .whitespaces)
@@ -403,12 +367,12 @@ private struct AIPane: View {
                     Button(L("Cancel")) { custom = nil }.buttonStyle(.inkSecondary)
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Ink.side, in: RoundedRectangle(cornerRadius: 10))
+                .background(Ink.side, in: RoundedRectangle(cornerRadius: Radius.card))
                 .padding(.top, 12)
             }
             HStack(spacing: 10) {
                 Text(L("Read from claude and codex, through your own login: no API key in Musset.")
-                     + (catalog.updatedAt.map { L(" Updated ") + $0.formatted(.relative(presentation: .named)) + "." } ?? ""))
+                     + (catalog.updatedAt.map { " " + L("Updated \($0.formatted(.relative(presentation: .named))).") } ?? ""))
                     .font(.ui(12)).foregroundStyle(.secondary)
                 Spacer()
                 Button {
@@ -424,9 +388,9 @@ private struct AIPane: View {
             }
             .padding(.top, 12)
 
-            GroupTitle(text: "Pangram").padding(.top, 28).padding(.bottom, 8)
-            Card {
-                Row(title: L("API key"),
+            SectionLabel("Pangram", tracking: 0.6).padding(.top, 28).padding(.bottom, 8)
+            SettingsCard {
+                SettingsRow(title: L("API key"),
                     hint: L("If empty, Musset reads PANGRAM_API_KEY from the book’s .env once.")) {
                     SecureField("", text: $pangramKey).textFieldStyle(.roundedBorder).font(.uiMono(12)).frame(width: 160)
                     Button(L("Save")) { Secrets.set("pangram", pangramKey) }.buttonStyle(.inkSecondary)
@@ -457,10 +421,10 @@ private struct AIPane: View {
                   detail: cur.engine == .claude ? cur.id : nil, width: 240) {
                 Text(cur.engine == .claude ? "C" : "X").font(.ui(10, .semibold)).foregroundStyle(.white)
                     .frame(width: 18, height: 18)
-                    .background(cur.engine == .claude ? Color(red: 0.77, green: 0.42, blue: 0.29) : Color(white: 0.23), in: RoundedRectangle(cornerRadius: 5))
+                    .background(cur.engine == .claude ? Color(red: 0.77, green: 0.42, blue: 0.29) : Color(white: 0.23), in: RoundedRectangle(cornerRadius: Radius.row))
             }
         }
-        .help(L("Model for: ") + task.label)
+        .help(L("Model for: \(task.label)"))
     }
 }
 
@@ -474,10 +438,10 @@ private struct AdvancedPane: View {
     var body: some View {
         PaneHeader(title: L("Advanced"),
                    subtitle: L("The tools inside Musset, and those it finds on this Mac."))
-        Card {
+        SettingsCard {
             ForEach(tools) { t in
                 HStack(spacing: 12) {
-                    Circle().fill(t.place != nil ? Color(red: 0.18, green: 0.54, blue: 0.34) : Color(nsColor: .tertiaryLabelColor)).frame(width: 7, height: 7)
+                    Circle().fill(t.place != nil ? Ink.positive : Color(nsColor: .tertiaryLabelColor)).frame(width: 7, height: 7)
                     Text(t.name).font(.uiMono(12, .medium)).frame(width: 90, alignment: .leading)
                     Text(t.place ?? L("not found")).font(.uiMono(12)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     Spacer()
@@ -502,7 +466,7 @@ private struct AdvancedPane: View {
                 guard let p = Shell.bundledOrPath(tool) else { return nil }
                 return p.hasPrefix(Bundle.main.bundlePath) ? L("inside Musset") : p
             }
-            return [Tool(name: "typst", place: inApp("typst")), Tool(name: "pandoc", place: inApp("pandoc")),
+            return [Tool(name: "typst", place: "Typst \(Typesetting.typstVersion) · " + L("inside Musset")), Tool(name: "pandoc", place: inApp("pandoc")),
                     Tool(name: "git", place: "libgit2 \(GitService.libraryVersion) · " + L("inside Musset")),
                     Tool(name: "claude", place: Shell.which("claude")), Tool(name: "codex", place: Shell.which("codex")),
                     Tool(name: "xelatex", place: Shell.which("xelatex"))]
@@ -527,27 +491,27 @@ private struct KeyboardPane: View {
         }
         .padding(.bottom, 18)
         VStack(alignment: .leading, spacing: 8) {
-            Text(L("CHEAT SHEET · ") + current.label.uppercased())
+            Text(L("CHEAT SHEET · \(current.label.uppercased())"))
                 .font(.ui(11, .semibold)).foregroundStyle(.secondary)
-            Card {
+            SettingsCard {
                 ForEach(Array(current.cheatSheet.enumerated()), id: \.offset) { _, row in
                     HStack {
                         Text(row.what)
                         Spacer()
                         Text(row.keys).font(.uiMono(12)).padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(Ink.panel, in: RoundedRectangle(cornerRadius: 5))
-                            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Ink.hairline))
+                            .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.row))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.hairline))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 7)
                 }
             }
         }
         .padding(.bottom, 18)
-        Card {
-            Row(title: L("Help after a prefix"), hint: current.prefixHelp) {
+        SettingsCard {
+            SettingsRow(title: L("Help after a prefix"), hint: current.prefixHelp) {
                 Toggle("", isOn: $prefixHelp).toggleStyle(.switch).labelsHidden()
             }
-            Row(title: L("Keyboard layout"),
+            SettingsRow(title: L("Keyboard layout"),
                 hint: current == .vi ? L("On AZERTY, the keys follow the letters; { } $ need ⌥ there.")
                                      : L("Keys follow the letters, wherever they are on your keyboard.")) {
                 Text(Self.layoutName).font(.ui(12)).foregroundStyle(.secondary)
@@ -568,15 +532,15 @@ private struct KeyboardPane: View {
                 HStack(spacing: 5) {
                     ForEach(m.signature, id: \.self) { k in
                         Text(k).font(.uiMono(11)).padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Ink.panel, in: RoundedRectangle(cornerRadius: 5))
-                            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Ink.hairline))
+                            .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.row))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.hairline))
                     }
                 }
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
-            .background(on ? Ink.accent.opacity(0.10) : Ink.side, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(on ? Ink.accent.opacity(0.7) : Ink.hairline))
+            .background(on ? Ink.accent.opacity(0.10) : Ink.side, in: RoundedRectangle(cornerRadius: Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(on ? Ink.accent.opacity(0.7) : Ink.hairline))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -612,27 +576,27 @@ private struct UltraFocusPane: View {
             }
         }
         .padding(.bottom, 20)
-        Card {
-            Row(title: L("Level"), hint: currentLevel.hint) {
+        SettingsCard {
+            SettingsRow(title: L("Level"), hint: currentLevel.hint) {
                 Segmented(options: UltraFocusLevel.allCases.map { ($0.rawValue, $0.label) }, selection: $level).frame(width: 250)
             }
-            Row(title: L("Enter, leave"), hint: L("Also from ⌘K and the Write menu.")) {
+            SettingsRow(title: L("Enter, leave"), hint: L("Also from ⌘K and the Write menu.")) {
                 Text("⌃⌘U").font(.uiMono(12)).padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(Ink.panel, in: RoundedRectangle(cornerRadius: 5))
+                    .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.row))
             }
-            Row(title: L("What you write goes"), hint: L("Into the open chapter, or apart if you’d rather read it first.")) {
+            SettingsRow(title: L("What you write goes"), hint: L("Into the open chapter, or apart if you’d rather read it first.")) {
                 Picker("", selection: $destination) {
                     ForEach(UltraFocusDestination.allCases) { Text($0.label).tag($0.rawValue) }
                 }
                 .labelsHidden().fixedSize()
             }
-            Row(title: L("Lock"), hint: L("No way out before. ⌥⌘Esc is always there.")) {
+            SettingsRow(title: L("Lock"), hint: L("No way out before. ⌥⌘Esc is always there.")) {
                 Segmented(options: UltraFocusLock.allCases.map { ($0.rawValue, $0.label) }, selection: $lock).frame(width: 230)
             }
-            Row(title: L("Written lines fade upward"), hint: L("Only the line being written stays clear.")) {
+            SettingsRow(title: L("Written lines fade upward"), hint: L("Only the line being written stays clear.")) {
                 Toggle("", isOn: $fade).toggleStyle(.switch).labelsHidden()
             }
-            Row(title: L("Refused"), hint: L("Write forward, correct afterwards.")) {
+            SettingsRow(title: L("Refused"), hint: L("Write forward, correct afterwards.")) {
                 Text(currentLevel.refused).font(.uiMono(11)).foregroundStyle(Color(red: 1, green: 0.416, blue: 0.239))
             }
         }

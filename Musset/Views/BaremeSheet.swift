@@ -13,12 +13,12 @@ struct BaremeSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(L("Rubric") + " — \(session.title)").font(.ui(15, .semibold))
+            Text(L("Rubric…").titled + " — \(session.title)").font(.ui(15, .semibold))
             if bareme != nil { form } else {
-                Text(L("The criteria library could not be read.")).foregroundStyle(.orange)
+                Text(L("The criteria library could not be read.")).foregroundStyle(Ink.warning)
             }
             HStack {
-                if let warning { Text(warning).font(.ui(11)).foregroundStyle(.orange).lineLimit(2) }
+                if let warning { Text(warning).font(.ui(11)).foregroundStyle(Ink.warning).lineLimit(2) }
                 Spacer()
                 Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary)
                 Button(L("Save"), action: save).buttonStyle(.ink).keyboardShortcut(.defaultAction).disabled(bareme?.chapter.isEmpty ?? true)
@@ -64,7 +64,7 @@ struct BaremeSheet: View {
                     label(L("Your requirements (eliminatory risks, scoring discipline)"))
                     TextEditor(text: Binding(get: { bareme?.rules ?? "" }, set: { bareme?.rules = $0 }))
                         .font(.ui(12)).frame(height: 140).scrollContentBackground(.hidden)
-                        .padding(6).background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
+                        .padding(6).background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
                 }
             }
             .padding(.trailing, 8)
@@ -77,7 +77,7 @@ struct BaremeSheet: View {
                 label(L("Chapter grid"))
                 Spacer()
                 let sum = bareme?.chapter.reduce(0) { $0 + $1.weight } ?? 0
-                Text("\(sum) " + L("points, brought to 100 on saving")).font(.ui(11).monospacedDigit()).foregroundStyle(sum == 100 ? Color.secondary : Color.orange)
+                Text("\(sum) " + L("points, brought to 100 on saving")).font(.ui(11).monospacedDigit()).foregroundStyle(sum == 100 ? Color.secondary : Ink.warning)
             }
             ForEach(bareme?.chapter ?? [], id: \.criterionId) { item in row(item) }
             Menu(L("Add a criterion")) {
@@ -85,7 +85,7 @@ struct BaremeSheet: View {
                     let free = library.chapterCriteria.filter { c in c.family == family && !(bareme?.chapter.contains { $0.criterionId == c.id } ?? false) }
                     if !free.isEmpty {
                         Menu(familyLabel(family)) {
-                            ForEach(free) { c in Button(c.label) { bareme?.chapter.append(.init(criterionId: c.id, weight: 5)); bareme?.presetId = nil } }
+                            ForEach(free) { c in Button(c.label) { bareme?.chapter.append(.init(criterionId: c.id, weight: 5)) } }
                         }
                     }
                 }
@@ -124,7 +124,7 @@ struct BaremeSheet: View {
                 Spacer()
                 TextField("", value: Binding(get: { item.weight }, set: { setWeight(item.criterionId, $0) }), format: .number)
                     .textFieldStyle(.roundedBorder).frame(width: 46).multilineTextAlignment(.trailing)
-                Button { bareme?.chapter.removeAll { $0.criterionId == item.criterionId }; bareme?.presetId = nil } label: { Image(systemName: "xmark").font(.ui(10)) }
+                Button { bareme?.chapter.removeAll { $0.criterionId == item.criterionId } } label: { Image(systemName: "xmark").font(.ui(10)) }
                     .buttonStyle(.plain).foregroundStyle(.secondary).help(L("Remove"))
             }
             if open == item.criterionId, let c {
@@ -144,7 +144,6 @@ struct BaremeSheet: View {
     private func setWeight(_ id: String, _ weight: Int) {
         guard let i = bareme?.chapter.firstIndex(where: { $0.criterionId == id }), weight != bareme?.chapter[i].weight else { return }
         bareme?.chapter[i].weight = max(0, weight)
-        bareme?.presetId = nil
     }
 
     /// The spec's guard rails: they warn, the author decides.

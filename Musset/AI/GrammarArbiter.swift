@@ -22,7 +22,7 @@ enum GrammarArbiter {
     /// Who the book's people are, from the plot index, so gender and names don't have to be guessed.
     static func facts(plot: PlotGrid) -> String {
         plot.tags(in: "characters").prefix(40).map { tag in
-            let aliases = tag.aliases.isEmpty ? "" : " (\(tag.aliases.prefix(4).joined(separator: ", ")))"
+            let aliases = tag.allAliases.isEmpty ? "" : " (\(tag.allAliases.prefix(4).joined(separator: ", ")))"
             return "- \(tag.name)\(aliases)\(tag.note.isEmpty ? "" : " : \(tag.note.prefix(120))")"
         }.joined(separator: "\n")
     }

@@ -125,6 +125,103 @@ final class ShelfTests: XCTestCase {
         XCTAssertNotNil(s.git.show("HEAD~1", path: "c.md"), "the history keeps it")
     }
 
+    func testAChapterDeletedForGoodTakesItsPlotAndItsPlaceAlong() throws {
+        let s = try session()
+        s.plot.update("c", "") { $0.status = .done }
+        s.plot.setChapterSynopsis("c", "Where it ends.")
+        s.plot.setChapterSynopsis("a", "Where it starts.")
+        s.savePlot()
+        s.state.selections["c"] = 12
+        s.drop([ShelfDrag.chapter("c").wire], on: .trash)
+        XCTAssertNotNil(s.plot.rows["c"], "in the Trash it can still come back whole")
+        s.deleteFromTrash(Set(s.trash.map(\.id)))
+        XCTAssertNil(s.plot.rows["c"])
+        XCTAssertEqual(s.plot.chapterSynopses, ["a": "Where it starts."])
+        XCTAssertNil(s.state.selections["c"])
+        XCTAssertNil(s.scenes["c"])
+        let onDisk = PlotGrid.load(root)
+        XCTAssertNil(onDisk.rows["c"])
+        XCTAssertEqual(onDisk.chapterSynopses, ["a": "Where it starts."])
+        XCTAssertFalse(s.git.show("HEAD", path: ".musset/plot.json")?.contains("Where it ends.") ?? true, "committed with the emptied Trash")
+    }
+
+    /// `trash.json` as Musset has always written it: read into the item's payload, and written back the same, byte for byte.
+    func testTheTrashFileKeepsItsForm() throws {
+        let file = """
+        [
+          {
+            "chapter" : {
+              "activeVersion" : "main",
+              "excludeFromExport" : false,
+              "file" : "ch/c.md",
+              "id" : "c",
+              "status" : "done",
+              "title" : "C"
+            },
+            "date" : "2026-11-02T10:00:00Z",
+            "id" : "0E1F2A3B-0000-4000-8000-000000000001",
+            "index" : 2,
+            "kind" : "chapter",
+            "title" : "C",
+            "wasDraft" : false
+          },
+          {
+            "date" : "2026-11-02T10:05:00Z",
+            "id" : "0E1F2A3B-0000-4000-8000-000000000002",
+            "kind" : "sheet",
+            "sheetPath" : "personnages/tom.md",
+            "title" : "Tom"
+          },
+          {
+            "date" : "2026-11-02T10:06:00Z",
+            "id" : "0E1F2A3B-0000-4000-8000-000000000003",
+            "kind" : "version",
+            "title" : "C — Paris",
+            "versionChapter" : "c",
+            "versionName" : "Paris"
+          }
+        ]
+        """
+        try FileManager.default.createDirectory(at: root.appendingPathComponent(".musset"), withIntermediateDirectories: true)
+        let url = root.appendingPathComponent(".musset/trash.json")
+        try Data(file.utf8).write(to: url)
+        let store = TrashStore(root: root)
+        let items = store.load()
+        XCTAssertEqual(items.map(\.kind), [.chapter, .sheet, .version])
+        XCTAssertEqual(items[0].payload, .chapter(ChapterEntry(id: "c", file: "ch/c.md", title: "C", status: .done), index: 2, wasDraft: false))
+        XCTAssertEqual(items[1].payload, .sheet(path: "personnages/tom.md"))
+        XCTAssertEqual(items[2].payload, .version(chapter: "c", name: "Paris"))
+        try store.save(items)
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), file)
+
+        // A note, and a chapter from before `wasDraft` was written: the same bytes as the flat item Musset had.
+        struct Flat: Codable {
+            var id: UUID, kind: String, title: String, date: Date
+            var chapter: ChapterEntry? = nil, index: Int? = nil, wasDraft: Bool? = nil
+            var note: Note? = nil, noteChapter: String? = nil
+            var sheetPath: String? = nil, versionChapter: String? = nil, versionName: String? = nil
+        }
+        let note = Note(author: .me, kind: .todo, body: "À revoir", anchor: NoteAnchor(quote: "le quai", prefix: "sur ", suffix: " désert", start: 4, version: nil))
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let flat = [Flat(id: UUID(), kind: "note", title: "À revoir", date: date, index: 1, note: note, noteChapter: "a"),
+                    Flat(id: UUID(), kind: "chapter", title: "B", date: date, chapter: ChapterEntry(id: "b", file: "b.md", title: "B"))]
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        let before = try enc.encode(flat)
+        try before.write(to: url)
+        let read = store.load()
+        guard case .note(let back, "a", 1) = read[0].payload else { return XCTFail("\(read[0].payload)") }
+        XCTAssertEqual(back.body, "À revoir")
+        XCTAssertEqual(read[1].payload, .chapter(ChapterEntry(id: "b", file: "b.md", title: "B"), index: nil, wasDraft: nil))
+        try store.save(read)
+        XCTAssertEqual(try Data(contentsOf: url), before)
+
+        // One item that cannot be read does not empty the Trash.
+        try Data(file.replacingOccurrences(of: "\"sheetPath\" : \"personnages/tom.md\",\n    ", with: "").utf8).write(to: url)
+        XCTAssertEqual(store.load().map(\.kind), [.chapter, .version])
+    }
+
     func testAddChapterDoesNotAdoptATrashedFile() throws {
         let s = try session()
         s.addChapter(title: "Nouveau")

@@ -44,10 +44,6 @@ final class ChatModel {
     var table: CriticTable?
     /// Shown or not, it keeps running; closing only slides it away.
     var tableShown = false
-    /// Off by default: the agent critiques, the author writes. On only when the author wants proposals of new text.
-    var allowRewrites = UserDefaults.standard.bool(forKey: "chatAllowRewrites") {
-        didSet { UserDefaults.standard.set(allowRewrites, forKey: "chatAllowRewrites") }
-    }
     @ObservationIgnored private var sessions: [AgentKind: String] = [:]
     @ObservationIgnored private var process: Process?
     @ObservationIgnored private var bookRoot: URL?
@@ -86,7 +82,7 @@ final class ChatModel {
         sentChapter = [:]
         sentReference = [:]
         pending = []
-        if let url = transcriptURL, let data = try? Data(contentsOf: url), let s = try? JSONDecoder().decode(Saved.self, from: data) {
+        if let url = transcriptURL, let s = JSONFile.read(Saved.self, at: url) {
             messages = s.messages
             for (k, v) in s.sessions { if let a = AgentKind(rawValue: k) { sessions[a] = v } }
         }
@@ -94,9 +90,8 @@ final class ChatModel {
 
     func persist() {
         guard let url = transcriptURL else { return }
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let s = Saved(messages: messages.suffix(300), sessions: Dictionary(uniqueKeysWithValues: sessions.map { ($0.key.rawValue, $0.value) }))
-        try? JSONEncoder().encode(s).write(to: url)
+        try? JSONFile.write(s, to: url, [])
     }
 
     func newConversation() {
@@ -137,7 +132,7 @@ final class ChatModel {
     /// A quick action: the agent annotates the chapter (or the selection) and keeps its chat answer short.
     func runAction(_ action: ChatAction, session book: BookSession, selection: String, model: String) {
         if action == .critique { return readChapter(book, model: model) }
-        let label = "⚡ " + action.localizedLabel + (selection.isEmpty ? "" : L(" — selection"))
+        let label = "⚡ " + (selection.isEmpty ? action.localizedLabel : L("\(action.localizedLabel) — selection"))
         let message = ChatMessage(role: .user, agent: agent, text: label, queued: running ? true : nil, action: action)
         messages.append(message)
         pending.append(Pending(messageID: message.id, question: "", selection: selection, model: model, agent: agent, book: book, action: action))
@@ -157,7 +152,7 @@ final class ChatModel {
     private func readChapter(_ book: BookSession, model: String) {
         let engine = agent
         guard !reader.running else {
-            messages.append(ChatMessage(role: .error, text: L("A reading is already under way.")))
+            messages.append(ChatMessage(role: .error, text: L("An AI reading is already under way.")))
             return
         }
         messages.append(ChatMessage(role: .user, agent: engine, text: "⚡ " + ChatAction.critique.localizedLabel, action: .critique))
@@ -167,7 +162,7 @@ final class ChatModel {
             guard let self else { return }
             if let reading {
                 var m = ChatMessage(role: .assistant, agent: engine,
-                                    text: reading.advice?.overview.nilIfEmpty ?? L("A separate reader, outside this conversation, read « \(title) »."),
+                                    text: reading.advice?.overview.nilIfEmpty ?? L("A separate AI reader, outside this conversation, read « \(title) »."),
                                     action: .critique, notesRun: run, notesAdded: pins.placed)
                 m.notesSkipped = pins.skipped
                 m.notesResolved = pins.resolved
@@ -224,14 +219,11 @@ final class ChatModel {
         }
         prompt += "\n\(question)"
         // Repeated in every message: a resumed conversation keeps the system prompt it started with.
-        if !allowRewrites { prompt += "\n\n(\(WritingPartner.noRewrites))" }
+        prompt += "\n\n(\(WritingPartner.noRewrites))"
 
-        let rewriting = allowRewrites
-            ? "When the author asks for a rewritten passage or chapter, put the full replacement text inside a fenced block that starts with ```revision so they can save it as a new version. "
-            : WritingPartner.noRewrites + " "
         let system = """
         You are talking with the author of this book inside their writing app: a demanding literary critic and writing partner. \
-        Discuss, critique, question; you cannot edit files. \(rewriting)\
+        Discuss, critique, question; you cannot edit files. \(WritingPartner.noRewrites) \
         When your answer is about specific passages, you may also add margin notes in a fenced block starting with ```notes \
         holding a JSON array of {"quote": "<passage copied exactly from the chapter, 3 to 25 words>", "kind": \(Note.Kind.promptChoices), "note": "<the note>"}; \
         the author can then pin them to the text. \
@@ -307,19 +299,11 @@ final class ChatModel {
         persist()
     }
 
-    /// Fenced ```revision blocks in a reply.
     /// ```notes blocks: margin notes the agent proposes, as JSON.
     static func noteBlocks(in text: String) -> [Annotator.Item] {
         let re = try! NSRegularExpression(pattern: "```(?:notes|json)[^\\n]*\\n(.*?)```", options: [.dotMatchesLineSeparators])
         return re.matches(in: text, range: NSRange(text.startIndex..., in: text)).flatMap { m -> [Annotator.Item] in
             Range(m.range(at: 1), in: text).map { Annotator.parse(String(text[$0])) } ?? []
-        }
-    }
-
-    static func revisions(in text: String) -> [String] {
-        let re = try! NSRegularExpression(pattern: "```revision[^\\n]*\\n(.*?)```", options: [.dotMatchesLineSeparators])
-        return re.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap {
-            Range($0.range(at: 1), in: text).map { String(text[$0]) }
         }
     }
 }
@@ -330,9 +314,7 @@ struct ChatPanel: View {
     let bridge: EditorBridge
     @AppStorage("model.chat.claude") private var claudeModel = "opus"
     @AppStorage("model.chat.codex") private var codexModel = ""
-    @State private var compare: CompareItem?
     @State private var composerHeight: CGFloat = 26
-    @State private var showRubric = false
     @State private var showTics = false
     @State private var showCheckers = false
     @State private var bookCheckers = BookCheckers()
@@ -364,19 +346,14 @@ struct ChatPanel: View {
                     // Not lazy: a LazyVStack's prefetch here re-triggered itself forever and froze the app. Only the latest messages are built.
                     VStack(alignment: .leading, spacing: 14) {
                         if chat.messages.isEmpty {
-                            Text(L("Ask ", ctx: "Demandez à ") + chat.agent.label + L(" about this chapter. Select a passage first to discuss just that."))
-                                .font(.ui(12)).foregroundStyle(.secondary).padding(.top, 20)
+                            EmptyNote(L("Ask \(chat.agent.label) about this chapter. Select a passage first to discuss just that.")).padding(.top, 20)
                         }
                         if chat.messages.count > shownMessages {
                             Button(L("Earlier messages")) { shownMessages += Self.messagePage }
                                 .buttonStyle(.link).font(.ui(11)).frame(maxWidth: .infinity)
                         }
                         ForEach(chat.messages.suffix(shownMessages)) { m in
-                            MessageView(message: m, fontSize: chatFontSize, onSaveRevision: { text in
-                                session.newVersion(named: "\(m.agent?.rawValue ?? "ai")-suggestion", text: text)
-                            }, onCompare: { text in
-                                compare = CompareItem(title: L("Suggestion vs. current"), left: ParagraphCodec.encode(session.text), right: text)
-                            }, onAddNotes: { items in
+                            MessageView(message: m, fontSize: chatFontSize, onAddNotes: { items in
                                 let author: Note.Author = m.agent == .codex ? .codex : .claude
                                 return Annotator.add(items, to: session, author: author, defaultKind: .note, scope: nil, run: UUID().uuidString)
                             }, onRemoveNotes: { chat.removeNotes(of: m.id, book: session) }, onShowQuote: { quote in
@@ -445,7 +422,7 @@ struct ChatPanel: View {
                 actions
                 VStack(alignment: .leading, spacing: 8) {
                     Composer(text: $chat.input, fontSize: 13,
-                             placeholder: chat.running ? L("Queue another message…") : L("Ask ", ctx: "Demander à ") + chat.agent.label + L("… (⇧↩ new line)"),
+                             placeholder: chat.running ? L("Queue another message…") : L("Ask \(chat.agent.label)… (⇧↩ new line)"),
                              onSend: send, height: $composerHeight)
                         .frame(height: max(composerHeight, 40))
                     HStack(spacing: 8) {
@@ -458,28 +435,27 @@ struct ChatPanel: View {
                         }
                         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
                         if !bridge.selectedText.isEmpty {
-                            Text(L("Selection: ") + "\(bridge.selectedText.split(whereSeparator: \.isWhitespace).count) " + L("words"))
+                            Text(L("Selection: \(TextCounts(bridge.selectedText).label)"))
                                 .foregroundStyle(.tertiary).lineLimit(1)
                         }
                         Spacer()
                         Menu {
                             Button(L("New conversation")) { chat.newConversation() }
                             Toggle(L("Tell the agent which chapter is open"), isOn: $chat.includeChapter)
-                            Toggle(L("Allow the agent to propose rewrites"), isOn: $chat.allowRewrites)
                             Divider()
                             Button(L("Larger Text")) { chatFontSize = min(24, chatFontSize + 1) }.keyboardShortcut("+", modifiers: [.command, .option])
                             Button(L("Smaller Text")) { chatFontSize = max(11, chatFontSize - 1) }.keyboardShortcut("-", modifiers: [.command, .option])
                         } label: { Image(systemName: "ellipsis") }
                         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
                         if chat.running {
-                            Button { chat.stop() } label: { Image(systemName: "stop.fill").font(.ui(10)).frame(width: 28, height: 28).background(Ink.panel, in: RoundedRectangle(cornerRadius: 7)) }
+                            Button { chat.stop() } label: { Image(systemName: "stop.fill").font(.ui(10)).frame(width: 28, height: 28).background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control)) }
                                 .buttonStyle(.plain).help(L("Stop (also drops queued messages)"))
                         }
                         Button(action: send) {
                             Image(systemName: "arrow.up").font(.ui(12, .semibold))
                                 .foregroundStyle(Color(nsColor: .textBackgroundColor))
                                 .frame(width: 28, height: 28)
-                                .background(Color.primary, in: RoundedRectangle(cornerRadius: 7))
+                                .background(Color.primary, in: RoundedRectangle(cornerRadius: Radius.control))
                         }
                         .buttonStyle(.plain)
                         .disabled(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -488,13 +464,12 @@ struct ChatPanel: View {
                     .font(.ui(12)).foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.card))
+                .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             }
             .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             .overlay(alignment: .top) { Divider() }
         }
-        .sheet(item: $compare) { CompareView(item: $0) }
         // Only one of the two CLIs on this Mac: talk to that one.
         .onAppear { if let e = AIStatus.shared.engine(preferring: chat.agent) { chat.agent = e } }
     }
@@ -510,7 +485,7 @@ struct ChatPanel: View {
             if let line = session.checks.lastError ?? session.checks.status {
                 HStack(spacing: 6) {
                     if session.checks.running != nil { ProgressView().controlSize(.small) }
-                    Text(line).font(.ui(11)).foregroundStyle(session.checks.lastError != nil ? .red : .secondary).lineLimit(2)
+                    Text(line).font(.ui(11)).foregroundStyle(session.checks.lastError != nil ? Ink.error : .secondary).lineLimit(2)
                     Spacer(minLength: 4)
                     if session.checks.running != nil { Button(L("Stop")) { session.checks.stop() }.buttonStyle(.link).font(.ui(11)) }
                 }
@@ -527,7 +502,7 @@ struct ChatPanel: View {
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .help(action.help + (bridge.selectedText.isEmpty ? "" : L(" — on the selection")))
+                    .help((bridge.selectedText.isEmpty ? action.help : L("\(action.help) — on the selection")))
                 }
                 ForEach(bookCheckers.checkers) { checker in
                     Button { session.checks.run(checker, session: session, engine: chat.agent, model: chat.agent == .claude ? claudeModel : codexModel) } label: {
@@ -541,15 +516,13 @@ struct ChatPanel: View {
                     .help(L("Checks the open chapter against these rules: notes in the margin, the text untouched"))
                 }
                 Menu {
-                    Button(L("Rubric…")) { showRubric = true }
                     Button(L("Tics grid…")) { showTics = true }
                     Button(L("Checkers…")) { showCheckers = true }
                 } label: { Image(systemName: "slider.horizontal.3") }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
-                .help(L("The book's rubric and tics grid"))
+                .help(L("The book's tics grid and checkers"))
             }
         }
-        .sheet(isPresented: $showRubric) { BaremeSheet(session: session) }
         .sheet(isPresented: $showCheckers, onDismiss: { bookCheckers = BookCheckers.load(session.root) }) { CheckersSheet(session: session) }
         .onAppear { bookCheckers = BookCheckers.load(session.root) }
         .onChange(of: session.checkersChanged) { _, _ in bookCheckers = BookCheckers.load(session.root) }
@@ -568,8 +541,6 @@ struct ChatPanel: View {
 private struct MessageView: View {
     let message: ChatMessage
     var fontSize: Double = 15
-    let onSaveRevision: (String) -> Void
-    let onCompare: (String) -> Void
     /// Pins the message's ```notes to the chapter; returns how many found their passage.
     let onAddNotes: ([Annotator.Item]) -> Int
     let onRemoveNotes: () -> Void
@@ -583,9 +554,9 @@ private struct MessageView: View {
         if n == 0 {
             parts = [hadNotes ? L("Notes removed") : L("No new notes")]
         } else {
-            parts = ["\(n) " + (n == 1 ? L("note in the margin") : L("notes in the margin"))]
+            parts = [L("\(n) notes in the margin")]
         }
-        if let fixed = message.notesResolved, fixed > 0 { parts.append("\(fixed) " + L("resolved")) }
+        if let fixed = message.notesResolved, fixed > 0 { parts.append(L("\(fixed) resolved")) }
         if let skipped = message.notesSkipped, skipped > 0 { parts.append("\(skipped) " + L("passages already annotated")) }
         return parts.joined(separator: " · ")
     }
@@ -598,7 +569,7 @@ private struct MessageView: View {
                     .font(.ui(fontSize - 2))
                     .lineSpacing(2)
                     .padding(.horizontal, 12).padding(.vertical, 10)
-                    .background(Color.accentColor.opacity(0.10), in: UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12, bottomTrailingRadius: 4, topTrailingRadius: 12))
+                    .background(Ink.accent.opacity(0.10), in: UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12, bottomTrailingRadius: 4, topTrailingRadius: 12))
                     .textSelection(.enabled)
                     .frame(maxWidth: 320, alignment: .trailing)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -621,7 +592,7 @@ private struct MessageView: View {
                     Button { onDiscuss(reading) } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "bubble.left.and.bubble.right").font(.ui(11))
-                            Text(turns == 0 ? L("Discuss with this reader") : L("Resume the discussion (\(turns))")).font(.ui(12, .medium))
+                            Text(turns == 0 ? L("Discuss with this AI reader") : L("Resume the discussion (\(turns))")).font(.ui(12, .medium))
                         }
                         .foregroundStyle(Ink.critique)
                         .contentShape(Rectangle())
@@ -642,7 +613,7 @@ private struct MessageView: View {
                     }
                     .font(.ui(12)).foregroundStyle(.secondary)
                     .padding(.horizontal, 10).padding(.vertical, 8)
-                    .background(Ink.panel.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Ink.panel.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.control))
                 } else if message.action == nil, !notes.isEmpty {
                     HStack {
                         if let n = notesAdded {
@@ -654,17 +625,10 @@ private struct MessageView: View {
                     }
                     .controlSize(.small)
                 }
-                ForEach(Array(ChatModel.revisions(in: message.text).enumerated()), id: \.offset) { _, rev in
-                    HStack {
-                        Button(L("Save as new version")) { onSaveRevision(rev) }
-                        Button(L("Compare")) { onCompare(rev) }
-                    }
-                    .controlSize(.small)
-                }
             case .status:
                 Text(message.text).font(.ui(11)).foregroundStyle(.secondary)
             case .error:
-                Text(message.text).font(.ui(12)).foregroundStyle(.red).textSelection(.enabled)
+                Text(message.text).font(.ui(12)).foregroundStyle(Ink.error).textSelection(.enabled)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -680,7 +644,7 @@ final class PangramModel {
 
     func run(session: BookSession, bridge: EditorBridge) async {
         guard let key = Secrets.pangramKey(bookRoot: session.root) else {
-            error = L("No Pangram key. Add it in Settings (⌘,).")
+            error = L("No Pangram key. Add it in Settings (\(AppCommand.glyphs("app.settings"))).")
             return
         }
         let text = bridge.selectedText.isEmpty ? session.text : bridge.selectedText
@@ -699,6 +663,8 @@ final class PangramModel {
 
     func clear(_ bridge: EditorBridge) {
         result = nil; error = nil
+        // Nothing flagged: nothing to repaint (this runs at every change of chapter).
+        guard !bridge.flagged.isEmpty else { return }
         bridge.flagged = []
         bridge.refreshHighlights()
     }

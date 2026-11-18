@@ -21,17 +21,13 @@ struct BookStore {
     func loadManifest() throws -> BookManifest {
         let data = try Data(contentsOf: manifestURL)
         var m = try JSONDecoder().decode(BookManifest.self, from: data)
-        // Every book can submit by its country's norm, even one made before the norms existed.
-        let norm = ManuscriptNorm.for(BookLanguage(code: m.lang))
-        if !m.exports.isEmpty, !m.exports.contains(where: { $0.manuscript == norm }) { m.exports.insert(norm.preset, at: 0) }
+        dropStoredBuiltIns(&m)
         return m
     }
 
     func saveManifest(_ m: BookManifest) throws {
         try ensureMussetDir()
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try enc.encode(m).write(to: manifestURL, options: .atomic)
+        try JSONFile.write(m, to: manifestURL)
     }
 
     func ensureMussetDir() throws {
@@ -49,131 +45,22 @@ struct BookStore {
     }
 
     func loadState() -> BookUIState {
-        (try? JSONDecoder().decode(BookUIState.self, from: Data(contentsOf: stateURL))) ?? BookUIState()
+        JSONFile.read(at: stateURL) ?? BookUIState()
     }
 
     func saveState(_ s: BookUIState) {
         try? ensureMussetDir()
-        try? JSONEncoder().encode(s).write(to: stateURL, options: .atomic)
+        try? JSONFile.write(s, to: stateURL, [])
     }
-
-    // MARK: Seeding
-
-    /// Builds a first manifest by reading the book's existing build scripts,
-    /// falling back to numbered or scene Markdown files.
-    func seedManifest() -> BookManifest {
-        let files = detectChapterFiles()
-        let chapters = files.map { file -> ChapterEntry in
-            let id = (file as NSString).lastPathComponent.replacingOccurrences(of: ".md", with: "")
-            return ChapterEntry(id: uniqueSafeID(id), file: file, title: readTitle(file) ?? id)
-        }
-        let meta = detectMetadata()
-        var m = BookManifest(title: meta.title ?? root.lastPathComponent.capitalized,
-                             lang: meta.lang ?? "fr", chapters: chapters)
-        m.contact = meta.contact ?? ""
-        m.exports = defaultPresets(lang: m.lang)
-        return m
-    }
-
-    func detectChapterFiles() -> [String] {
-        for script in ["build_version_longue.sh", "build.sh", "build_blanche.sh"] {
-            if let list = parseFilesArray(in: root.appendingPathComponent(script)), !list.isEmpty {
-                return list.filter { fm.fileExists(atPath: root.appendingPathComponent($0).path) }
-            }
-        }
-        let numbered = markdownFiles(in: root).filter { $0.first?.isNumber == true }
-        if !numbered.isEmpty { return numbered.sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
-        for sub in ["scenes", "chapters", "chapitres"] {
-            let dir = root.appendingPathComponent(sub)
-            let files = markdownFiles(in: dir).filter { !$0.hasSuffix(".en.md") }
-            if !files.isEmpty {
-                return files.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { "\(sub)/\($0)" }
-            }
-        }
-        return []
-    }
-
-    /// Parses `FILES=( "a.md" "b.md" … )` from a bash script.
-    func parseFilesArray(in script: URL) -> [String]? {
-        guard let text = try? String(contentsOf: script, encoding: .utf8),
-              let start = text.range(of: "FILES=(") else { return nil }
-        let rest = text[start.upperBound...]
-        guard let end = rest.firstIndex(of: ")") else { return nil }
-        let body = rest[..<end]
-        let regex = try! NSRegularExpression(pattern: #"["']([^"']+\.md)["']"#)
-        let s = String(body)
-        return regex.matches(in: s, range: NSRange(s.startIndex..., in: s)).compactMap {
-            Range($0.range(at: 1), in: s).map { String(s[$0]) }
-        }
-    }
-
-    private func markdownFiles(in dir: URL) -> [String] {
-        ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).filter { $0.hasSuffix(".md") }
-    }
-
-    func readTitle(_ file: String) -> String? {
-        (try? String(contentsOf: root.appendingPathComponent(file), encoding: .utf8)).flatMap(Self.heading(in:))
-    }
-
-    /// The line of a chapter's `# ` heading: near the top, outside HTML comments.
-    private static func headingLine(in text: String) -> Substring? {
-        var inComment = false, lines = 0
-        for piece in text.split(separator: "\n", maxSplits: 200, omittingEmptySubsequences: true) {
-            let line = piece.prefix { $0 != "\n" }
-            if inComment { inComment = !line.contains("-->"); continue }
-            if line.hasPrefix("<!--") { inComment = !line.contains("-->"); continue }
-            if line.hasPrefix("# ") { return line }
-            lines += 1
-            if lines == 10 { return nil }
-        }
-        return nil
-    }
-
-    private static let headingAttributes = #"\s*\{[^}]*\}\s*$"#
 
     /// The chapter's title as its heading gives it; nil when there is none, or while it is still empty.
-    static func heading(in text: String) -> String? {
-        guard var title = headingLine(in: text).map({ String($0.dropFirst(2)) }) else { return nil }
-        for pattern in [headingAttributes, #"\s+#+\s*$"#] {
-            if let r = title.range(of: pattern, options: .regularExpression) { title.removeSubrange(r) }
-        }
-        title = title.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "*_")))
-        return title.isEmpty ? nil : title
-    }
+    static func heading(in text: String) -> String? { PieceText.heading(in: text) }
 
     /// The text with a new heading, its `{.attributes}` kept; nil when it has no heading.
     static func retitled(_ text: String, to title: String) -> String? {
-        guard let line = headingLine(in: text) else { return nil }
-        let attributes = line.range(of: headingAttributes, options: .regularExpression).map { String(line[$0]) } ?? ""
+        guard let line = PieceText.headingLine(in: text) else { return nil }
+        let attributes = line.range(of: PieceText.headingAttributes, options: .regularExpression).map { String(line[$0]) } ?? ""
         return text.replacingCharacters(in: line.startIndex..<line.endIndex, with: "# \(title)\(attributes)")
-    }
-
-    private func uniqueSafeID(_ id: String) -> String {
-        id.replacingOccurrences(of: "/", with: "_")
-    }
-
-    struct DetectedMeta { var title: String?; var lang: String?; var contact: String? }
-
-    func detectMetadata() -> DetectedMeta {
-        var meta = DetectedMeta()
-        if let yml = try? String(contentsOf: root.appendingPathComponent("pandoc.yml"), encoding: .utf8) {
-            meta.title = firstMatch(#"(?m)^\s*title:\s*"?([^"\n]+)"?"#, in: yml)
-            meta.lang = firstMatch(#"(?m)^\s*lang:\s*"?([a-zA-Z-]+)"?"#, in: yml)
-        }
-        for script in ["build.sh", "build_blanche.sh"] {
-            guard let sh = try? String(contentsOf: root.appendingPathComponent(script), encoding: .utf8) else { continue }
-            meta.title = meta.title ?? firstMatch(#"title="([^"]+)""#, in: sh)
-            meta.lang = meta.lang ?? firstMatch(#"lang="([a-zA-Z-]+)""#, in: sh)
-            meta.contact = meta.contact ?? firstMatch(#"CONTACT="([^"]+)""#, in: sh)
-        }
-        return meta
-    }
-
-    private func firstMatch(_ pattern: String, in text: String) -> String? {
-        guard let re = try? NSRegularExpression(pattern: pattern),
-              let m = re.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-              let r = Range(m.range(at: 1), in: text) else { return nil }
-        return String(text[r]).trimmingCharacters(in: .whitespaces)
     }
 
     /// Existing templates in `templates/`, by kind.
@@ -191,70 +78,91 @@ struct BookStore {
     }
 
     /// Trade sizes where the book's language is published: the usual trims of its market.
-    static func trims(for book: BookLanguage) -> [ExportPreset] {
-        func trim(_ id: String, _ name: String, _ w: String, _ h: String, _ inner: String, _ outer: String, _ top: String, _ bottom: String, crop: Bool = false) -> ExportPreset {
-            ExportPreset(id: id, name: name, format: .pdf,
-                         geometry: "paperwidth=\(w),paperheight=\(h),inner=\(inner),outer=\(outer),top=\(top),bottom=\(bottom)",
-                         fontSize: "10pt", cropMarks: crop)
-        }
-        switch book {
-        case .enUS:
-            return [trim("trade-5.5x8.5", "Trade paperback 5.5×8.5 in", "5.5in", "8.5in", "0.8in", "0.6in", "0.75in", "0.8in"),
-                    trim("trade-6x9", "Trade paperback 6×9 in", "6in", "9in", "0.875in", "0.625in", "0.75in", "0.85in")]
-        case .enGB:
-            return [trim("b-format", "B-format paperback 129×198 mm", "129mm", "198mm", "20mm", "15mm", "18mm", "20mm")]
-        case .deDE, .deCH:
-            return [trim("book-125x205", "Book 12.5×20.5 cm", "125mm", "205mm", "20mm", "15mm", "18mm", "21mm")]
-        case .esES, .es419, .itIT:
-            return [trim("book-130x200", "Book 13×20 cm", "130mm", "200mm", "20mm", "15mm", "18mm", "20mm"),
-                    trim("book-140x210", "Book 14×21 cm", "140mm", "210mm", "21mm", "16mm", "19mm", "22mm")]
-        case .ptBR:
-            return [trim("book-140x210", "Book 14×21 cm", "140mm", "210mm", "21mm", "16mm", "19mm", "22mm"),
-                    trim("book-160x230", "Book 16×23 cm", "160mm", "230mm", "22mm", "17mm", "20mm", "23mm")]
-        case .ptPT:
-            return [trim("book-150x230", "Book 15×23 cm", "150mm", "230mm", "22mm", "17mm", "20mm", "23mm")]
-        case .frFR:
-            return []
-        }
+    /// A book page set the way the 120 × 188 mm literary format is: a text block about 25 ems wide, margins wider
+    /// inside than outside, the foot a little taller than the head.
+    static func book(_ id: String, _ name: String, _ w: String, _ h: String, inner: String, outer: String, top: String, bottom: String,
+                     size: String, facing: Bool, interior: Bool = false) -> ExportPreset {
+        var p = ExportPreset(id: id, name: name, format: .pdf, style: "book", paper: PagePaper(width: w, height: h),
+                             margins: PageMargins(inside: inner, outside: outer, top: top, bottom: bottom), fontSize: size, numberSections: false)
+        p.facing = facing
+        p.interior = interior
+        return p
     }
 
-    func defaultPresets(lang: String = "fr") -> [ExportPreset] {
+    /// The book's two editions beside its submission manuscript:
+    /// - for readers: a PDF read on a screen or a tablet, the Blanche page on single pages, the cover included;
+    /// - for the printer: the interior of the self-published book at its market's usual trim (one Amazon KDP, IngramSpark
+    ///   and the European print-on-demand houses all take), facing pages, no cover (the printer takes it apart), no crop marks.
+    static func editions(for book: BookLanguage) -> [ExportPreset] {
+        // The French literary page (Gallimard's Blanche): 120 × 188 mm at 10.8/13, its two side margins made one.
+        let reader = Self.book("reader", "PDF for readers", "120mm", "188mm", inner: "17mm", outer: "17mm", top: "16mm", bottom: "20mm", size: "10.8pt", facing: false)
+        func print(_ w: String, _ h: String, _ inner: String, _ outer: String, _ top: String, _ bottom: String, _ size: String) -> ExportPreset {
+            Self.book("print", "PDF for the printer", w, h, inner: inner, outer: outer, top: top, bottom: bottom, size: size, facing: true, interior: true)
+        }
+        let printer: ExportPreset = switch book {
+        case .enUS: print("5.5in", "8.5in", "0.85in", "0.65in", "0.72in", "0.9in", "11pt")
+        case .enGB: print("129mm", "198mm", "20mm", "15mm", "17mm", "21mm", "10.8pt")
+        case .frFR: print("130mm", "200mm", "20mm", "15mm", "17mm", "21mm", "10.8pt")
+        case .deDE, .deCH: print("120mm", "190mm", "20mm", "14mm", "16mm", "20mm", "10.8pt")
+        case .esES, .es419, .ptPT: print("150mm", "230mm", "24mm", "19mm", "19.5mm", "24mm", "11.5pt")
+        case .itIT, .ptBR: print("140mm", "210mm", "22mm", "17mm", "18mm", "22mm", "11pt")
+        }
+        return [reader, printer]
+    }
+
+    /// Musset's own layouts for a book in this language: its country's submission manuscript, the two PDF editions,
+    /// Word and EPUB (with the book's own reference document or stylesheet, if `templates/` has one).
+    func builtInPresets(lang: String) -> [ExportPreset] {
         let book = BookLanguage(code: lang)
-        let classique = findTemplate { $0.hasPrefix("template-classique") && $0.hasSuffix(".tex") }
-        let blanche = findTemplate { $0.hasPrefix("template-blanche") && $0.hasSuffix(".tex") }
         let refDoc = findTemplate { $0.hasSuffix(".docx") }
         let css = findTemplate { $0.hasPrefix("epub") && $0.hasSuffix(".css") }
-        // The classique template honours $geometry$; blanche templates hard-code their own 120×188 page,
-        // so blanche only gets its own preset and is never given a geometry.
-        var presets = [ManuscriptNorm.for(book).preset]
-        guard book == .frFR else { return presets + Self.trims(for: book) + [
-            ExportPreset(id: "docx", name: "Word (.docx)", format: .docx, template: refDoc),
-            ExportPreset(id: "epub", name: "EPUB", format: .epub, template: css, numberSections: false),
-        ] }
-        presets += [
-            ExportPreset(id: "manuscript-a4", name: "Manuscript A4 (publisher submission)", format: .pdf,
-                         template: classique,
-                         geometry: "paperwidth=210mm,paperheight=297mm,left=38mm,right=38mm,top=50mm,bottom=50mm,headsep=8mm,footskip=14mm",
-                         includeContact: true),
-        ]
-        if let blanche {
-            presets.append(ExportPreset(id: "blanche", name: "Book 120×188 (your Blanche template)", format: .pdf, template: blanche))
-        }
-        presets += [
-            ExportPreset(id: "book-a5", name: "Book A5", format: .pdf, template: classique,
-                         geometry: "paperwidth=148mm,paperheight=210mm,inner=20mm,outer=16mm,top=20mm,bottom=22mm,headsep=6mm,footskip=10mm",
-                         fontSize: "10pt"),
-            ExportPreset(id: "print-trade", name: "Print-ready 5.5×8.5 in (crop marks)", format: .pdf,
-                         template: classique,
-                         geometry: "paperwidth=5.5in,paperheight=8.5in,inner=0.8in,outer=0.6in,top=0.75in,bottom=0.8in,headsep=6mm,footskip=10mm",
-                         fontSize: "10pt", cropMarks: true),
+        return [ManuscriptNorm.for(book).preset] + Self.editions(for: book) + [
             ExportPreset(id: "docx", name: "Word (.docx)", format: .docx, template: refDoc),
             ExportPreset(id: "epub", name: "EPUB", format: .epub, template: css, numberSections: false),
         ]
-        return presets
     }
 
-    // MARK: Chapters & versions
+    /// Every layout the book can be exported in: Musset's own, made now for the book's language and carrying what
+    /// the author set on them, then the author's (one that bears the id of a built-in stands in its place).
+    func presets(_ m: BookManifest) -> [ExportPreset] {
+        let own = Set(m.exports.map(\.id))
+        let builtIn = builtInPresets(lang: m.lang).filter { !own.contains($0.id) }.map { p -> ExportPreset in
+            var p = p
+            p.pseudonym = m.layoutSettings?[p.id]?.pseudonym
+            return p
+        }
+        return builtIn.filter { $0.format == .pdf } + m.exports + builtIn.filter { $0.format != .pdf }
+    }
+
+    /// The PDF layouts earlier versions of Musset made: each book now has the two editions instead.
+    static let retiredLayouts: Set<String> = ["manuscript-a4", "blanche", "book-120x188", "book-a5", "print-trade", "trade-5.5x8.5", "trade-6x9",
+                                              "b-format", "book-125x205", "book-130x200", "book-140x210", "book-150x230", "book-160x230"]
+
+    /// A `book.json` written when Musset kept its own layouts in it: they go (they are made at use now), a
+    /// manuscript's pseudonym stays as a setting, and what the author made or changed stays as it is.
+    /// A manifest in today's form holds none of them, and comes out as it went in.
+    func dropStoredBuiltIns(_ m: inout BookManifest) {
+        guard !m.exports.isEmpty else { return }
+        let builtIn = Dictionary(uniqueKeysWithValues: builtInPresets(lang: m.lang).map { ($0.id, $0) })
+        var kept: [ExportPreset] = []
+        for p in m.exports {
+            if p.format == .pdf, let norm = p.manuscript, p.id == norm.preset.id {
+                // Any country's manuscript Musset made, not only the one of the book's language today.
+                if let name = p.pseudonym, m.layoutSettings?[p.id] == nil { m.setPseudonymSetting(name, for: p.id) }
+            } else if p.format == .pdf, p.manuscript == nil, Self.retiredLayouts.contains(p.id) || p.id == "reader" || p.id == "print" {
+                continue
+            } else if var made = builtIn[p.id], made.format != .pdf {
+                // Word and EPUB as Musset made them (whatever template was found then) go; changed by hand, they are the author's.
+                made.template = p.template
+                if made != p { kept.append(p) }
+            } else {
+                kept.append(p)
+            }
+        }
+        m.exports = kept
+    }
+
+        // MARK: Chapters & versions
 
     func url(for chapter: ChapterEntry) -> URL { root.appendingPathComponent(chapter.file) }
 
@@ -364,47 +272,35 @@ struct BookStore {
         try fm.removeItem(at: versionURL(chapter, name))
     }
 
-    /// Finds loose revision files (e.g. `old_book/work/03_harbour_r12.md`, `drafts/01_the_ferry_draft.md`)
-    /// that look like versions of a chapter. Originals are left untouched; import copies them.
-    func importableRevisions(for chapter: ChapterEntry) -> [(name: String, url: URL)] {
-        var found: [(String, URL)] = []
-        let stem = chapter.id
-        guard let e = fm.enumerator(at: root, includingPropertiesForKeys: nil,
-                                    options: [.skipsHiddenFiles]) else { return [] }
-        let canonical = url(for: chapter).standardizedFileURL
-        for case let u as URL in e {
-            if u.pathComponents.contains("output") || u.pathComponents.contains("node_modules") { e.skipDescendants(); continue }
-            guard u.pathExtension == "md", u.standardizedFileURL != canonical else { continue }
-            let base = u.deletingPathExtension().lastPathComponent
-            guard base.hasPrefix(stem + "_") || (base == stem && u.deletingLastPathComponent() != canonical.deletingLastPathComponent()) else { continue }
-            var suffix: String
-            if base == stem {
-                let parent = u.deletingLastPathComponent()
-                suffix = parent.lastPathComponent == "chapters" ? parent.deletingLastPathComponent().lastPathComponent : parent.lastPathComponent
-            } else {
-                suffix = String(base.dropFirst(stem.count + 1))
-            }
-            if suffix.hasSuffix("_draft") { suffix = String(suffix.dropLast(6)) }
-            found.append((suffix, u))
-        }
-        return found.sorted { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
-    }
-
     // MARK: Export source
 
     /// Active chapters concatenated in manifest order, like build_version_longue.sh.
     func concatenatedManuscript(_ m: BookManifest, stripComments: Bool) -> String {
         var out = ""
-        let parts = m.partOpenings
+        let parts = m.groupOpenings
         for ch in m.chapters where !ch.excludeFromExport {
-            if let p = parts[ch.id] { out += "# " + p.numeral + (p.title.isEmpty ? "" : ". " + p.title) + " {.unnumbered .part}\n\n" }
-            var text = Self.sceneBreaks(Revisions.resolveAll(read(ch), accept: false), m.sceneBreak ?? .none)
+            // « II. La fuite », « Acte II. La fuite »; a group level without numbers has only its title to print.
+            if let p = parts[ch.id] { out += "# " + [p.line, p.title].filter { !$0.isEmpty }.joined(separator: ". ") + " {.unnumbered .part}\n\n" }
+            // The lists the book has, and no other: « 1943. Barcelone. » is not pandoc's to number.
+            let source = ListLines.forPandoc(Revisions.resolveAll(read(ch), accept: false), m.printedListOptions)
+            var text = Self.sceneBreaks(Self.opened(source, m.opening(of: ch, text: source)), m.sceneBreak ?? .none)
             if stripComments { text = Self.stripHTMLComments(text) }
             out += text
             if !out.hasSuffix("\n") { out += "\n" }
             out += "\n"
         }
         return out
+    }
+
+    /// A formed book's piece as pandoc reads it: its line written into its heading (« # Chapitre 3. Le port »,
+    /// « # Prologue »), which the contents then list; a text without a heading is given one. Nil: the text as it is.
+    static func opened(_ text: String, _ opening: PieceOpening?) -> String {
+        guard let opening else { return text }
+        if let title = opening.title {
+            return "# " + [opening.label, title].compactMap { $0 }.joined(separator: ". ") + "\n\n" + text
+        }
+        guard let label = opening.label, let line = PieceText.headingLine(in: text) else { return text }
+        return text.replacingCharacters(in: line.startIndex..<line.endIndex, with: "# " + label + ". " + line.dropFirst(2))
     }
 
     /// Scene markers as the export shows them (pandoc formats): nothing, a blank paragraph or an asterism.
@@ -422,9 +318,12 @@ struct BookStore {
         return out as String
     }
 
+    private static let htmlComment = try! NSRegularExpression(pattern: #"<!--.*?-->\n?"#, options: [.dotMatchesLineSeparators])
+
     static func stripHTMLComments(_ text: String) -> String {
-        let re = try! NSRegularExpression(pattern: #"<!--.*?-->\n?"#, options: [.dotMatchesLineSeparators])
-        return re.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        // Most paragraphs have none: no copy, no regex pass.
+        guard text.contains("<!--") else { return text }
+        return htmlComment.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
     }
 
     static func wordCount(_ text: String) -> Int {

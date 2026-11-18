@@ -51,18 +51,23 @@ enum BookSearch {
     }
 
     /// File contents keyed by path, reused while the file's modification date is unchanged.
-    private static let cache = TextCache()
+    /// Shared with everything that reads closed chapters (the Bible's counts, the notes of the whole book, the
+    /// reading view): a chapter is read from disk once, and again only when its file changes.
+    static let texts = TextCache()
+    private static var cache: TextCache { texts }
 
     final class TextCache: @unchecked Sendable {
-        private var store: [String: (Date, String)] = [:]
+        private var store: [String: (date: Date, size: Int, text: String)] = [:]
         private let lock = NSLock()
         func text(at url: URL) -> String {
-            let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            let date = values?.contentModificationDate ?? .distantPast
+            let size = values?.fileSize ?? -1
             lock.lock(); defer { lock.unlock() }
-            if let hit = store[url.path], hit.0 == date { return hit.1 }
+            if let hit = store[url.path], hit.date == date, hit.size == size { return hit.text }
             // Editor form, so match offsets land on the right place when the chapter opens.
             let text = ParagraphCodec.decode((try? String(contentsOf: url, encoding: .utf8)) ?? "")
-            store[url.path] = (date, text)
+            store[url.path] = (date, size, text)
             return text
         }
     }
@@ -133,7 +138,7 @@ struct SearchPanel: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField(L("Search the book"), text: $app.searchQuery)
+                TextField(L("Search the Book…").titled, text: $app.searchQuery)
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit { if let h = groups.first?.hits.first { open(h) } }
@@ -144,11 +149,11 @@ struct SearchPanel: View {
                 Button(L("Done", ctx: "Terminé")) { app.closeSearch() }.buttonStyle(.plain).foregroundStyle(.secondary).font(.ui(11))
             }
             .padding(10)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: Radius.control))
             .padding(.horizontal, 10).padding(.top, 8)
 
             HStack {
-                Toggle(L("All books"), isOn: $app.searchAllBooks).toggleStyle(.checkbox).font(.ui(11))
+                Toggle(L("All Books"), isOn: $app.searchAllBooks).toggleStyle(.checkbox).font(.ui(11))
                 Spacer()
                 if app.searchQuery.trimmingCharacters(in: .whitespaces).count >= 2 {
                     Text(L("\(total) matches") + " " + L("in \(groups.count) chapters"))

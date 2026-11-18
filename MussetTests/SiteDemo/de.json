@@ -1,0 +1,325 @@
+{
+ "uiLang": "de",
+ "bookLang": "de-DE",
+ "title": "Die Salzstraße",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "Die Fähre",
+   "text": "# Die Fähre\n\n<!-- scene: Morgenüberfahrt -->\n\nDie Fähre legte um sechs ab, bevor die Möwen wach waren. Nora stand an der Reling, den Mantel ihres Vaters über dem Arm, als könnte er noch danach fragen. Das Deck war nass, und niemand sonst war heraufgekommen; die anderen Passagiere saßen unten in dem warmen Raum, der nach Kaffee und Diesel roch, und schliefen, an ihr eigenes Spiegelbild in den Fenstern gelehnt.\n\nUnten hüllte sich das Wasser in Schweigen. Dreihundert Meilen lang hatte sie geprobt, was sie ihrem Bruder sagen würde, und jetzt klang jeder Satz, als gehörte er einer anderen. Sie sprach sie noch einmal leise vor sich hin, einen nach dem anderen, und keiner überstand den Wind.\n\n„Du bist gekommen“, würde er sagen. Oder er würde nichts sagen, was schlimmer war und ihm ähnlicher sah.\n\nSie hatten nicht mehr miteinander gesprochen seit der Beerdigung ihrer Mutter vor elf Jahren. Tom hatte damals in einem geliehenen Anzug hinten in der Kirche gestanden und war vor dem letzten Choral gegangen. Hinterher hatte sie ihn auf dem Parkplatz gefunden, wo er mit dem Bestatter rauchte, und er hatte sie angesehen wie eine Fremde, die ihn nach dem Weg gefragt hatte.\n\nEin Mann in orangefarbener Jacke kam mit einer Rolle Tau über das Deck und nickte ihr im Vorbeigehen zu. Sie nickte zurück. Es war das erste Mal seit der Autobahn, dass jemand sie ansah.\n\n<!-- scene: Die Insel -->\n\nDie Insel tauchte stückweise aus dem Dunst auf: eine Kirche, eine Reihe weißer Häuser, das lange graue Dach der Saline, wo ihre Mutter zwanzig Jahre lang Säcke gezählt hatte. Dann die Hafenmauer, der Kran, die zwei Autos, die auf der Slipanlage warteten, die Scheinwerfer noch an, obwohl es längst Tag war und niemand sie brauchte.\n\nSie faltete den Mantel noch einmal. Er roch nach Tabak und Regen und nach dem Winter, in dem er so getan hatte, als sei er nicht krank. In der Innentasche steckten ein Fährticket vom März, ein Bleistift und eine Liste in seiner Handschrift, die sie im Krankenhaus nicht hatte lesen können und auch jetzt nicht lesen konnte: *Salz, Glas, das blaue Boot, Tom.*\n\nDie Maschinen wechselten den Ton. Irgendwo unten schlug eine Tür, und die Passagiere kamen mit ihren Taschen die Treppe herauf, blinzelnd, und zogen ihre Mäntel an. Ein Kind fragte, ob das die Insel sei. Die Mutter sagte ja. Das Kind sah die Insel lange an und sagte, sie sei kleiner als im Buch.\n\nNora steckte die Liste zurück, wo sie sie gefunden hatte.\n\n<!-- scene: Der Hafen -->\n\nEr war nicht am Kai. Sie hatte gewusst, dass er nicht da sein würde, und hielt trotzdem zweimal nach ihm Ausschau: einmal unter den Männern am Kran, einmal in der Tür des Cafés, wo eine alte Frau das Schild mit großer Sorgfalt von *Geschlossen* auf *Geöffnet* drehte, als könnte das Wort zerbrechen.\n\nSie ging den Hügel hinauf, den Mantel über dem Arm, die Tasche auf der Schulter. Die Straße war die Straße, an die sie sich erinnerte, nur schmaler. Die Häuser hatten neue Türen. Oben, wo die Straße zur Saline abbog, hatte jemand ein blaues Boot an die Seitenwand des Wartehäuschens gemalt, schlecht, vor langer Zeit, und es war immer noch da.\n\nSie blieb davor stehen und lachte, weil es seins war, und weil es elf Jahre lang niemand übermalt hatte, und weil sie nicht wusste, was sie sonst tun sollte."
+  },
+  {
+   "title": "Die Saline",
+   "text": "# Die Saline\n\nDas Tor stand offen. Seit dem Krieg hatte auf der Insel niemand {~~jemals etwas~>etwas~~}{@Claire} abgeschlossen, und die Saline am allerwenigsten: Es gab dort nichts {--mehr--}{@Claire} zu holen außer dem Salz, und das Salz passte auf sich selbst auf.\n\nToms Lieferwagen stand beim alten Waagehaus, {++die Hecktüren offen,++}{@Claire} und in seinem Schatten schlief ein Hund. Der Hund hob den Kopf, als sie durchs Tor kam, und legte ihn wieder ab, als hätte man sie erwartet.\n\n{==Sie fand ihn auf dem Dach.==}{>>Zu plötzlich? Wir haben ihn noch nicht gehört. Vielleicht zuerst seine Stimme, dann das Dach.<<}{@Claire} Er kniete zwischen zwei Reihen Schieferplatten, einen Hammer in der Hand, und drehte sich nicht um.\n\n„Über dem Trockenraum regnet es durch“, sagte er. „Über dem Trockenraum hat es immer durchgeregnet.“"
+  },
+  {
+   "title": "Bestandsaufnahme",
+   "text": "# Bestandsaufnahme\n\nIhr Bruder hatte alles aufbewahrt: Quittungen, Gezeitentafeln, einen Kalender von 1987, die Hochwasser rot eingekreist.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "hüllte sich das Wasser in Schweigen",
+   "author": "claude",
+   "kind": "critique",
+   "body": "Eine geliehene Wendung in einem Kapitel, das sonst ganz ihr gehört. Was sieht Nora im Wasser?"
+  },
+  {
+   "anchor": "was schlimmer war und ihm ähnlicher sah",
+   "author": "claude",
+   "kind": "praise",
+   "body": "Der Bruder ist da, bevor er auftritt. Behalten."
+  },
+  {
+   "anchor": "Sie faltete den Mantel noch einmal.",
+   "author": "claude",
+   "kind": "question",
+   "body": "Der Mantel wird zum zweiten Mal gefaltet. Bewusstes Echo oder einmal zu viel?"
+  },
+  {
+   "anchor": "vor elf Jahren",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Mit Kapitel 4 abgleichen: Dort findet die Beerdigung im Winter statt."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "Trägt die Überfahrt, auch ohne dass Tom vorkommt? Ich fürchte, die erste Szene ist nichts als Warten."
+  },
+  {
+   "role": "assistant",
+   "text": "Sie trägt, und gerade um das Warten geht es: Tom ist in jedem Absatz gegenwärtig, durch das, was Nora sich zurechtlegt, durch den Mantel, durch die Liste in seiner Handschrift. Der Leser begegnet ihm, bevor er auftritt.\n\nZwei Dinge schwächen die Szene. „Hüllte sich das Wasser in Schweigen“ ist die einzige geliehene Wendung in einem Kapitel, das sonst ganz ihr gehört. Und der Mantel wird zweimal gefaltet; das zweite Falten ist das stärkere, das erste könnte wegfallen.\n\nIch habe drei Anmerkungen an den Rand gesetzt. Soll ich mir ansehen, wie die Hafenszene endet?"
+  },
+  {
+   "role": "user",
+   "text": "Ja – kommt das Lachen am Wartehäuschen zu früh?"
+  }
+ ],
+ "versions": {
+  "current": "Erste Fassung",
+  "other": "Dunkler",
+  "edits": [
+   [
+    "Die Fähre legte um sechs ab, bevor die Möwen wach waren.",
+    "Die Fähre legte im Dunkeln ab."
+   ],
+   [
+    "als könnte er noch danach fragen.",
+    "als könnte er noch die Treppe heraufkommen und danach fragen."
+   ],
+   [
+    "Unten hüllte sich das Wasser in Schweigen.",
+    "Unten war das Wasser schwarz und rührte sich nicht."
+   ],
+   [
+    "was schlimmer war und ihm ähnlicher sah.",
+    "was er schon immer getan hatte."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, auf der Insel",
+     "Übersetzerin, auf dem Festland",
+     "Es Tom selbst sagen",
+     "Die Liste in der Manteltasche"
+    ],
+    "body": "Kommt zurück mit dem Mantel ihres Vaters und keinem Satz, der hält.\n\nMit neunzehn gegangen. Dreihundert Meilen lang geprobt, und nichts davon wird gesagt werden.\n\nSie lacht, wenn sie nicht weiß, was sie sonst tun soll. Für den Schluss aufheben.",
+    "facts": [
+     [
+      "01",
+      "Steht an der Reling, den Mantel ihres Vaters über dem Arm.",
+      "den Mantel ihres Vaters über dem Arm"
+     ],
+     [
+      "01",
+      "Hat seit der Beerdigung der Mutter nicht mehr mit ihrem Bruder gesprochen.",
+      "Sie hatten nicht mehr miteinander gesprochen"
+     ],
+     [
+      "01",
+      "Kann die Liste in der Handschrift ihres Vaters nicht lesen.",
+      "auch jetzt nicht lesen konnte"
+     ],
+     [
+      "01",
+      "Lacht vor dem blauen Boot am Wartehäuschen.",
+      "Sie blieb davor stehen und lachte"
+     ],
+     [
+      "02",
+      "Findet Tom auf dem Dach der Saline.",
+      "Sie fand ihn auf dem Dach."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Hält die Saline instand, allein",
+     "Dass ihn niemand etwas fragt",
+     "Was 1987 geschehen ist"
+    ],
+    "body": "Geblieben. Flickt, was undicht ist, und wirft nichts weg.\n\nSpricht lieber mit dem Dach als mit Menschen. Elf Jahre kein Wort zu Nora, und sein erster Satz gilt dem Trockenraum.\n\nDas blaue Boot hat er gemalt, mit vierzehn. Nie aussprechen: Sie soll es selbst erkennen.",
+    "found": [
+     "Ihr Bruder"
+    ],
+    "facts": [
+     [
+      "01",
+      "Ging vor dem letzten Choral aus der Kirche, in einem geliehenen Anzug.",
+      "war vor dem letzten Choral gegangen"
+     ],
+     [
+      "01",
+      "Spricht seit der Beerdigung der Mutter vor elf Jahren nicht mehr mit Nora.",
+      "Sie hatten nicht mehr miteinander gesprochen"
+     ],
+     [
+      "02",
+      "Sein Lieferwagen steht beim alten Waagehaus; in dessen Schatten schläft ein Hund.",
+      "Toms Lieferwagen stand beim alten Waagehaus"
+     ],
+     [
+      "02",
+      "Repariert das Dach der Saline selbst.",
+      "Er kniete zwischen zwei Reihen Schieferplatten"
+     ],
+     [
+      "02",
+      "Sagt, über dem Trockenraum habe es immer durchgeregnet.",
+      "Über dem Trockenraum hat es immer durchgeregnet."
+     ],
+     [
+      "03",
+      "Hat alles aufbewahrt: Quittungen, Gezeitentafeln, einen Kalender von 1987.",
+      "Ihr Bruder hatte alles aufbewahrt"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "ihr Vater",
+     "ihres Vaters"
+    ],
+    "tier": "secondary",
+    "body": "Tot, bevor das Buch beginnt. Sein Mantel macht die ganze Überfahrt mit.\n\nEin Winter, in dem er so tat, als sei er nicht krank, und eine Liste, die niemand lesen kann.",
+    "facts": [
+     [
+      "01",
+      "Tat einen Winter lang so, als sei er nicht krank.",
+      "dem Winter, in dem er so getan hatte, als sei er nicht krank"
+     ],
+     [
+      "01",
+      "Hinterließ im Mantel eine Liste: Salz, Glas, das blaue Boot, Tom.",
+      "Salz, Glas, das blaue Boot, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "ihre Mutter",
+     "ihrer Mutter"
+    ],
+    "tier": "secondary",
+    "body": "Hat zwanzig Jahre lang in der Saline Säcke gezählt.\n\nVor elf Jahren beerdigt: das letzte Mal, dass Nora und Tom im selben Raum waren.",
+    "facts": [
+     [
+      "01",
+      "Hat zwanzig Jahre lang in der Saline Säcke gezählt.",
+      "wo ihre Mutter zwanzig Jahre lang Säcke gezählt hatte"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "Frau Pell",
+    "aliases": [
+     "alte Frau"
+    ],
+    "tier": "extra",
+    "body": "Führt das Café am Hafen. Dreht das Schild, als könnte das Wort zerbrechen.",
+    "facts": [
+     [
+      "01",
+      "Dreht das Schild des Cafés von Geschlossen auf Geöffnet.",
+      "wo eine alte Frau das Schild"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "Mann in orangefarbener Jacke"
+    ],
+    "tier": "extra",
+    "body": "Matrose auf der Fähre. Der Erste, der Nora seit der Autobahn ansieht."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Führt die Bücher der Saline. Kommt in Kapitel vier, mit den Schlüsseln."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "Die Saline",
+    "aliases": [
+     "Saline"
+    ],
+    "body": "Ein langes graues Dach, das alte Waagehaus, der Trockenraum, in den es regnet.\n\nSeit dem Krieg ist nichts abgeschlossen: Es gibt nur das Salz zu holen.",
+    "facts": [
+     [
+      "01",
+      "Die Mutter hat dort zwanzig Jahre lang Säcke gezählt.",
+      "wo ihre Mutter zwanzig Jahre lang Säcke gezählt hatte"
+     ],
+     [
+      "02",
+      "Das Tor steht offen; nichts ist abgeschlossen.",
+      "Das Tor stand offen."
+     ],
+     [
+      "02",
+      "Über dem Trockenraum regnet es durch.",
+      "Über dem Trockenraum regnet es durch"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "Die Insel",
+    "aliases": [
+     "Insel"
+    ],
+    "body": "Taucht stückweise aus dem Dunst auf: eine Kirche, weiße Häuser, das graue Dach.\n\nKleiner als im Buch."
+   },
+   {
+    "id": "harbour",
+    "name": "Der Hafen",
+    "aliases": [
+     "Hafen"
+    ],
+    "body": "Die Mauer, der Kran, die Slipanlage. Das Café öffnet, wenn die Fähre anlegt."
+   }
+  ]
+ },
+ "board": {
+  "title": "Die Rückkehr",
+  "labels": {
+   "family": "Die Familie",
+   "story": "Was geschieht",
+   "island": "Die Insel",
+   "year": "1987?"
+  },
+  "columns": [
+   "Eins · Die Überfahrt",
+   "Zwei · Die Saline"
+  ],
+  "written": [
+   "**Morgenüberfahrt**\nNora an der Reling. Kein geprobter Satz übersteht den Wind.",
+   "**Die Insel**\nDer Mantel, die Liste in seiner Handschrift. Sie kann sie nicht lesen.",
+   "**Der Hafen**\nEr ist nicht am Kai. Das blaue Boot am Wartehäuschen; sie lacht."
+  ],
+  "passage": "und sagte, sie sei kleiner als im Buch",
+  "next": [
+   "**Das Dach**\nTom auf dem Schiefer, den Rücken zu ihr. Es hat immer durchgeregnet.",
+   "**Bestandsaufnahme**\nQuittungen, Gezeitentafeln, der Kalender von 1987.",
+   "**Der Trockenraum**\nSie reicht ihm den Mantel. Er liest die Liste laut vor, bis zum Ende.",
+   "**Odile**\nSie kommt mit den Schlüsseln und weiß, was die Liste bedeutet."
+  ],
+  "notes": {
+   "list": "*Salz, Glas, das blaue Boot, Tom.*\n\nEin Einkaufszettel oder ein Testament?",
+   "boat": "Elf Jahre, und niemand hat das Boot übermalt. Wer hat darauf geachtet?",
+   "tide": "Gezeitentafel prüfen: Legt im März um sechs eine Fähre ab?",
+   "year": "Die Hochwasser rot eingekreist. Was ist in dem Jahr geschehen?"
+  },
+  "shape": "Das blaue Boot"
+ },
+ "history": {
+  "milestone": "An Claire geschickt",
+  "note": "Kapitel eins und zwei, so wie sie sie gelesen hat."
+ }
+}

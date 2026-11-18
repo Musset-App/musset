@@ -170,12 +170,13 @@ extension ZenTextView {
 
     /// Follows the caret: called whenever the selection or the text changes. Writing restores full contrast.
     func updateFocusVeil(animated: Bool = true) {
-        let rings = focusMode ? FocusVeil.Rings(caret: selectedRange().location, in: string as NSString) : .none
+        let rings = focusMode ? FocusVeil.Rings(caret: selectedRange().location, in: textStorage?.mutableString ?? NSMutableString()) : .none
         let before = focusVeil
         focusVeil.move(to: rings, animated: animated)
         focusVeil.setReading(false)
         guard focusVeil.to != before.to || focusVeil.isAnimating else { return }
-        needsDisplay = true
+        // What shows only, without laying out the chapter first (`needsDisplay = true` on a text view does).
+        setNeedsDisplay(visibleRect, avoidAdditionalLayout: true)
         animateFocusVeil()
     }
 
@@ -192,7 +193,7 @@ extension ZenTextView {
             MainActor.assumeIsolated {
                 guard let self else { timer.invalidate(); return }
                 if !self.focusVeil.tick() { timer.invalidate(); self.focusTimer = nil }
-                self.needsDisplay = true
+                self.setNeedsDisplay(self.visibleRect, avoidAdditionalLayout: true)
             }
         }
     }

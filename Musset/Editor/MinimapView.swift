@@ -23,6 +23,16 @@ final class MinimapView: NSView {
 
     private var textView: ZenTextView? { bridge?.textView }
 
+    /// The chapter's lines as last laid out, kept until its text changes: scrolling redraws without reading it again.
+    private var kept: (view: ObjectIdentifier, version: Int, lines: [Line], rows: Int)?
+
+    private func layout(_ tv: ZenTextView) -> (lines: [Line], rows: Int) {
+        if let k = kept, k.view == ObjectIdentifier(tv), k.version == tv.textVersion, tv.textVersion > 0 { return (k.lines, k.rows) }
+        let out = layout(tv.string as NSString)
+        kept = (ObjectIdentifier(tv), tv.textVersion, out.lines, out.rows)
+        return out
+    }
+
     private func layout(_ ns: NSString) -> (lines: [Line], rows: Int) {
         var lines: [Line] = []
         var row = 0
@@ -62,8 +72,8 @@ final class MinimapView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard let tv = textView else { return }
-        let ns = tv.string as NSString
-        let (lines, rows) = layout(ns)
+        let length = tv.textStorage?.length ?? 0
+        let (lines, rows) = layout(tv)
         let h = rowHeight(rows)
         let top: CGFloat = 8
         let left: CGFloat = 10
@@ -107,8 +117,9 @@ final class MinimapView: NSView {
             NSRect(x: bounds.width - 8, y: y - 1, width: 6, height: max(2, h + 1)).fill()
         }
         for r in tv.searchRanges { tick(r.location, NSColor.systemYellow) }
-        if let proof = bridge?.proof {
-            for issue in proof.issues(in: tv.string) {
+        // The issues the editor last underlined: not found again at each scroll tick.
+        if bridge?.proof != nil {
+            for issue in tv.drawnIssues {
                 tick(issue.range.location, issue.fix.isObvious ? .systemRed : (issue.fix.isLanguageTool ? .systemBlue : .systemPurple))
             }
         }
@@ -141,7 +152,7 @@ final class MinimapView: NSView {
 
         // Visible part of the chapter.
         let vis = tv.visibleCharacterRange
-        if vis.length > 0 && vis.length < ns.length {
+        if vis.length > 0 && vis.length < length {
             let y0 = top + row(for: vis.location, in: lines) * h
             let y1 = top + (row(for: NSMaxRange(vis), in: lines) + 1) * h
             let frame = NSRect(x: 3, y: y0 - 2, width: bounds.width - 6, height: max(8, y1 - y0 + 4))

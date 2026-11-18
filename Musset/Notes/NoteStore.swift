@@ -43,8 +43,7 @@ struct Note: Codable, Identifiable, Equatable {
             let t = body.trimmingCharacters(in: .whitespacesAndNewlines)
             guard t.hasPrefix("["), let close = t.firstIndex(of: "]") else { return nil }
             let tag = t[t.index(after: t.startIndex)..<close]
-                .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr"))
-                .trimmingCharacters(in: .whitespaces)
+                .folded.trimmingCharacters(in: .whitespaces)
             let table: [(Kind, [String])] = [
                 (.praise, ["reussite", "force", "signature", "a garder", "strength", "keep"]),
                 (.tic, ["tic", "antithese", "renversement", "chute", "maxime", "fragment", "rafale", "ligne seule", "paragraphe d'une ligne", "paragraphe d’une ligne"]),
@@ -193,6 +192,7 @@ final class NoteStore {
         chapterID = chapter.id
         version = chapter.activeVersion
         notes = Self.read(url(chapter.id))
+        onDisk = notes
         resolvedText = nil
         resolveAll(in: text)
         classifyByTag()
@@ -228,8 +228,13 @@ final class NoteStore {
 
     func save() {
         guard let chapterID else { return }
+        // Going from tab to tab saves each time: only what changed is written.
+        guard notes != onDisk else { return }
         write(notes, to: url(chapterID))
     }
+
+    /// The notes as last read or written, so an unchanged chapter is not written again.
+    @ObservationIgnored private var onDisk: [Note]?
 
     /// Writes live positions back into the anchors (fresh quote and context), then saves.
     func recapture(text: String) {
@@ -252,7 +257,8 @@ final class NoteStore {
             if let moved = Anchoring.adjust(r, edited: edited, delta: delta), moved.length >= min(3, r.length) { next[id] = moved }
             else if let i = notes.firstIndex(where: { $0.id == id }) { notes[i].orphaned = true }
         }
-        live = next
+        // Typing below every note moves none: nothing that reads them is told.
+        if next != live { live = next }
     }
 
     // MARK: Editing notes
@@ -349,15 +355,8 @@ final class NoteStore {
         }
     }
 
-    /// Notes that follow their scene to another chapter.
-    func transfer(_ ids: Set<UUID>, from source: String, to target: String) {
-        guard !ids.isEmpty, source != target else { return }
-        let from = notes(of: source)
-        replaceAll(from.filter { !ids.contains($0.id) }, in: source)
-        replaceAll(notes(of: target) + from.filter { ids.contains($0.id) }, in: target)
-    }
-
     private func write(_ list: [Note], to target: URL) {
+        if let chapterID, target == url(chapterID) { onDisk = list }
         if list.isEmpty {
             if FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.removeItem(at: target) }
             return
@@ -408,8 +407,7 @@ final class NoteStore {
     /// Two quotes of (nearly) the same passage: one holds the other, or most of their words are shared.
     static func similarQuotes(_ a: String, _ b: String) -> Bool {
         func words(_ s: String) -> [String] {
-            s.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
-                .components(separatedBy: CharacterSet.letters.inverted).filter { $0.count > 2 }
+            s.folded.components(separatedBy: CharacterSet.letters.inverted).filter { $0.count > 2 }
         }
         let wa = words(a), wb = words(b)
         guard !wa.isEmpty, !wb.isEmpty else { return false }

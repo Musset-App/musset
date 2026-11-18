@@ -19,9 +19,9 @@ struct WordReviewSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L("Bring in a corrected Word file")).font(.ui(16, .semibold))
+            Text(L("Bring In a Corrected Word File…").titled).font(.ui(16, .semibold))
             if let plan { summary(plan) } else { chooser }
-            if let error { Text(error).font(.ui(12)).foregroundStyle(.red).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
+            if let error { Text(error).font(.ui(12)).foregroundStyle(Ink.error).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
             HStack {
                 Spacer()
                 Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)
@@ -47,7 +47,7 @@ struct WordReviewSheet: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 130)
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(dropping ? Ink.accent : Ink.hairline, style: StrokeStyle(lineWidth: dropping ? 2 : 1, dash: dropping ? [] : [5])))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(dropping ? Ink.accent : Ink.hairline, style: StrokeStyle(lineWidth: dropping ? 2 : 1, dash: dropping ? [] : [5])))
         .dropDestination(for: URL.self, action: { urls, _ in
             guard let url = urls.first(where: { $0.pathExtension.lowercased() == "docx" }) else { return false }
             read(url)
@@ -60,7 +60,7 @@ struct WordReviewSheet: View {
             Text(plan.fileName).fontWeight(.medium).lineLimit(1).truncationMode(.middle)
             Text(origin(plan)).font(.ui(12)).foregroundStyle(.secondary)
             if !plan.readers.isEmpty {
-                Text(L("Word says: ") + plan.readers.keys.sorted().joined(separator: ", ")).font(.ui(12)).foregroundStyle(.secondary)
+                Text(L("Word says: \(plan.readers.keys.sorted().listed)")).font(.ui(12)).foregroundStyle(.secondary)
             }
         }
         VStack(alignment: .leading, spacing: 6) {
@@ -105,7 +105,7 @@ struct WordReviewSheet: View {
             }
         }
         .frame(maxHeight: 240)
-        Text(L("A milestone is set first. Each correction is then yours to accept or refuse in the text; nothing prints until you do."))
+        Text(L("A milestone is set first. Each correction is then yours to accept or reject in the text; nothing prints until you do."))
             .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }
 
@@ -119,18 +119,18 @@ struct WordReviewSheet: View {
     private func warning(_ text: String) -> some View {
         Text(text).font(.ui(12)).fixedSize(horizontal: false, vertical: true)
             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Ink.side, in: RoundedRectangle(cornerRadius: 8))
+            .background(Ink.side, in: RoundedRectangle(cornerRadius: Radius.control))
     }
 
     private func origin(_ plan: WordReview.Plan) -> String {
         guard let sent = plan.sent else { return L("Origin unknown") }
-        return L("Exported on ") + sent.date.formatted(date: .long, time: .omitted)
+        return L("Exported on \(sent.date.formatted(date: .long, time: .omitted))")
     }
 
     private func counts(_ c: WordReview.ChapterPlan) -> String {
         var parts: [String] = []
         if c.placed > 0 { parts.append("\(c.placed) " + L("corr.")) }
-        if !c.notes.isEmpty { parts.append("\(c.notes.count) " + L("notes")) }
+        if !c.notes.isEmpty { parts.append(L("\(c.notes.count) notes")) }
         if !c.unplaced.isEmpty { parts.append("\(c.unplaced.count) " + L("by hand")) }
         return parts.joined(separator: " · ")
     }
@@ -162,7 +162,7 @@ struct WordReviewSheet: View {
         bridge.refreshHighlights()
         // To the first chapter that now has something to decide.
         if let first = plan.chapters.first(where: { $0.placed > 0 }), first.id != session.selectedChapterID {
-            app.leaveBookPages()
+            app.showChapter()
             session.open(first.id)
         }
         dismiss()

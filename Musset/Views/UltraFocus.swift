@@ -267,7 +267,7 @@ final class UltraFocus {
         guard let session, let chapterID, model.text != lastSaved else { return }
         lastSaved = model.text
         let r = Recovery(chapter: chapterID, destination: destination.rawValue, text: model.text, started: model.started)
-        if let data = try? JSONEncoder().encode(r) { try? data.write(to: Self.recoveryURL(session.root), options: .atomic) }
+        try? JSONFile.write(r, to: Self.recoveryURL(session.root), [])
     }
 
     private func removeRecovery() {
@@ -278,7 +278,7 @@ final class UltraFocus {
     /// A book opened after Musset was stopped in Ultra Focus: what was written goes where it was meant to.
     static func recover(_ session: BookSession) {
         let url = recoveryURL(session.root)
-        guard let data = try? Data(contentsOf: url), let r = try? JSONDecoder().decode(Recovery.self, from: data) else { return }
+        guard let r = JSONFile.read(Recovery.self, at: url) else { return }
         try? FileManager.default.removeItem(at: url)
         let dest = UltraFocusDestination(rawValue: r.destination) ?? .newScene
         if deposit(r.text, into: session, chapter: r.chapter, destination: dest == .drafts ? .drafts : .newScene, at: r.started) != nil {
@@ -291,21 +291,6 @@ final class UltraFocus {
 private final class UltraWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-}
-
-extension BookSession {
-    /// A draft chapter holding `body`, out of the book until it is dragged in.
-    func newDraft(title: String, body: String) -> Bool {
-        guard inManuscript() else { return false }
-        let entry = newChapterEntry(title: title)
-        do { try store.write("# \(title)\n\n" + ParagraphCodec.encode(body) + "\n", to: entry) } catch { lastError = error.localizedDescription; return false }
-        manifest.drafts = draftChapters + [entry]
-        saveManifest()
-        chapterWords[entry.id] = BookStore.wordCount(body)
-        shelfChanges += 1
-        commitNow("musset: Ultra Focus dans les brouillons")
-        return true
-    }
 }
 
 // MARK: The screen

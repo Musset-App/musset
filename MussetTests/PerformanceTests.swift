@@ -70,6 +70,60 @@ final class PerformanceTests: XCTestCase {
         try? fm.removeItem(at: root)
     }
 
+    /// One letter typed in a long chapter made up for the test, in a window: with the whole-chapter pass and layout the
+    /// editor used to make, and with the paragraph's pass it makes now. MUSSET_PERF_TYPING=1.
+    func testTypingInALongChapter() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["MUSSET_PERF_TYPING"] == "1")
+        let paragraph = "Il pleuvait sur la ville depuis le matin, et *personne* ne semblait s'en soucier ; les passants allaient **vite**, le col relevé, sans un regard pour la mer.^[Une note.] "
+        let text = (0..<140).map { i in (i % 20 == 0 ? "<!-- scene: Scène \(i / 20) -->\n" : "") + String(repeating: paragraph, count: 2 + i % 3) }.joined(separator: "\n")
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 900, height: 800))
+        let tv = ZenTextView(usingTextLayoutManager: false)
+        tv.frame = scroll.bounds
+        tv.autoresizingMask = [.width]
+        tv.isVerticallyResizable = true
+        tv.textContainer?.widthTracksTextView = true
+        tv.theme = EditorTheme(fontName: Typefaces.manuscript, fontSize: 17)
+        scroll.documentView = tv
+        window.contentView = scroll
+        tv.string = text
+        tv.recenter()
+        tv.restyle()
+        let lm = tv.layoutManager!, tc = tv.textContainer!
+        lm.ensureLayout(for: tc)
+        print("PERF typing: \((text as NSString).length) chars, \(BookStore.wordCount(text)) words")
+        let length = (text as NSString).length
+        // In a window, as the editor is: the letter, its pass, and the redraw.
+        window.makeKeyAndOrderFront(nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        lm.ensureLayout(for: tc)
+        func shown(_ label: String, at place: Int, _ pass: () -> Void) {
+            tv.setSelectedRange(NSRange(location: place, length: 0))
+            tv.scrollRangeToVisible(NSRange(location: place, length: 0))
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            var total = 0.0
+            let n = 20
+            for i in 0..<n {
+                let t = CFAbsoluteTimeGetCurrent()
+                tv.insertText("x", replacementRange: NSRange(location: place + i, length: 0))
+                pass()
+                tv.displayIfNeeded()
+                total += CFAbsoluteTimeGetCurrent() - t
+            }
+            let height = tv.frame.height
+            RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+            let rested = tv.frame.height
+            lm.ensureLayout(for: tc)
+            print(String(format: "PERF typing in a window, %@ %7.2f ms per letter  (height %.0f while typing, %.0f at rest, %.0f laid out whole)",
+                         label.padding(toLength: 30, withPad: " ", startingAt: 0), total / Double(n) * 1000, height, rested, tv.frame.height))
+        }
+        for (name, place) in [("at the start", 40), ("in the middle", length / 2), ("at the end", (tv.string as NSString).length - 5)] {
+            shown("whole pass, \(name)", at: place) { tv.restyle(); lm.ensureLayout(for: tc); tv.needsDisplay = true }
+            shown("paragraph pass, \(name)", at: place) { tv.restyleAfterEdit() }
+        }
+        withExtendedLifetime(window) {}
+    }
+
     /// The commit made when leaving a chapter just written in, on a copy of a whole real book repository.
     func testCommitOnSwitch() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["MUSSET_PERF"] == "1")

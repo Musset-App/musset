@@ -19,16 +19,14 @@ final class StandaloneTests: XCTestCase {
         XCTAssertNil(Shell.bundledOrPath("musset-no-such-tool", resources: res))
     }
 
-    func testAppShipsPandocAndTypst() throws {
+    /// Pandoc is the one tool the app runs beside itself; PDFs are set by the typesetter inside the app.
+    func testAppShipsPandocAndTheTypesetterTemplate() throws {
         let resources = try XCTUnwrap(Bundle.main.resourceURL)
-        for tool in ["pandoc", "typst"] {
-            let path = resources.appendingPathComponent("bin/\(tool)").path
-            guard FileManager.default.isExecutableFile(atPath: path) else {
-                throw XCTSkip("\(tool) was not bundled in this build (offline build?)")
-            }
+        XCTAssertNoThrow(try Typesetting.template())
+        guard FileManager.default.isExecutableFile(atPath: resources.appendingPathComponent("bin/pandoc").path) else {
+            throw XCTSkip("pandoc was not bundled in this build (offline build?)")
         }
         XCTAssertEqual(ExportService.pandoc, resources.appendingPathComponent("bin/pandoc").path)
-        XCTAssertEqual(TypstRunner.binary, resources.appendingPathComponent("bin/typst").path)
     }
 
     private func defaults() -> UserDefaults {

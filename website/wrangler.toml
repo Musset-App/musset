@@ -1,0 +1,16 @@
+# musset.app on Cloudflare Pages: `python3 build.py && npx wrangler pages deploy` from this folder.
+name = "musset"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-09-01"
+
+# The DMGs, the Sparkle feed and latest.json, put there by scripts/release.sh.
+[[r2_buckets]]
+binding = "DOWNLOADS"
+bucket_name = "musset-downloads"
+
+# Counts of downloads, updates and update checks (stats/schema.sql), read in the dashboard's D1 console or with
+# scripts/stats.sh.
+[[d1_databases]]
+binding = "STATS"
+database_name = "musset-stats"
+database_id = "736ffc74-e238-4740-aa5b-45149a28dfc4"

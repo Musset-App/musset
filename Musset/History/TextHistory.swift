@@ -25,22 +25,7 @@ enum TextDiff {
         guard old != new else { return [] }
         let a = old.components(separatedBy: "\n"), b = new.components(separatedBy: "\n")
         var out: [TextChange] = []
-        var removed = Set<Int>(), inserted = Set<Int>()
-        for change in b.difference(from: a) {
-            switch change {
-            case .remove(let o, _, _): removed.insert(o)
-            case .insert(let o, _, _): inserted.insert(o)
-            }
-        }
-        var i = 0, j = 0
-        while i < a.count || j < b.count {
-            if i < a.count, j < b.count, !removed.contains(i), !inserted.contains(j) { i += 1; j += 1; continue }
-            var gone: [Int] = [], come: [Int] = []
-            while i < a.count, removed.contains(i) { gone.append(i); i += 1 }
-            while j < b.count, inserted.contains(j) { come.append(j); j += 1 }
-            if gone.isEmpty, come.isEmpty { break }
-            emit(gone, come, a, b, into: &out)
-        }
+        for gap in Diff.gaps(a, b) { emit(Array(gap.old), Array(gap.new), a, b, into: &out) }
         return out
     }
 
@@ -68,51 +53,26 @@ enum TextDiff {
         out.append(TextChange(kind: .added, old: "", new: b[j] + "\n", before: j > 0 ? tail(b[j - 1] + "\n") : "", after: j + 1 < b.count ? head(b[j + 1]) : "", paragraph: j))
     }
 
-    static func tokens(_ s: String) -> [String] {
-        var out: [String] = [], current = "", space = false
-        for c in s {
-            let isSpace = c.isWhitespace
-            if isSpace != space, !current.isEmpty { out.append(current); current = "" }
-            space = isSpace
-            current.append(c)
-        }
-        if !current.isEmpty { out.append(current) }
-        return out
-    }
-
     private static func words(_ x: String, _ y: String, paragraph: Int, into out: inout [TextChange]) {
-        let a = tokens(x), b = tokens(y)
+        let a = Diff.tokens(x), b = Diff.tokens(y)
         guard a.count + b.count < 12_000 else {
             out.append(TextChange(kind: .modified, old: x, new: y, before: "", after: "", paragraph: paragraph))
             return
         }
-        var removed = Set<Int>(), inserted = Set<Int>()
-        for change in b.difference(from: a) {
-            switch change {
-            case .remove(let o, _, _): removed.insert(o)
-            case .insert(let o, _, _): inserted.insert(o)
+        // Two changes a word or so apart read as one.
+        var gaps: [(old: Range<Int>, new: Range<Int>)] = []
+        for gap in Diff.gaps(a, b) {
+            if let last = gaps.last, gap.old.lowerBound - last.old.upperBound < 4 {
+                gaps[gaps.count - 1] = (last.old.lowerBound..<gap.old.upperBound, last.new.lowerBound..<gap.new.upperBound)
+            } else {
+                gaps.append(gap)
             }
         }
-        var i = 0, j = 0
-        while i < a.count || j < b.count {
-            if i < a.count, j < b.count, !removed.contains(i), !inserted.contains(j) { i += 1; j += 1; continue }
-            let startA = i, startB = j
-            // Two changes a word or so apart read as one.
-            var endA = i, endB = j
-            while true {
-                while i < a.count, removed.contains(i) { i += 1 }
-                while j < b.count, inserted.contains(j) { j += 1 }
-                endA = i; endB = j
-                var k = 0
-                while k < 4, i + k < a.count, j + k < b.count, !removed.contains(i + k), !inserted.contains(j + k) { k += 1 }
-                let more = k < 4 && (i + k < a.count && removed.contains(i + k) || j + k < b.count && inserted.contains(j + k))
-                guard more else { break }
-                i += k; j += k
-            }
-            let old = a[startA..<endA].joined(), new = b[startB..<endB].joined()
+        for gap in gaps {
+            let old = a[gap.old].joined(), new = b[gap.new].joined()
             if old.trimmingCharacters(in: .whitespaces).isEmpty, new.trimmingCharacters(in: .whitespaces).isEmpty { continue }
             let kind: TextChange.Kind = new.isEmpty ? .removed : (old.isEmpty ? .added : .modified)
-            let before = a[..<startA].joined(), after = a[endA...].joined()
+            let before = a[..<gap.old.lowerBound].joined(), after = a[gap.old.upperBound...].joined()
             out.append(TextChange(kind: kind, old: old, new: new, before: tail(before), after: head(after), paragraph: paragraph))
         }
     }
@@ -127,12 +87,6 @@ enum TextDiff {
         return Double(a.intersection(b).count) / Double(max(a.count, b.count))
     }
 
-    /// Folded for searching: case and accents don't matter, quotes and spaces are one.
-    static func fold(_ s: String) -> String {
-        s.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr"))
-            .replacingOccurrences(of: "’", with: "'")
-            .replacingOccurrences(of: "\u{00A0}", with: " ").replacingOccurrences(of: "\u{202F}", with: " ")
-    }
 }
 
 /// Putting one change back into today's text.
@@ -317,13 +271,13 @@ final class HistoryReader: @unchecked Sendable {
 
     /// The life of a phrase in a chapter, oldest first, even if it no longer exists.
     func phrase(_ query: String, chapter: String, file: String) -> [PhraseEvent] {
-        let q = TextDiff.fold(query)
+        let q = Fold.search(query)
         guard q.count >= 3 else { return [] }
         var out: [PhraseEvent] = []
         var current: String?, last: (text: String, before: String, after: String)?
         for c in log(file).reversed() {
             let lines = text(c.id, file).components(separatedBy: "\n")
-            let i = lines.firstIndex { TextDiff.fold($0).contains(q) }
+            let i = lines.firstIndex { Fold.search($0).contains(q) }
             if let i {
                 let p = lines[i]
                 if current == nil {

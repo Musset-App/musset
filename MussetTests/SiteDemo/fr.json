@@ -1,0 +1,323 @@
+{
+ "uiLang": "fr",
+ "bookLang": "fr-FR",
+ "title": "La Route du sel",
+ "author": "Nora Vale",
+ "chapters": [
+  {
+   "title": "Le Bac",
+   "text": "# Le Bac\n\n<!-- scene: Traversée du matin -->\n\nLe bac partait à six heures, avant le réveil des mouettes. Nora se tenait au bastingage, le manteau de son père sur le bras, comme s’il pouvait encore le lui réclamer. Le pont était mouillé et personne d’autre n’était monté ; les autres passagers restaient en bas, dans la salle chauffée qui sentait le café et le gazole, endormis contre leur propre reflet dans les vitres.\n\nEn dessous, la mer gardait ses secrets. Elle avait répété pendant cinq cents kilomètres ce qu’elle dirait à son frère, et à présent chaque phrase semblait appartenir à quelqu’un d’autre. Elle les reprit à mi-voix, l’une après l’autre, et aucune ne résista au vent.\n\n« Tu es venue », dirait-il. Ou bien il ne dirait rien, ce qui serait pire et lui ressemblerait davantage.\n\nIls ne s’étaient plus parlé depuis l’enterrement de leur mère, il y avait onze ans, quand Tom était resté au fond de l’église dans un costume emprunté et s’en était allé avant le dernier cantique. Elle l’avait retrouvé ensuite sur le parking, en train de fumer avec l’homme des pompes funèbres, et il l’avait regardée comme une inconnue qui lui aurait demandé son chemin.\n\nUn homme en veste orange passa sur le pont, un rouleau de cordage à l’épaule, et lui fit un signe de tête sans s’arrêter. Elle lui rendit son salut. C’était la première fois que quelqu’un la regardait depuis l’autoroute.\n\n<!-- scene: L’île -->\n\nL’île sortit de la brume par morceaux : une église, une rangée de maisons blanches, le long toit gris de la saline où leur mère avait compté les sacs pendant vingt ans. Puis la digue du port, la grue, les deux voitures qui attendaient sur la cale, phares encore allumés, bien qu’il fît jour à présent et que personne n’en eût besoin.\n\nElle plia le manteau une fois de plus. Il sentait le tabac et la pluie, et l’hiver qu’il avait passé à faire semblant de ne pas être malade. Dans la poche intérieure, il y avait un billet de bac du mois de mars, un crayon, et une liste de sa main qu’elle n’avait pas su lire à l’hôpital et ne savait toujours pas lire : *sel, verre, le bateau bleu, Tom.*\n\nLes moteurs changèrent de régime. Quelque part en bas, une porte claqua, et les passagers commencèrent à monter l’escalier avec leurs sacs, clignant des yeux, enfilant leurs manteaux. Un enfant demanda si c’était l’île. Sa mère dit que oui. L’enfant regarda l’île longtemps, puis dit qu’elle était plus petite que dans le livre.\n\nNora remit la liste là où elle l’avait trouvée.\n\n<!-- scene: Le port -->\n\nIl n’était pas sur le quai. Elle savait qu’il n’y serait pas, et pourtant elle le chercha deux fois : une fois parmi les hommes près de la grue, une fois sur le seuil du café, où une vieille femme retournait la pancarte de *Fermé* à *Ouvert* avec beaucoup de soin, comme si le mot risquait de se casser.\n\nElle monta la côte, le manteau sur le bras, son sac à l’épaule. La route était celle dont elle se souvenait, en plus étroit. Les maisons avaient des portes neuves. En haut, là où la route tournait vers la saline, quelqu’un avait peint un bateau bleu sur le flanc de l’abribus, mal, il y a longtemps, et il était toujours là.\n\nElle s’arrêta devant et se mit à rire, parce que c’était le sien, parce qu’en onze ans personne ne l’avait recouvert, et parce qu’elle ne savait pas quoi faire d’autre."
+  },
+  {
+   "title": "La Saline",
+   "text": "# La Saline\n\nLe portail était ouvert. Personne sur l’île n’avait {~~jamais rien fermé~>rien fermé~~}{@Claire} à clé depuis la guerre, et la saline moins que le reste : il n’y avait {--plus--}{@Claire} rien à y prendre que le sel, et le sel se gardait tout seul.\n\nLa camionnette de Tom était garée près de l’ancienne bascule, {++portes arrière ouvertes,++}{@Claire} avec un chien endormi dans son ombre. Le chien leva la tête quand elle franchit le portail et la reposa, comme si on l’attendait.\n\n{==Elle le trouva sur le toit.==}{>>Trop brusque ? On ne l’a pas encore entendu. Sa voix d’abord, peut-être, puis le toit.<<}{@Claire} Il était agenouillé entre deux rangées d’ardoises, un marteau à la main, et il ne se retourna pas.\n\n— Ça fuit au-dessus du séchoir, dit-il. Ça a toujours fui au-dessus du séchoir."
+  },
+  {
+   "title": "Inventaire",
+   "text": "# Inventaire\n\nSon frère avait tout gardé : des reçus, des annuaires des marées, un calendrier de 1987 où les grandes marées étaient entourées de rouge.\n"
+  }
+ ],
+ "notes": [
+  {
+   "anchor": "la mer gardait ses secrets",
+   "author": "claude",
+   "kind": "critique",
+   "body": "Une expression d’emprunt dans un chapitre qui, pour le reste, n’appartient qu’à elle. Que voit Nora dans l’eau ?"
+  },
+  {
+   "anchor": "ce qui serait pire et lui ressemblerait davantage",
+   "author": "claude",
+   "kind": "praise",
+   "body": "Le frère arrive avant d’apparaître. À garder."
+  },
+  {
+   "anchor": "Elle plia le manteau une fois de plus.",
+   "author": "claude",
+   "kind": "question",
+   "body": "Le manteau est plié pour la deuxième fois. Écho voulu, ou un pli de trop ?"
+  },
+  {
+   "anchor": "il y avait onze ans",
+   "author": "me",
+   "kind": "continuity",
+   "body": "Vérifier avec le chapitre 4 : l’enterrement y a lieu en hiver."
+  }
+ ],
+ "chat": [
+  {
+   "role": "user",
+   "text": "La traversée tient-elle sans Tom ? J’ai peur que la première scène ne soit qu’une attente."
+  },
+  {
+   "role": "assistant",
+   "text": "Elle tient, et l’attente est justement le propos : Tom est présent dans chaque paragraphe, par ce que Nora répète, par le manteau, par la liste écrite de sa main. Le lecteur le rencontre avant qu’il n’apparaisse.\n\nDeux choses l’affaiblissent. « La mer gardait ses secrets » est la seule expression d’emprunt dans un chapitre qui, pour le reste, n’appartient qu’à elle. Et le manteau est plié deux fois ; le second pli est le plus fort, le premier pourrait disparaître.\n\nJ’ai laissé trois notes dans la marge. Voulez-vous que je regarde la fin de la scène du port ?"
+  },
+  {
+   "role": "user",
+   "text": "Oui — le rire devant l’abribus ne vient-il pas trop tôt ?"
+  }
+ ],
+ "versions": {
+  "current": "Premier jet",
+  "other": "Plus sombre",
+  "edits": [
+   [
+    "Le bac partait à six heures, avant le réveil des mouettes.",
+    "Le bac partait dans le noir."
+   ],
+   [
+    "pouvait encore le lui réclamer.",
+    "pouvait encore monter l’escalier et le lui réclamer."
+   ],
+   [
+    "En dessous, la mer gardait ses secrets.",
+    "En dessous, la mer était noire et ne bougeait pas."
+   ],
+   [
+    "ce qui serait pire et lui ressemblerait davantage.",
+    "ce qu’il avait toujours fait."
+   ]
+  ]
+ },
+ "bible": {
+  "characters": [
+   {
+    "id": "nora",
+    "name": "Nora",
+    "aliases": [],
+    "tier": "main",
+    "fields": [
+     "1984, sur l’île",
+     "Traductrice, sur le continent",
+     "Le dire à Tom elle-même",
+     "La liste dans la poche du manteau"
+    ],
+    "body": "Revient avec le manteau de son père et pas une phrase qui tienne.\n\nPartie à dix-neuf ans. Cinq cents kilomètres de répétition, et rien de tout cela ne sera dit.\n\nElle rit quand elle ne sait pas quoi faire d’autre. À garder pour la fin.",
+    "facts": [
+     [
+      "01",
+      "Se tient au bastingage, le manteau de son père sur le bras.",
+      "le manteau de son père sur le bras"
+     ],
+     [
+      "01",
+      "N’a plus parlé à son frère depuis l’enterrement de leur mère.",
+      "Ils ne s’étaient plus parlé depuis l’enterrement de leur mère"
+     ],
+     [
+      "01",
+      "Ne sait pas lire la liste écrite de la main de son père.",
+      "ne savait toujours pas lire"
+     ],
+     [
+      "01",
+      "Rit devant le bateau bleu de l’abribus.",
+      "Elle s’arrêta devant et se mit à rire"
+     ],
+     [
+      "02",
+      "Trouve Tom sur le toit de la saline.",
+      "Elle le trouva sur le toit."
+     ]
+    ]
+   },
+   {
+    "id": "tom",
+    "name": "Tom",
+    "aliases": [
+     "Thomas"
+    ],
+    "tier": "main",
+    "fields": [
+     "1981",
+     "Tient la saline debout, seul",
+     "Qu’on ne lui demande rien",
+     "Ce qui s’est passé en 1987"
+    ],
+    "body": "Resté. Répare ce qui fuit, garde ce qu’il aurait fallu jeter.\n\nParle au toit plus volontiers qu’aux gens. Onze ans sans un mot à Nora, et sa première phrase sera pour le séchoir.\n\nC’est lui qui a peint le bateau bleu, à quatorze ans. Ne jamais le dire : la laisser le reconnaître.",
+    "found": [
+     "son frère"
+    ],
+    "facts": [
+     [
+      "01",
+      "Est parti de l’église avant le dernier cantique, dans un costume emprunté.",
+      "s’en était allé avant le dernier cantique"
+     ],
+     [
+      "01",
+      "Ne parle plus à Nora depuis l’enterrement de leur mère, il y a onze ans.",
+      "Ils ne s’étaient plus parlé depuis l’enterrement de leur mère"
+     ],
+     [
+      "02",
+      "Sa camionnette est garée près de l’ancienne bascule ; un chien dort dans son ombre.",
+      "La camionnette de Tom était garée près de l’ancienne bascule"
+     ],
+     [
+      "02",
+      "Répare lui-même le toit de la saline.",
+      "agenouillé entre deux rangées d’ardoises, un marteau à la main"
+     ],
+     [
+      "02",
+      "Dit que ça a toujours fui au-dessus du séchoir.",
+      "Ça a toujours fui au-dessus du séchoir."
+     ],
+     [
+      "03",
+      "A tout gardé : des reçus, des annuaires des marées, un calendrier de 1987.",
+      "Son frère avait tout gardé"
+     ]
+    ]
+   },
+   {
+    "id": "walter",
+    "name": "Walter",
+    "aliases": [
+     "son père"
+    ],
+    "tier": "secondary",
+    "body": "Mort avant que le livre commence. Son manteau fait toute la traversée.\n\nUn hiver à faire semblant de ne pas être malade, et une liste que personne ne sait lire.",
+    "facts": [
+     [
+      "01",
+      "A passé un hiver à faire semblant de ne pas être malade.",
+      "l’hiver qu’il avait passé à faire semblant de ne pas être malade"
+     ],
+     [
+      "01",
+      "A laissé une liste dans son manteau : sel, verre, le bateau bleu, Tom.",
+      "sel, verre, le bateau bleu, Tom."
+     ]
+    ]
+   },
+   {
+    "id": "maud",
+    "name": "Maud",
+    "aliases": [
+     "leur mère"
+    ],
+    "tier": "secondary",
+    "body": "A compté les sacs à la saline pendant vingt ans.\n\nEnterrée il y a onze ans : la dernière fois que Nora et Tom se sont trouvés dans la même pièce.",
+    "facts": [
+     [
+      "01",
+      "A compté les sacs à la saline pendant vingt ans.",
+      "où leur mère avait compté les sacs pendant vingt ans"
+     ]
+    ]
+   },
+   {
+    "id": "pell",
+    "name": "Mme Pell",
+    "aliases": [
+     "vieille femme"
+    ],
+    "tier": "extra",
+    "body": "Tient le café du port. Retourne la pancarte comme si le mot risquait de se casser.",
+    "facts": [
+     [
+      "01",
+      "Retourne la pancarte du café de Fermé à Ouvert.",
+      "une vieille femme retournait la pancarte"
+     ]
+    ]
+   },
+   {
+    "id": "ansel",
+    "name": "Ansel",
+    "aliases": [
+     "homme en veste orange"
+    ],
+    "tier": "extra",
+    "body": "Matelot du bac. Le premier à regarder Nora depuis l’autoroute."
+   },
+   {
+    "id": "odile",
+    "name": "Odile",
+    "aliases": [],
+    "body": "Tient les comptes de la saline. Arrive au chapitre quatre, avec les clés."
+   }
+  ],
+  "places": [
+   {
+    "id": "saltworks",
+    "name": "La saline",
+    "aliases": [
+     "la saline"
+    ],
+    "body": "Un long toit gris, l’ancienne bascule, le séchoir où ça fuit.\n\nRien n’est fermé à clé depuis la guerre : il n’y a que le sel à prendre.",
+    "facts": [
+     [
+      "01",
+      "Leur mère y a compté les sacs pendant vingt ans.",
+      "où leur mère avait compté les sacs pendant vingt ans"
+     ],
+     [
+      "02",
+      "Le portail est ouvert ; rien n’y est fermé à clé.",
+      "Le portail était ouvert."
+     ],
+     [
+      "02",
+      "Le toit fuit au-dessus du séchoir.",
+      "Ça fuit au-dessus du séchoir"
+     ]
+    ]
+   },
+   {
+    "id": "island",
+    "name": "L’île",
+    "aliases": [
+     "l’île"
+    ],
+    "body": "Sort de la brume par morceaux : une église, des maisons blanches, le toit gris.\n\nPlus petite que dans le livre."
+   },
+   {
+    "id": "harbour",
+    "name": "Le port",
+    "aliases": [
+     "port"
+    ],
+    "body": "La digue, la grue, la cale. Le café ouvre à l’arrivée du bac."
+   }
+  ]
+ },
+ "board": {
+  "title": "Le retour",
+  "labels": {
+   "family": "La famille",
+   "story": "Ce qui arrive",
+   "island": "L’île",
+   "year": "1987 ?"
+  },
+  "columns": [
+   "Un · La traversée",
+   "Deux · La saline"
+  ],
+  "written": [
+   "**Traversée du matin**\nNora au bastingage. Aucune des phrases répétées ne résiste au vent.",
+   "**L’île**\nLe manteau, la liste de sa main. Elle ne sait pas la lire.",
+   "**Le port**\nIl n’est pas sur le quai. Le bateau bleu sur l’abribus ; elle rit."
+  ],
+  "passage": "puis dit qu’elle était plus petite que dans le livre",
+  "next": [
+   "**Le toit**\nTom sur les ardoises, le dos tourné. Ça a toujours fui.",
+   "**Inventaire**\nDes reçus, des annuaires des marées, le calendrier de 1987.",
+   "**Le séchoir**\nElle lui tend le manteau. Il lit la liste à voix haute, jusqu’au bout.",
+   "**Odile**\nElle arrive avec les clés, et sait ce que veut dire la liste."
+  ],
+  "notes": {
+   "list": "*sel, verre, le bateau bleu, Tom.*\n\nUne liste de courses, ou un testament ?",
+   "boat": "Onze ans, et personne n’a recouvert le bateau. Qui veillait sur lui ?",
+   "tide": "Vérifier l’annuaire des marées : un bac part-il à six heures en mars ?",
+   "year": "Les grandes marées entourées de rouge. Que s’est-il passé cette année-là ?"
+  },
+  "shape": "Le bateau bleu"
+ },
+ "history": {
+  "milestone": "Envoyé à Claire",
+  "note": "Les chapitres un et deux, tels qu’elle les a lus."
+ }
+}

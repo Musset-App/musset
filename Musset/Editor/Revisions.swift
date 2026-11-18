@@ -64,7 +64,14 @@ enum Revisions {
         #"(?:\{\+\+(.*?)\+\+\}|\{--(.*?)--\}|\{~~(.*?)~>(.*?)~~\}|\{==(.*?)==\}(?:\{>>(.*?)<<\})?|\{>>(.*?)<<\})(?:\{@([^}\n]*)\})?"#, options: [.dotMatchesLineSeparators])
 
     static func marks(in text: String) -> [Mark] {
-        pattern.matches(in: text, range: NSRange(location: 0, length: (text as NSString).length)).compactMap { m in
+        // Every mark opens with a brace: most chapters have none, and are not searched.
+        guard (text as NSString).range(of: "{").location != NSNotFound else { return [] }
+        return marks(in: text, range: NSRange(location: 0, length: (text as NSString).length))
+    }
+
+    /// The marks inside `range` (whole paragraphs that no mark runs out of).
+    static func marks(in text: String, range: NSRange) -> [Mark] {
+        pattern.matches(in: text, range: range).compactMap { m in
             func g(_ i: Int) -> NSRange? { m.range(at: i).location == NSNotFound ? nil : m.range(at: i) }
             let source = g(8)
             if let r = g(1) { return Mark(kind: .insertion, range: m.range, first: r, second: nil, source: source) }
@@ -81,9 +88,11 @@ enum Revisions {
     }
 
     /// The parts of the text never shown: the CriticMarkup syntax, and comment bodies (shown as a bubble instead).
-    static func hidden(in text: String) -> [NSRange] {
+    static func hidden(in text: String) -> [NSRange] { hidden(of: marks(in: text)) }
+
+    static func hidden(of marks: [Mark]) -> [NSRange] {
         var out: [NSRange] = []
-        for m in marks(in: text) {
+        for m in marks {
             var visible: [NSRange] = []
             switch m.kind {
             case .insertion, .deletion, .highlight: visible = [m.first]

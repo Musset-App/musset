@@ -14,7 +14,6 @@ final class DesignTests: XCTestCase {
             ChapterEntry(id: "01", file: "01.md", title: "Le Grenier", status: .edited),
             ChapterEntry(id: "02", file: "02.md", title: "Le port", status: .final)])
         m.front = FrontMatter(cover: .init(genre: "roman", publisher: "[ÉDITEUR]"), dedication: "À ceux qui restent.", contents: true, colophon: true)
-        m.exports = BookStore(root: root).defaultPresets()
         let s = BookSession(root: root, manifest: m)
         s.open("01")
         return s
@@ -31,16 +30,18 @@ final class DesignTests: XCTestCase {
 
     func testSpecialPagesTypst() throws {
         let s = try makeBook()
-        let pages = TypstMarkup.specialPages(s.manifest, coverImage: nil)
-        XCTAssertTrue(pages.front.contains("Le Sel"))
-        XCTAssertTrue(pages.front.contains("qui restent"))
-        XCTAssertTrue(pages.front.contains("#outline(title: none"))
-        XCTAssertLessThan(pages.front.range(of: "fill: rgb")!.lowerBound, pages.front.range(of: "smallcaps")!.lowerBound, "cover first, then the title page")
-        XCTAssertTrue(pages.back.contains("Achevé d’imprimer"))
-        XCTAssertFalse(pages.front.contains("image("), "no image without the image style")
-        let doc = TypstMarkup.document(title: "C", author: "A", contact: nil, lang: "fr",
-                                       layout: TypstLayout(style: "blanche", geometry: nil, fontSize: nil, crop: false, numbered: true),
-                                       chapters: [("01", "# Un\n\nTexte.")], markers: false, front: pages.front, back: pages.back)
+        let pages = Typesetting.pages(s.manifest, coverImage: nil)
+        XCTAssertEqual(pages.dedication, "À ceux qui restent.")
+        XCTAssertNotNil(pages.cover); XCTAssertNotNil(pages.titlePage); XCTAssertNotNil(pages.contents)
+        XCTAssertNil(pages.epigraph); XCTAssertNil(pages.acknowledgements)
+        let doc = try Typeset.book([("01", "# Un\n\nTexte.")], title: "Le Sel", author: "Jeanne Martin", pages: pages).typstSource
+        XCTAssertTrue(doc.contains("smallcaps[Le Sel]"))
+        XCTAssertTrue(doc.contains("JEANNE MARTIN"), "the author on the cover")
+        XCTAssertTrue(doc.contains("qui restent"))
+        XCTAssertTrue(doc.contains("#outline(title: none"))
+        XCTAssertLessThan(doc.range(of: "fill: rgb")!.lowerBound, doc.range(of: "smallcaps")!.lowerBound, "cover first, then the title page")
+        XCTAssertTrue(doc.contains("Achevé d’imprimer"))
+        XCTAssertFalse(doc.contains("image("), "no image without the image style")
         XCTAssertLessThan(doc.range(of: "#outline")!.lowerBound, doc.range(of: "= Un")!.lowerBound)
         XCTAssertGreaterThan(doc.range(of: "Achevé")!.lowerBound, doc.range(of: "= Un")!.lowerBound)
         XCTAssertTrue(ExportService.pandocFront(s.manifest).contains("qui restent"))
@@ -48,14 +49,13 @@ final class DesignTests: XCTestCase {
 
     /// The special pages compile in Typst: a real PDF with the cover, dedication, contents and colophon.
     func testTypstExportWithSpecialPages() async throws {
-        try XCTSkipIf(TypstRunner.binary == nil, "typst not installed")
         let s = try makeBook()
         var m = s.manifest
         m.front?.epigraph = "Chaque chose, autant qu’il est en elle,\ns’efforce de persévérer dans son être."
         m.front?.epigraphSource = "Spinoza"
         m.front?.acknowledgements = "Merci."
         m.sceneBreak = .asterism
-        let preset = try XCTUnwrap(m.exports.first { $0.usesTypst })
+        let preset = try XCTUnwrap(s.store.presets(m).first { $0.format == .pdf })
         let out = try await ExportService.export(manifest: m, store: s.store, preset: preset)
         let data = try Data(contentsOf: out.file)
         XCTAssertGreaterThan(data.count, 5000)
@@ -107,7 +107,7 @@ final class DesignTests: XCTestCase {
         try png(NotesPanel(app: app, session: s, bridge: bridge, annotator: ann, proof: AutoProofreader()), NSSize(width: 380, height: 520), "d-notes.png")
         try png(CommandPalette(app: app, session: s, bridge: bridge, chat: ChatModel(), annotator: ann), NSSize(width: 900, height: 700), "d-palette.png")
         try png(ExportSheet(session: s), NSSize(width: 780, height: 620), "d-export.png")
-        try png(BookSettingsView(app: app, session: s, proof: AutoProofreader()), NSSize(width: 860, height: 600), "d-settings.png")
+        try png(BookSettingsView(app: app, session: s), NSSize(width: 860, height: 600), "d-settings.png")
         try png(SpecialPageView(app: app, session: s, page: .cover), NSSize(width: 1100, height: 700), "d-cover.png")
         try png(SpecialPageView(app: app, session: s, page: .cover), NSSize(width: 1184, height: 900), "d-cover-big.png")
         try png(WelcomeView(app: app), NSSize(width: 580, height: 560), "d-newbook.png")
@@ -149,11 +149,11 @@ final class DesignTests: XCTestCase {
         try shot("w-write.png") { app.showInspector = false }
         try shot("w-notes.png") { app.inspectorTab = .edits; app.showInspector = true }
         try shot("w-partner.png") { app.inspectorTab = .chat }
-        try shot("w-grid.png") { app.showInspector = false; app.showPlotGrid = true }
-        try shot("w-special.png") { app.showPlotGrid = false; app.specialPage = .cover }
+        try shot("w-grid.png") { app.showInspector = false; app.open(OverviewTab.grid.tab) }
+        try shot("w-special.png") { app.open(SpecialPage.cover.tab) }
         RunLoop.main.run(until: Date().addingTimeInterval(3))
         try shot("w-special2.png") {}
-        try shot("w-palette.png") { app.specialPage = nil; app.showQuickOpen = true }
+        try shot("w-palette.png") { app.showChapter(); app.showQuickOpen = true }
         try shot("w-read.png") { app.showQuickOpen = false; app.review.scope = .book; app.reviewMode = true }
         RunLoop.main.run(until: Date().addingTimeInterval(4))
         try shot("w-read.png") {}
@@ -174,7 +174,8 @@ final class TitleBarSnapshotTests: XCTestCase {
         try git.commit(paths: ["01.md"], message: "first")
         let s = BookSession(root: root, manifest: BookManifest(title: "Le Sel", lang: "fr", chapters: [ChapterEntry(id: "01", file: "01.md", title: "Quai de la Tournelle")]))
         s.open("01")
-        s.newVersion(named: "2026-11-02-1")
+        try s.store.saveVersion(XCTUnwrap(s.selectedChapter), name: "2026-11-02-1", text: ParagraphCodec.encode(s.text))
+        s.refreshVersions()
         let bridge = EditorBridge()
         bridge.selectedRange = NSRange(location: (s.text as NSString).length - 1, length: 0)
         for w: CGFloat in [720, 1000, 1510, 1900] {

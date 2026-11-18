@@ -1,3 +1,4 @@
+import MussetPage
 import PDFKit
 import XCTest
 @testable import Musset
@@ -74,9 +75,7 @@ final class PartTests: XCTestCase {
         XCTAssertEqual(openings["d"]?.numeral, "II", "the part opens on its first printed chapter")
         XCTAssertEqual(openings["d"]?.title, "La fuite")
 
-        let typst = TypstMarkup.document(title: "T", author: "A", contact: nil, lang: "fr",
-                                         layout: TypstLayout(style: "blanche", geometry: nil, fontSize: nil, crop: false, numbered: false, titlePage: false),
-                                         chapters: [("a", "# A\n\nTexte."), ("d", "# D\n\nTexte.")], markers: false, parts: openings)
+        let typst = try Typeset.book([("a", "# A\n\nTexte."), ("d", "# D\n\nTexte.")], parts: openings).typstSource
         let page = try XCTUnwrap(typst.range(of: #"#part-page("II", "La fuite")"#))
         XCTAssertLessThan(page.lowerBound, try XCTUnwrap(typst.range(of: "= D")).lowerBound)
 
@@ -86,31 +85,21 @@ final class PartTests: XCTestCase {
         XCTAssertTrue(BookStore(root: root).concatenatedManuscript(s.manifest, stripComments: true).contains("# II. La fuite {.unnumbered .part}"))
     }
 
-    /// The template itself: Musset's own typst compiles a book with parts.
-    func testThePartPageCompiles() async throws {
-        let typst = TypstMarkup.document(title: "T", author: "A", contact: nil, lang: "fr",
-                                         layout: TypstLayout(style: "blanche", geometry: nil, fontSize: nil, crop: false, numbered: false, titlePage: false),
-                                         chapters: [("a", "# A\n\nTexte."), ("b", "# B\n\nTexte.")], markers: false,
-                                         parts: ["a": ("I", ""), "b": ("II", "La fuite")])
-        let dir = root.appendingPathComponent("typst", isDirectory: true)
-        let main = try TypstRunner.prepare(dir: dir, source: typst, bookRoot: root)
-        let pdf = dir.appendingPathComponent("out.pdf")
-        try await TypstRunner.compile(main: main, output: pdf, bookRoot: root)
-        XCTAssertGreaterThan((try FileManager.default.attributesOfItem(atPath: pdf.path)[.size] as? Int) ?? 0, 1000)
+    /// The template itself: a book with parts is set, each part on a page of its own before its first chapter.
+    func testThePartPageCompiles() throws {
+        let book = try Typeset.book([("a", "# A\n\nTexte."), ("b", "# B\n\nTexte.")], parts: ["a": ("I", ""), "b": ("II", "La fuite")])
+        let doc = try Typeset.pdf(book)
+        let pages = (0..<doc.pageCount).map { doc.page(at: $0)?.string ?? "" }
+        let part = try XCTUnwrap(pages.firstIndex { $0.contains("La fuite") })
+        XCTAssertFalse(pages[part].contains("Texte."), "a part's page holds nothing else")
+        XCTAssertLessThan(part, try XCTUnwrap(pages.lastIndex { $0.contains("Texte.") }))
     }
 
     /// Single pages: the same left margin on every page, halfway between inside and outside. Facing: inside on the right of a verso.
     func testSingleAndFacingPages() async throws {
         func leftEdges(facing: Bool) async throws -> [CGFloat] {
-            var layout = TypstLayout(style: "blanche", geometry: nil, fontSize: nil, crop: false, numbered: false, titlePage: false)
-            layout.facing = facing
-            let typst = TypstMarkup.document(title: "T", author: "A", contact: nil, lang: "fr", layout: layout,
-                                             chapters: [("a", "# A\n\nTexte."), ("b", "# B\n\nTexte.")], markers: false)
-            let dir = root.appendingPathComponent("typst-\(facing)", isDirectory: true)
-            let main = try TypstRunner.prepare(dir: dir, source: typst, bookRoot: root)
-            let pdf = dir.appendingPathComponent("out.pdf")
-            try await TypstRunner.compile(main: main, output: pdf, bookRoot: root)
-            let doc = try XCTUnwrap(PDFDocument(url: pdf))
+            let doc = try Typeset.pdf(Typeset.book([("a", "# A\n\nTexte."), ("b", "# B\n\nTexte.")],
+                                                   layout: PageLayout(numbered: false, titlePage: false, facing: facing)))
             return doc.findString("Texte.", withOptions: []).compactMap { sel in sel.pages.first.map { sel.bounds(for: $0).minX } }
         }
         let mm = 72 / 25.4

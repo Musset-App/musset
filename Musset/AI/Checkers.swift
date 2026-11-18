@@ -74,14 +74,11 @@ struct BookCheckers: Codable, Equatable {
     static func url(_ root: URL) -> URL { root.appendingPathComponent(".musset/checkers.json") }
 
     static func load(_ root: URL) -> BookCheckers {
-        (try? Data(contentsOf: url(root))).flatMap { try? JSONDecoder().decode(BookCheckers.self, from: $0) } ?? BookCheckers()
+        JSONFile.read(at: url(root)) ?? BookCheckers()
     }
 
     func save(_ root: URL) throws {
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try FileManager.default.createDirectory(at: Self.url(root).deletingLastPathComponent(), withIntermediateDirectories: true)
-        try enc.encode(self).write(to: Self.url(root), options: .atomic)
+        try JSONFile.write(self, to: Self.url(root))
     }
 
     /// The library's version when this Mac has it, else the book's copy.

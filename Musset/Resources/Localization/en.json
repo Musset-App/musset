@@ -15,25 +15,77 @@
   "one": "Grid updated: {%0} tag in the index,",
   "other": "Grid updated: {%0} tags in the index,"
  },
- "Open thread ({%0} replies)": {
-  "one": "Open thread ({%0} reply)",
-  "other": "Open thread ({%0} replies)"
+ "Insert {%0} Markers": {
+  "one": "Insert {%0} Marker",
+  "other": "Insert {%0} Markers"
+ },
+ "Mark it and tell {%0} people": {
+  "one": "Mark it and tell {%0} person",
+  "other": "Mark it and tell {%0} people"
+ },
+ "Open Thread ({%0} replies)": {
+  "one": "Open Thread ({%0} reply)",
+  "other": "Open Thread ({%0} replies)"
  },
  "Part {%0}: {%1} chapters. Drag chapters under it to put them in.": {
   "one": "Part {%0}: {%1} chapter. Drag chapters under it to put them in.",
   "other": "Part {%0}: {%1} chapters. Drag chapters under it to put them in."
  },
+ "Reject these {%0} corrections?": {
+  "one": "Reject {%0} correction?",
+  "other": "Reject these {%0} corrections?"
+ },
+ "cited {%0} times": {
+  "one": "cited {%0} time",
+  "other": "cited {%0} times"
+ },
  "in {%0} chapters": {
   "one": "in {%0} chapter",
   "other": "in {%0} chapters"
+ },
+ "{%0} AI readings": {
+  "one": "{%0} AI reading",
+  "other": "{%0} AI readings"
+ },
+ "{%0} automatic fixes": {
+  "one": "{%0} automatic fix",
+  "other": "{%0} automatic fixes"
+ },
+ "{%0} automatic typographic fixes since Musset opened": {
+  "one": "{%0} automatic typographic fix since Musset opened",
+  "other": "{%0} automatic typographic fixes since Musset opened"
+ },
+ "{%0} chapters": {
+  "one": "{%0} chapter",
+  "other": "{%0} chapters"
  },
  "{%0} chapters change,": {
   "one": "{%0} chapter changes,",
   "other": "{%0} chapters change,"
  },
+ "{%0} characters": {
+  "one": "{%0} character",
+  "other": "{%0} characters"
+ },
+ "{%0} characters with spaces": {
+  "one": "{%0} character with spaces",
+  "other": "{%0} characters with spaces"
+ },
  "{%0} close": {
   "one": "{%0} close",
   "other": "{%0} close"
+ },
+ "{%0} corrections": {
+  "one": "{%0} correction",
+  "other": "{%0} corrections"
+ },
+ "{%0} days in a row": {
+  "one": "{%0} day in a row",
+  "other": "{%0} days in a row"
+ },
+ "{%0} days written": {
+  "one": "{%0} day written",
+  "other": "{%0} days written"
  },
  "{%0} files and the folder to the Finder’s Trash.": {
   "one": "{%0} file and the folder to the Finder’s Trash.",
@@ -43,9 +95,9 @@
   "one": "{%0} fixed note resolved.",
   "other": "{%0} fixed notes resolved."
  },
- "{%0} fixes": {
-  "one": "{%0} fix",
-  "other": "{%0} fixes"
+ "{%0} highlights": {
+  "one": "{%0} highlight",
+  "other": "{%0} highlights"
  },
  "{%0} identical paragraphs · show all": {
   "one": "{%0} identical paragraph · show all",
@@ -59,9 +111,17 @@
   "one": "{%0} match",
   "other": "{%0} matches"
  },
+ "{%0} notes": {
+  "one": "{%0} note",
+  "other": "{%0} notes"
+ },
  "{%0} notes added": {
   "one": "{%0} note added",
   "other": "{%0} notes added"
+ },
+ "{%0} notes in the margin": {
+  "one": "{%0} note in the margin",
+  "other": "{%0} notes in the margin"
  },
  "{%0} notes in the margin from {%1}": {
   "one": "{%1}: {%0} note in the margin",
@@ -79,6 +139,10 @@
   "one": "{%0} of {%1} notes added (others already noted or not found)",
   "other": "{%0} of {%1} notes added (others already noted or not found)"
  },
+ "{%0} out of 5 stars": {
+  "one": "{%0} out of 5 stars",
+  "other": "{%0} out of 5 stars"
+ },
  "{%0} pages": {
   "one": "{%0} page",
   "other": "{%0} pages"
@@ -87,13 +151,25 @@
   "one": "{%0} paragraph left to choose · what only one side changed is already chosen",
   "other": "{%0} paragraphs left to choose · what only one side changed is already chosen"
  },
+ "{%0} parts": {
+  "one": "{%0} part",
+  "other": "{%0} parts"
+ },
  "{%0} passages highlighted in orange": {
   "one": "{%0} passage highlighted in orange",
   "other": "{%0} passages highlighted in orange"
  },
+ "{%0} places": {
+  "one": "{%0} place",
+  "other": "{%0} places"
+ },
  "{%0} put away": {
   "one": "{%0} put away",
   "other": "{%0} put away"
+ },
+ "{%0} scenes": {
+  "one": "{%0} scene",
+  "other": "{%0} scenes"
  },
  "{%0} scenes read.": {
   "one": "{%0} scene read.",
@@ -103,12 +179,28 @@
   "one": "{%0} sheet goes to the book’s Trash,",
   "other": "{%0} sheets go to the book’s Trash,"
  },
+ "{%0} sittings": {
+  "one": "{%0} sitting",
+  "other": "{%0} sittings"
+ },
+ "{%0} sources": {
+  "one": "{%0} source",
+  "other": "{%0} sources"
+ },
  "{%0} tenses to review": {
   "one": "{%0} tense to review",
   "other": "{%0} tenses to review"
  },
- "{%0} typographic fixes this session": {
-  "one": "{%0} typographic fix this session",
-  "other": "{%0} typographic fixes this session"
+ "{%0} times": {
+  "one": "{%0} time",
+  "other": "{%0} times"
+ },
+ "{%0} words": {
+  "one": "{%0} word",
+  "other": "{%0} words"
+ },
+ "{%0} words. Every version is kept.": {
+  "one": "{%0} word. Every version is kept.",
+  "other": "{%0} words. Every version is kept."
  }
 }

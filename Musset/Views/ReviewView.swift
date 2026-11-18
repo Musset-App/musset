@@ -1,8 +1,9 @@
-import PDFKit
+import MussetPage
 import SwiftUI
 
-/// Reading mode: the chapter or the whole book typeset as it will be printed (Typst, Blanche or Classique),
-/// read as spreads. Double-click a passage to go back to writing at that place.
+/// Reading mode: the chapter or the whole book set as it will be printed (a 120×188 mm book or an A4 page), on the
+/// reading engine's pages, as spreads. The book's open conversations are drawn on their passages; selecting marks a
+/// new one, tapping a mark opens it, and a double click goes back to writing at that place.
 @MainActor
 @Observable
 final class ReviewModel {
@@ -15,63 +16,50 @@ final class ReviewModel {
     var scope = Scope(rawValue: UserDefaults.standard.string(forKey: "reviewScope") ?? "") ?? .chapter {
         didSet { UserDefaults.standard.set(scope.rawValue, forKey: "reviewScope") }
     }
-    var style = UserDefaults.standard.string(forKey: "reviewStyle") ?? "blanche" {
+    var style = Typesetting.style(UserDefaults.standard.string(forKey: "reviewStyle") ?? "book") {
         didSet { UserDefaults.standard.set(style, forKey: "reviewStyle") }
     }
-    var document: PDFDocument?
-    var markers: [TypstRunner.Marker] = []
-    var building = false
+    /// The pages, once there is something to set.
+    private(set) var reader: ReaderModel?
     var error: String?
-    var seconds: Double?
-    @ObservationIgnored private var lastKey: String?
+    /// The chapters' texts as composed: marks are placed in these.
+    @ObservationIgnored private(set) var texts: [String: String] = [:]
 
-    func build(session: BookSession, force: Bool = false) async {
+    var building: Bool { reader?.composing ?? false }
+
+    func build(session: BookSession) {
         session.flushSave()
+        let m = session.manifest
         let chapters: [ChapterEntry] = scope == .chapter
             ? [session.selectedChapter].compactMap { $0 }
-            : session.manifest.chapters.filter { !$0.excludeFromExport }
-        let texts = chapters.map { (id: $0.id, text: session.editorIsBook($0.id) ? session.text : ParagraphCodec.decode(session.chapterText($0))) }
-        let key = "\(scope.rawValue)|\(style)|\(session.manifest.sceneBreak?.rawValue ?? "")|\(String(describing: session.manifest.front))|\(String(describing: session.manifest.partOpenings.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value.numeral)\($0.value.title)" }))|" + PangramClient.sha(texts.map { $0.id + $0.text }.joined())
-        guard force || key != lastKey || document == nil else { return }
-        let m = session.manifest
-        let layout = TypstLayout(style: style, geometry: nil, fontSize: nil, crop: false, numbered: true, titlePage: false)
-        let pages = TypstMarkup.specialPages(m, coverImage: nil)
-        let source = TypstMarkup.document(title: m.title, author: m.author, contact: nil, lang: m.lang, layout: layout,
-                                          chapters: CitationPages.apply(to: texts, root: session.root, lang: m.lang), markers: true, sceneBreak: m.sceneBreak ?? .none,
-                                          front: scope == .book ? pages.front : "", back: scope == .book ? pages.back : "",
-                                          parts: scope == .book ? m.partOpenings : [:])
-        building = true
+            : m.chapters.filter { !$0.excludeFromExport }
+        guard !chapters.isEmpty else { return }
+        guard let template = try? Typesetting.template() else { error = "musset.typ is not in the app."; return }
+        let list = m.typesetChapters(chapters.map { (id: $0.id, text: session.editorText(of: $0.id)) }, groups: scope == .book)
+        texts = Dictionary(list.map { ($0.id, $0.markdown) }, uniquingKeysWith: { a, _ in a })
+        let source = BookSource(chapters: list, template: template, style: style, title: m.title, author: m.author, lang: m.lang,
+                                layout: PageLayout(numbered: true, titlePage: false), sceneBreak: m.sceneBreak?.rawValue,
+                                pages: scope == .book ? Typesetting.pages(m, coverImage: nil) : SpecialPages(),
+                                fontDirectories: Typesetting.fonts(bookRoot: session.root), resourceDirectory: session.root, form: m.typesetForm, text: m.typesetText)
         error = nil
-        let start = Date()
-        do {
-            try session.store.ensureMussetDir()
-            let dir = session.root.appendingPathComponent(".musset/typst/review", isDirectory: true)
-            let main = try TypstRunner.prepare(dir: dir, source: source, bookRoot: session.root)
-            let pdf = dir.appendingPathComponent("review.pdf")
-            async let compiled: Void = TypstRunner.compile(main: main, output: pdf, bookRoot: session.root)
-            async let found = TypstRunner.markers(main: main, bookRoot: session.root)
-            try await compiled
-            markers = try await found
-            if let data = try? Data(contentsOf: pdf) { document = PDFDocument(data: data) }
-            lastKey = key
-            seconds = Date().timeIntervalSince(start)
-        } catch {
-            self.error = error.localizedDescription
+        if let reader {
+            reader.source = source
+        } else {
+            let r = ReaderModel(source: source)
+            r.fit = .print
+            r.strings = .musset
+            reader = r
         }
-        building = false
     }
 
-    /// The paragraph at a page position (page index from 0, y in points from the top).
-    func marker(page: Int, y: Double) -> TypstRunner.Marker? {
-        let onPage = markers.filter { $0.page == page + 1 }
-        if let m = onPage.last(where: { $0.y <= y + 2 }) { return m }
-        if let m = onPage.first { return m }
-        return markers.last { $0.page <= page + 1 }
-    }
-
-    /// Where a text offset of a chapter landed.
-    func position(chapter: String, offset: Int) -> TypstRunner.Marker? {
-        markers.last { $0.ch == chapter && $0.off <= offset } ?? markers.first { $0.ch == chapter }
+    /// The open conversations on the pages, where their passages stand now.
+    func showConversations(_ session: BookSession) {
+        guard let reader else { return }
+        let collab = Collab.shared
+        let name = { (u: String) in u == collab.username ? L("You") : collab.circle.first { $0.username == u }?.name ?? u }
+        let marks = session.talk.threads.filter { !$0.isResolved }.compactMap { t in texts[t.chapter].flatMap { t.pageMark(in: $0, name: name) } }
+        if marks != reader.marks { reader.marks = marks }
+        reader.ownInk = collab.username.map(Person.ink)
     }
 }
 
@@ -80,29 +68,29 @@ struct ReviewView: View {
     let session: BookSession
     let model: ReviewModel
     let bridge: EditorBridge
-    /// Beside the editor: re-typesets after a pause in typing and follows the caret.
+    /// Beside the editor: sets the pages again after a pause in typing and follows the caret.
     var sideBySide = false
 
     var body: some View {
         VStack(spacing: 0) {
-            if let doc = model.document {
-                ReviewPDF(document: doc, focus: focusPage, onDoubleClick: jump)
+            if let reader = model.reader {
+                PageView(model: reader, showsThumbnails: !sideBySide)
             } else {
-                VStack(spacing: 10) {
-                    if model.building { ProgressView(); Text(L("Typesetting…")).foregroundStyle(.secondary) }
-                    else if model.error == nil { Text(L("Nothing to show yet.")).foregroundStyle(.secondary) }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text(L("Nothing to show yet.")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             bar
         }
         .background(Color(nsColor: .underPageBackgroundColor))
         .task(id: buildKey) {
-            // Beside the editor, wait for a pause in typing before typesetting again.
-            if sideBySide && model.document != nil { try? await Task.sleep(nanoseconds: 900_000_000) }
+            // Beside the editor, wait for a pause in typing before setting the pages again.
+            if sideBySide && model.reader != nil { try? await Task.sleep(nanoseconds: 900_000_000) }
             guard !Task.isCancelled else { return }
-            await model.build(session: session)
+            model.build(session: session)
+            wire()
+            follow()
         }
+        .onChange(of: session.talk.threads) { _, _ in model.showConversations(session) }
+        .onChange(of: focusKey) { _, _ in if sideBySide { follow() } }
     }
 
     /// One bar under the pages: what to typeset, with which template, where you are, and export.
@@ -111,33 +99,27 @@ struct ReviewView: View {
             Segmented(options: ReviewModel.Scope.allCases.map { ($0, $0.label) },
                       selection: Binding(get: { model.scope }, set: { model.scope = $0 }))
                 .frame(width: 150).layoutPriority(1)
-            PopMenu([PopItem(title: "Blanche", checked: model.style == "blanche") { model.style = "blanche" },
-                     PopItem(title: "Classique", checked: model.style == "classique") { model.style = "classique" }]) {
-                (Text(model.style == "blanche" ? "Blanche" : "Classique") + Text("  ") + Text(Image(systemName: "chevron.down")).font(.ui(9)))
+            PopMenu([PopItem(title: L("Book 120×188 mm"), checked: model.style == "book") { model.style = "book" },
+                     PopItem(title: L("A4 page"), checked: model.style == "fullpage") { model.style = "fullpage" }]) {
+                (Text(model.style == "book" ? L("Book 120×188 mm") : L("A4 page")) + Text("  ") + Text(Image(systemName: "chevron.down")).font(.ui(9)))
                     .lineLimit(1).fixedSize()
                     .padding(.horizontal, 10).frame(height: 26)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ink.hairline))
+                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.row))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.hairline))
             }
             if model.building { ProgressView().controlSize(.small) }
-            if let e = model.error { Text(e).foregroundStyle(.red).lineLimit(2).textSelection(.enabled) }
+            if let e = model.error ?? model.reader?.error { Text(e).foregroundStyle(Ink.error).lineLimit(2).textSelection(.enabled) }
             Spacer()
-            if let s = model.seconds, !model.building {
-                let pages = Text(L("\(model.document?.pageCount ?? 0) pages")).monospacedDigit()
-                let time = Text(L("typeset in ") + String(format: "%.1f", s).replacingOccurrences(of: ".", with: UILang.locale.decimalSeparator ?? ".") + " s")
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { pages; time.foregroundStyle(.tertiary) }.fixedSize()
-                    pages.fixedSize()
-                    EmptyView()
-                }
+            if let reader = model.reader, reader.book != nil {
+                Text(reader.pageLabel).monospacedDigit().lineLimit(1).fixedSize()
+                Toggle(isOn: Binding(get: { reader.theme.isNight }, set: { reader.theme = $0 ? .night : .day })) { Image(systemName: "moon") }
+                    .toggleStyle(.button).buttonStyle(.plain).help(L("Night"))
             }
-            Button { Task { await model.build(session: session, force: true) } } label: { Image(systemName: "arrow.clockwise") }
-                .buttonStyle(.plain).foregroundStyle(.secondary).help(L("Typeset again"))
             Button { app.showExport = true } label: {
                 Text(L("Export…")).font(.ui(12, .medium)).lineLimit(1).fixedSize()
                     .foregroundStyle(Color(nsColor: .textBackgroundColor))
                     .padding(.horizontal, 12).frame(height: 26)
-                    .background(Color.primary, in: RoundedRectangle(cornerRadius: 6))
+                    .background(Color.primary, in: RoundedRectangle(cornerRadius: Radius.row))
             }
             .buttonStyle(.plain)
             if !sideBySide {
@@ -154,97 +136,42 @@ struct ReviewView: View {
         "\(model.scope.rawValue)|\(model.style)|\(session.selectedChapterID ?? "")" + (sideBySide ? "|\(session.text.hashValue)" : "")
     }
 
-    /// The page holding the caret's paragraph: reading starts, and beside the editor stays, where you are writing.
-    private var focusPage: Int? {
-        guard let ch = session.selectedChapterID else { return nil }
-        let caret = sideBySide ? bridge.selectedRange.location : session.savedSelection
-        return model.position(chapter: ch, offset: caret).map { $0.page - 1 }
+    private var focusKey: Int { sideBySide ? bridge.selectedRange.location : session.savedSelection }
+
+    /// The pages open where you are writing, and beside the editor stay there.
+    private func follow() {
+        guard let ch = session.selectedChapterID else { return }
+        model.reader?.go(to: PageAnchor(chapter: ch, offset: focusKey))
     }
 
-    private func jump(page: Int, y: Double) {
-        guard let m = model.marker(page: page, y: y) else { return }
+    /// What the pages ask of the book: a new conversation, an open one, the place to write at.
+    private func wire() {
+        guard let reader = model.reader else { return }
+        model.showConversations(session)
+        let shared = Collab.shared.link(session.git) != nil
+        reader.onAction = shared ? { [weak session] action, sel in
+            guard let session else { return }
+            if session.selectedChapterID != sel.chapter { session.open(sel.chapter) }
+            let (kind, body) = action.talk
+            let me = Collab.shared.username ?? ""
+            session.startTalk(on: NSRange(location: sel.range.lowerBound, length: sel.range.count), body: body, mark: kind,
+                              color: Person.palette.firstIndex(of: Person.color(me)) ?? 0, tone: nil)
+        } : nil
+        reader.onOpen = { [weak app, weak session] mark in
+            guard let app, let session, let t = session.talk.threads.first(where: { $0.id.uuidString == mark.id }) else { return }
+            go(to: t.chapter, NSRange(location: mark.range.lowerBound, length: mark.range.count), app: app, session: session)
+            app.inspectorTab = .edits
+            app.showInspector = true
+        }
+        reader.onDoubleTap = { [weak app, weak session] place in
+            guard let app, let session else { return }
+            go(to: place.chapter, NSRange(location: place.offset, length: 0), app: app, session: session)
+        }
+    }
+
+    private func go(to chapter: String, _ range: NSRange, app: AppState, session: BookSession) {
         if !sideBySide { app.reviewMode = false }
-        if m.ch != session.selectedChapterID { session.open(m.ch) }
-        session.pendingSelection = NSRange(location: m.off, length: 0)
-    }
-}
-
-/// PDFKit spread view with double-click → (page, y from top).
-struct ReviewPDF: NSViewRepresentable {
-    let document: PDFDocument
-    let focus: Int?
-    let onDoubleClick: (Int, Double) -> Void
-
-    func makeNSView(context: Context) -> ClickablePDFView {
-        let v = ClickablePDFView()
-        v.displayMode = .singlePageContinuous
-        v.displaysAsBook = false
-        v.displaysPageBreaks = true
-        v.autoScales = false
-        v.backgroundColor = .underPageBackgroundColor
-        v.onDoubleClick = onDoubleClick
-        return v
-    }
-
-    func updateNSView(_ v: ClickablePDFView, context: Context) {
-        v.onDoubleClick = onDoubleClick
-        let c = context.coordinator
-        if v.document !== document {
-            // Keep the page being read when the document is re-typeset.
-            let reading = v.currentPage.flatMap { v.document?.index(for: $0) }
-            v.document = document
-            v.fitPages(force: true)
-            if let reading, c.focus == focus, let page = document.page(at: min(reading, document.pageCount - 1)) { v.go(to: page) }
-        }
-        if focus != c.focus, let focus, let page = document.page(at: max(0, min(focus, document.pageCount - 1))) {
-            c.focus = focus
-            if v.currentPage !== page { v.go(to: page) }
-        }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    final class Coordinator {
-        var focus: Int?
-    }
-}
-
-final class ClickablePDFView: PDFView {
-    var onDoubleClick: ((Int, Double) -> Void)?
-    private var fittedSize: NSSize = .zero
-
-    /// One whole page at a time, never cropped: the largest scale at which a page fits the view.
-    static func fit(page: NSSize, in view: NSSize, padding: CGFloat = 24) -> CGFloat {
-        let w = view.width - padding * 2, h = view.height - padding * 2
-        guard w > 0, h > 0, page.width > 0, page.height > 0 else { return 1 }
-        return min(h / page.height, w / page.width)
-    }
-
-    func fitPages(force: Bool = false) {
-        guard let page = document?.page(at: 0), force || bounds.size != fittedSize else { return }
-        fittedSize = bounds.size
-        let current = currentPage
-        let scale = Self.fit(page: page.bounds(for: .mediaBox).size, in: bounds.size)
-        if displayMode != .singlePageContinuous { displayMode = .singlePageContinuous }
-        autoScales = false
-        if abs(scaleFactor - scale) > 0.001 { scaleFactor = scale }
-        if let current { go(to: current) }
-    }
-
-    override func layout() {
-        super.layout()
-        fitPages()
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        if event.clickCount == 2, let doc = document {
-            let p = convert(event.locationInWindow, from: nil)
-            if let page = self.page(for: p, nearest: true) {
-                let inPage = convert(p, to: page)
-                let height = page.bounds(for: .mediaBox).height
-                onDoubleClick?(doc.index(for: page), Double(height - inPage.y))
-                return
-            }
-        }
-        super.mouseDown(with: event)
+        if chapter != session.selectedChapterID { session.open(chapter) }
+        session.pendingSelection = range
     }
 }

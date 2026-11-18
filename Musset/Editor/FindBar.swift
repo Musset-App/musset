@@ -88,8 +88,8 @@ struct FindBar: View {
                     .focused($fieldFocused)
                     .onSubmit { bridge.findNext(forward: !NSEvent.modifierFlags.contains(.shift)); fieldFocused = true }
                 Text(count).font(.ui(11)).monospacedDigit().foregroundStyle(.secondary).lineLimit(1).fixedSize()
-                icon("chevron.up", L("Previous (⇧⌘G)")) { bridge.findNext(forward: false) }.disabled(matches.isEmpty)
-                icon("chevron.down", L("Next (⌘G)")) { bridge.findNext() }.disabled(matches.isEmpty)
+                icon("chevron.up", AppCommand.hint(L("Previous"), "find.previous")) { bridge.findNext(forward: false) }.disabled(matches.isEmpty)
+                icon("chevron.down", AppCommand.hint(L("Next"), "find.next")) { bridge.findNext() }.disabled(matches.isEmpty)
                 Divider().frame(height: 14)
                 Button(L("Replace")) { bridge.findShowsReplace.toggle() }
                     .buttonStyle(.plain).font(.ui(12)).foregroundStyle(bridge.findShowsReplace ? Ink.accent : .secondary)

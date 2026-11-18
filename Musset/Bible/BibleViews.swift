@@ -1,15 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// What the Bible shows in place of the editor.
-enum BibleRoute: Hashable {
-    case folder(String)
-    case entry(String)
-}
-
 extension BookSession {
     /// Counts the sheets' names in the chapters. Called when the Bible is opened and when a sheet changes.
     func refreshBibleMentions() {
+        bible.setFoundAliases(keeper.facts.entities.mapValues(\.aliases))
         bible.refreshMentions(chapters: manifest.chapters.map { ($0.id, editorText(of: $0.id)) }, plot: plot)
     }
 
@@ -54,7 +49,7 @@ struct BibleSidebarSection: View {
     let app: AppState
     @Bindable var session: BookSession
     let bridge: EditorBridge
-    @State private var open: Set<String> = ["personnages"]
+    @State private var open: Set<String> = ["personnages", "personnages#main"]
     @State private var naming: Naming?
     @State private var name = ""
     @State private var deleting: String?
@@ -70,15 +65,21 @@ struct BibleSidebarSection: View {
         case folder(String, depth: Int)
         case entry(BibleEntry, depth: Int)
         case tag(PlotGrid.Tag, depth: Int)
+        /// Main, secondary or extras, inside Characters or Places: computed, not a folder.
+        case tier(folder: String, NameTier, count: Int, depth: Int)
 
         var id: String {
             switch self {
             case .folder(let path, _): "f|" + path
             case .entry(let e, _): "e|" + e.path
             case .tag(let t, _): "t|" + t.name
+            case .tier(let folder, let tier, _, _): "r|" + folder + "#" + tier.rawValue
             }
         }
     }
+
+    /// The folders whose sheets are grouped by how much they're in the book.
+    private static let tiered: Set<String> = ["personnages", "lieux"]
 
     private var bible: BibleModel { session.bible }
 
@@ -93,8 +94,23 @@ struct BibleSidebarSection: View {
                 out.append(.folder(folder, depth: depth))
                 guard open.contains(folder) else { continue }
                 walk(folder, depth: depth + 1)
-                out += bible.entries(in: folder).map { .entry($0, depth: depth + 1) }
-                if folder == "personnages" { out += bible.tagsWithoutSheet(session.plot).map { .tag($0, depth: depth + 1) } }
+                let tags = folder == "personnages" ? bible.tagsWithoutSheet(session.plot) : []
+                if Self.tiered.contains(folder) {
+                    let here = bible.entries(in: folder)
+                    let tracked = here.filter { BibleModel.trackedKinds.contains($0.kind) }
+                    for tier in NameTier.allCases {
+                        // Sheets and grid characters together, most present first, then by name: an order that holds.
+                        let rows: [(Int, String, Row)] = tracked.filter { bible.tier(of: $0) == tier }.map { (bible.presence($0.path), $0.title, .entry($0, depth: depth + 2)) }
+                            + tags.filter { bible.tier(of: $0) == tier }.map { (bible.presence(of: $0), $0.name, .tag($0, depth: depth + 2)) }
+                        guard !rows.isEmpty else { continue }
+                        out.append(.tier(folder: folder, tier, count: rows.count, depth: depth + 1))
+                        guard open.contains(folder + "#" + tier.rawValue) else { continue }
+                        out += rows.sorted { $0.0 != $1.0 ? $0.0 > $1.0 : $0.1.localizedCaseInsensitiveCompare($1.1) == .orderedAscending }.map(\.2)
+                    }
+                    out += here.filter { !BibleModel.trackedKinds.contains($0.kind) }.map { .entry($0, depth: depth + 1) }
+                } else {
+                    out += bible.entries(in: folder).map { .entry($0, depth: depth + 1) }
+                }
             }
         }
         walk("", depth: 0)
@@ -103,13 +119,43 @@ struct BibleSidebarSection: View {
 
     var body: some View {
         header
+        let sources = bible.entries.filter { $0.kind == .reference }.count
+        SidebarRowView(active: app.activeTab == .sources) {
+            Image(systemName: "books.vertical").font(.ui(11)).foregroundStyle(.tertiary).frame(width: 14)
+            Text(L("Sources")).lineLimit(1)
+            Spacer(minLength: 4)
+            if sources > 0 { Text("\(sources)").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary) }
+        }
+        .padding(.leading, 4)
+        .contentShape(Rectangle())
+        .onTapGesture { app.open(clicked: .sources) }
+        .rowButton(L("Sources"), selected: app.activeTab == .sources)
+        .contextMenu { OpenElsewhere(tab: .sources, app: app, session: session) }
+        .sidebarRow()
         ForEach(rows) { row in
             switch row {
             case .folder(let path, let depth): folderRow(path, depth: depth)
             case .entry(let e, let depth): entryRow(e, depth: depth)
             case .tag(let tag, let depth): tagRow(tag, depth: depth)
+            case .tier(let folder, let tier, let count, let depth): tierRow(folder, tier, count: count, depth: depth)
             }
         }
+    }
+
+    private func tierRow(_ folder: String, _ tier: NameTier, count: Int, depth: Int) -> some View {
+        let key = folder + "#" + tier.rawValue
+        return SidebarRowView(active: false) {
+            Image(systemName: open.contains(key) ? "chevron.down" : "chevron.right").font(.ui(8)).foregroundStyle(.tertiary).frame(width: 14, height: 20)
+            Text(tier.label).foregroundStyle(.secondary).lineLimit(1)
+            Spacer(minLength: 4)
+            Text("\(count)").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary)
+        }
+        .padding(.leading, CGFloat(depth) * 12)
+        .contentShape(Rectangle())
+        .onTapGesture { if open.contains(key) { open.remove(key) } else { open.insert(key) } }
+        .rowButton(tier.label)
+        .help(tier == .extra ? L("In one chapter only. They move up on their own the day they appear in a second.") : "")
+        .sidebarRow()
     }
 
     private func targeted(_ folder: String) -> Binding<Bool> {
@@ -123,22 +169,23 @@ struct BibleSidebarSection: View {
 
     private var header: some View {
         HStack {
-            Text("Bible").font(.ui(11, .medium)).foregroundStyle(.secondary)
+            Text(L("Bible")).font(.ui(11, .medium)).foregroundStyle(.secondary)
             Spacer()
             Menu {
                 newEntryButtons(in: nil)
+                Button(L("New board")) { newBoard() }
                 Divider()
-                Button(L("New folder…")) { ask(.newFolder(in: "")) }
+                Button(L("New Folder…")) { ask(.newFolder(in: "")) }
             } label: { Image(systemName: "plus").font(.ui(11)) }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help(L("New entry in the Bible"))
+            .help(L("New Sheet")).accessibilityLabel(L("New Sheet"))
         }
         .padding(.horizontal, 8).padding(.top, 12).padding(.bottom, 4)
-        .background { if target == "" { RoundedRectangle(cornerRadius: 6).fill(Ink.accent.opacity(0.12)) } }
+        .background { if target == "" { RoundedRectangle(cornerRadius: Radius.row).fill(Ink.accent.opacity(0.12)) } }
         .onDrop(of: [.text], isTargeted: targeted("")) { providers in
             receive(providers, in: "")
         }
-        .contextMenu { Button(L("New folder…")) { ask(.newFolder(in: "")) } }
+        .contextMenu { Button(L("New Folder…")) { ask(.newFolder(in: "")) } }
         .sidebarRow()
         .alert(naming.map(title) ?? "", isPresented: namingShown) {
             TextField(L("Name"), text: $name)
@@ -156,7 +203,7 @@ struct BibleSidebarSection: View {
     private func deleteFolder() {
         if let path = deleting, session.deleteBibleFolder(path) {
             open = open.filter { !BibleStore.isInside($0, path) }
-            if let route = app.bibleRoute, BibleStore.isInside(routePath(route), path) { app.bibleRoute = nil }
+            if let shown = app.activeTab?.biblePath, BibleStore.isInside(shown, path) { app.showChapter() }
         }
         deleting = nil
     }
@@ -166,7 +213,7 @@ struct BibleSidebarSection: View {
     private func folderRow(_ folder: String, depth: Int) -> some View {
         let system = BibleStore.isSystem(folder)
         let count = bible.entries(in: folder).count + (folder == "personnages" ? bible.tagsWithoutSheet(session.plot).count : 0)
-        return SidebarRowView(active: app.bibleRoute == .folder(folder)) {
+        return SidebarRowView(active: app.activeTab == .folder(folder)) {
             Button {
                 if open.contains(folder) { open.remove(folder) } else { open.insert(folder) }
             } label: {
@@ -184,9 +231,15 @@ struct BibleSidebarSection: View {
             if count > 0 { Text("\(count)").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary) }
         }
         .padding(.leading, CGFloat(depth) * 12)
-        .background { if target == folder { RoundedRectangle(cornerRadius: 6).fill(Ink.accent.opacity(0.12)) } }
+        .background { if target == folder { RoundedRectangle(cornerRadius: Radius.row).fill(Ink.accent.opacity(0.12)) } }
         .contentShape(Rectangle())
-        .onTapGesture { app.show(.folder(folder)) }
+        .onTapGesture { app.open(clicked: .folder(folder)) }
+        // One element for VoiceOver: pressing it opens the folder's page; unfolding it is one of its actions.
+        .rowButton(BibleStore.folderLabel(folder), selected: app.activeTab == .folder(folder))
+        .accessibilityAction(.default) { app.open(.folder(folder)) }
+        .accessibilityAction(named: open.contains(folder) ? L("Close folder") : L("Open folder")) {
+            if open.contains(folder) { open.remove(folder) } else { open.insert(folder) }
+        }
         .shelfDraggable(system ? nil : .folder(folder), title: BibleStore.folderLabel(folder))
         .onDrop(of: [.fileURL, .text], isTargeted: targeted(folder)) { providers in
             receive(providers, in: folder)
@@ -196,17 +249,20 @@ struct BibleSidebarSection: View {
     }
 
     private func entryRow(_ e: BibleEntry, depth: Int) -> some View {
-        SidebarRowView(active: app.bibleRoute == .entry(e.path)) {
+        SidebarRowView(active: app.activeTab == .sheet(e.path)) {
             Image(systemName: e.kind.icon).font(.ui(11)).foregroundStyle(.tertiary).frame(width: 14)
             Text(e.title).lineLimit(1).truncationMode(.tail)
             Spacer(minLength: 0)
         }
         .padding(.leading, CGFloat(depth) * 12 + 4)
         .contentShape(Rectangle())
-        .onTapGesture { app.show(.entry(e.path)) }
+        .onTapGesture { app.open(clicked: .sheet(e.path)) }
+        .rowButton(e.title, selected: app.activeTab == .sheet(e.path))
         .shelfDraggable(.sheet(e.path), title: e.title)
         .contextMenu {
-            Button(L("Open")) { app.show(.entry(e.path)) }
+            Button(L("Open")) { app.open(.sheet(e.path)) }
+            OpenElsewhere(tab: .sheet(e.path), app: app, session: session)
+            if BibleModel.trackedKinds.contains(e.kind) { Button(L("Rename…")) { app.renaming = .init(path: e.path) } }
             moveMenu(excluding: [e.folder]) { session.moveBibleEntry(e.path, toFolder: $0).map { moved(e.path, to: $0) } }
             Divider()
             Button(L("Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([bible.store.url(e.path)]) }
@@ -214,7 +270,7 @@ struct BibleSidebarSection: View {
             Divider()
             Button(L("Move to Trash"), role: .destructive) {
                 if e.isFile { try? bible.trash(e.path) } else { _ = session.drop([ShelfDrag.sheet(e.path).wire], on: .trash) }
-                if app.bibleRoute == .entry(e.path) { app.bibleRoute = nil }
+                if app.activeTab == .sheet(e.path) { app.showChapter() }
             }
         }
         .sidebarRow()
@@ -228,7 +284,8 @@ struct BibleSidebarSection: View {
         }
         .padding(.leading, CGFloat(depth) * 12 + 4)
         .contentShape(Rectangle())
-        .onTapGesture { if let e = try? bible.sheet(for: tag) { app.show(.entry(e.path)) } }
+        .onTapGesture { if let e = try? bible.sheet(for: tag) { app.open(.sheet(e.path)) } }
+        .rowButton(tag.name)
         .help(L("In the plot grid. Click to give it a sheet."))
         .sidebarRow()
     }
@@ -237,7 +294,10 @@ struct BibleSidebarSection: View {
 
     @ViewBuilder
     private func folderMenu(_ folder: String, system: Bool) -> some View {
+        OpenElsewhere(tab: .folder(folder), app: app, session: session)
+        Divider()
         Menu(L("New Sheet")) { newEntryButtons(in: folder) }
+        if folder == BibleKind.board.folder { Button(L("New board")) { newBoard() } }
         Button(L("New Folder…")) { ask(.newFolder(in: folder)) }
         Divider()
         Button(L("Rename…")) { ask(.rename(folder)) }.disabled(system)
@@ -278,8 +338,8 @@ struct BibleSidebarSection: View {
 
     private func title(_ n: Naming) -> String {
         switch n {
-        case .newFolder(let parent): parent.isEmpty ? L("New folder") : L("New folder in « \(BibleStore.folderLabel(parent)) »")
-        case .rename(let path): L("Rename « \(BibleStore.folderLabel(path)) »")
+        case .newFolder(let parent): parent.isEmpty ? L("New Folder…").titled : L("New folder in « \(BibleStore.folderLabel(parent)) »")
+        case .rename(let path): L("Rename « \(BibleStore.folderLabel(path)) »…").titled
         }
     }
 
@@ -307,21 +367,10 @@ struct BibleSidebarSection: View {
         return L("\(sheets) sheets go to the book’s Trash,") + " " + L("\(files) files and the folder to the Finder’s Trash.")
     }
 
-    /// Open folders and the page shown follow what moved.
+    /// Open folders follow what moved (the tabs are the session's to move).
     private func moved(_ old: String, to new: String) {
         open = Set(open.map { BookSession.retarget($0, from: old, to: new) })
         open.insert(BibleStore.parent(of: new))
-        switch app.bibleRoute {
-        case .folder(let p)?: app.bibleRoute = .folder(BookSession.retarget(p, from: old, to: new))
-        case .entry(let p)?: app.bibleRoute = .entry(BookSession.retarget(p, from: old, to: new))
-        case nil: break
-        }
-    }
-
-    private func routePath(_ route: BibleRoute) -> String {
-        switch route {
-        case .folder(let p), .entry(let p): p
-        }
     }
 
     /// Our own drags (sheets, folders) move inside the Bible; files from the Finder are brought in.
@@ -363,10 +412,18 @@ struct BibleSidebarSection: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    private func newBoard() {
+        if let e = try? bible.createBoard(L("New board")) {
+            open.insert(e.folder)
+            session.pendingCommit = true
+            app.open(.sheet(e.path))
+        }
+    }
+
     private func create(_ kind: BibleKind, in folder: String?) {
         if let e = try? bible.create(title: kind == .reference ? L("New reference") : kind.label, kind: kind, folder: folder) {
             open.insert(e.folder)
-            app.show(.entry(e.path))
+            app.open(.sheet(e.path))
         }
     }
 }
@@ -406,16 +463,48 @@ struct BibleFolderView: View {
         }
     }
 
+    @AppStorage("castAsBoard") private var asBoard = true
+    private var tiered: Bool { Self.tiered(folder) }
+    static func tiered(_ folder: String) -> Bool { folder == "personnages" || folder == "lieux" }
+    /// The folder shows the cast in columns, where names are dragged from one to another.
+    static func showsCast(_ folder: String) -> Bool {
+        tiered(folder) && (UserDefaults.standard.object(forKey: "castAsBoard") as? Bool ?? true)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(BibleStore.folderLabel(folder)).font(.system(size: 28, design: .serif))
-                if folder == "chutes" {
-                    Text(L("What you cut, and where from. Nothing is lost.")).foregroundStyle(.secondary)
-                }
-                Spacer()
-                TextField(L("Search"), text: $query).textFieldStyle(.roundedBorder).frame(width: 200)
+        if tiered && asBoard && query.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                header.padding(.horizontal, 44).padding(.top, 32)
+                CastBoard(app: app, session: session, folder: folder)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Ink.panel)
+        } else {
+            list
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(BibleStore.folderLabel(folder)).font(.system(size: 28, design: .serif))
+            if folder == "chutes" {
+                Text(L("What you cut, and where from. Nothing is lost.")).foregroundStyle(.secondary)
+            }
+            if tiered && asBoard {
+                Text(L("Arranged by how much they’re in the book. Drag a card to keep it in a column.")).font(.ui(12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if tiered {
+                Picker("", selection: $asBoard) { Text(L("Board")).tag(true); Text(L("List")).tag(false) }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+            }
+            TextField(L("Search"), text: $query).textFieldStyle(.roundedBorder).frame(width: 200)
+        }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
             if isDocuments { filters.padding(.top, 12) }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -429,7 +518,7 @@ struct BibleFolderView: View {
                         }
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
-                        .onTapGesture { app.show(.folder(sub)) }
+                        .onTapGesture { app.open(.folder(sub)) }
                         .overlay(alignment: .bottom) { Divider() }
                     }
                     ForEach(items) { row($0) }
@@ -444,7 +533,7 @@ struct BibleFolderView: View {
                         }
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
-                        .onTapGesture { if let e = try? bible.sheet(for: tag) { app.show(.entry(e.path)) } }
+                        .onTapGesture { if let e = try? bible.sheet(for: tag) { app.open(.sheet(e.path)) } }
                         .overlay(alignment: .bottom) { Divider() }
                     }
                 }
@@ -457,7 +546,7 @@ struct BibleFolderView: View {
         .padding(.horizontal, 44).padding(.top, 32).padding(.bottom, 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
-        .overlay { if dropping { RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.accent, lineWidth: 2).padding(8) } }
+        .overlay { if dropping { RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.accent, lineWidth: 2).padding(8) } }
         .dropDestination(for: URL.self, action: { urls, _ in
             Task { await bringIn(urls) }
             return true
@@ -485,7 +574,7 @@ struct BibleFolderView: View {
 
     private var empty: some View {
         Text(folder == "chutes"
-             ? L("Passages of a dozen words or more that you cut with ⌘X land here.")
+             ? L("Passages of a sentence or more that you cut or delete land here.")
              : L("Nothing yet. Drop a file here, or use + in the sidebar."))
             .foregroundStyle(.secondary).padding(.vertical, 20)
     }
@@ -499,15 +588,15 @@ struct BibleFolderView: View {
             }
             Spacer()
             if e.kind == .cut, e.meta["from"] != nil {
-                Button(L("Put back")) { app.leaveBookPages(); session.restore(e, bridge: bridge) }.buttonStyle(.inkSecondary)
+                Button(L("Put back in the chapter")) { app.showChapter(); session.restore(e, bridge: bridge) }.buttonStyle(.inkSecondary)
             }
             if e.kind == .reference, let key = e.meta["citekey"], session.selectedChapter != nil {
-                Button(L("Cite")) { app.leaveBookPages(); bridge.textView?.insertText("[@\(key)]", replacementRange: bridge.textView?.selectedRange() ?? NSRange()) }.buttonStyle(.inkSecondary)
+                Button(L("Cite")) { app.showChapter(); bridge.textView?.insertText("[@\(key)]", replacementRange: bridge.textView?.selectedRange() ?? NSRange()) }.buttonStyle(.inkSecondary)
             }
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
-        .onTapGesture { app.show(.entry(e.path)) }
+        .onTapGesture { app.open(.sheet(e.path)) }
         .overlay(alignment: .bottom) { Divider() }
     }
 
@@ -515,7 +604,7 @@ struct BibleFolderView: View {
         switch e.kind {
         case .cut:
             let from = session.manifest.chapters.first { $0.id == e.meta["from"] }?.title ?? ""
-            return L("Cut from ") + from + " · \(BookStore.wordCount(e.body)) " + L("words")
+            return L("Cut from \(from) · \(BookStore.wordCount(e.body)) words")
         case .web:
             return (e.meta["source"].flatMap { URL(string: $0)?.host } ?? "") + (e.meta["date"].map { " · " + $0.prefix(10) } ?? "")
         case .reference:
@@ -526,7 +615,7 @@ struct BibleFolderView: View {
             let n = bible.mentions[e.path]?.values.reduce(0, +) ?? 0
             return e.kind.label + (n > 0 ? " · \(n) " + L("mentions") : "")
         default:
-            if let linked = e.meta["linked"] { return L("Linked: ") + linked }
+            if let linked = e.meta["linked"] { return L("Linked: \(linked)") }
             return e.kind.label
         }
     }
@@ -535,8 +624,8 @@ struct BibleFolderView: View {
     @ViewBuilder private var unused: some View {
         let missing = References.missing(in: session)
         if !missing.isEmpty {
-            Text(L("Cited but with no reference: ") + missing.joined(separator: ", "))
-                .font(.ui(12)).foregroundStyle(.orange).padding(.top, 8)
+            Text(L("Cited but with no reference: \(missing.listed)"))
+                .font(.ui(12)).foregroundStyle(Ink.warning).padding(.top, 8)
         }
     }
 
@@ -598,24 +687,47 @@ struct BibleEntryView: View {
     private var bible: BibleModel { session.bible }
 
     var body: some View {
-        HStack(spacing: 0) {
-            if draft.isFile || draft.meta["linked"] != nil {
-                DocumentPreview(entry: draft, store: bible.store)
+        // In a narrow pane, what the book says goes under the sheet rather than beside it.
+        GeometryReader { geo in
+            let railWidth: CGFloat = BibleModel.trackedKinds.contains(draft.kind) ? 380 : 300
+            if geo.size.width >= railWidth + 420 {
+                HStack(spacing: 0) {
+                    main
+                    Divider()
+                    rail.frame(width: railWidth)
+                }
             } else {
-                sheet
+                VSplitView {
+                    main.frame(minHeight: 200)
+                    rail.frame(minHeight: 160)
+                }
             }
-            Divider()
-            rail.frame(width: 300)
         }
         .background(Color(nsColor: .textBackgroundColor))
         .onAppear { session.refreshBibleMentions() }
         .onDisappear { saveNow() }
     }
 
+    @ViewBuilder private var main: some View {
+        if draft.isFile || draft.meta["linked"] != nil {
+            DocumentPreview(entry: draft, store: bible.store)
+        } else {
+            sheet
+        }
+    }
+
     private var sheet: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text(draft.kind.label).font(.ui(12)).foregroundStyle(.secondary)
+                HStack {
+                    Text(draft.kind.label + (BibleModel.trackedKinds.contains(draft.kind) ? " · " + bible.tier(of: draft).label : ""))
+                        .font(.ui(12)).foregroundStyle(.secondary)
+                    Spacer()
+                    if BibleModel.trackedKinds.contains(draft.kind) {
+                        Button(L("Rename everywhere…")) { saveNow(); app.renaming = .init(path: draft.path) }
+                            .buttonStyle(.link).font(.ui(12))
+                    }
+                }
                 TextField("", text: $draft.title, onCommit: commitTitle)
                     .textFieldStyle(.plain).font(.system(size: 30, design: .serif))
                     .accessibilityLabel(L("Title"))
@@ -626,10 +738,17 @@ struct BibleEntryView: View {
                             draft.aliases = v.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                         }
                 }
+                if draft.kind == .place { PlaceMapSection(meta: $draft.meta, title: draft.title, save: saveNow) }
+                if [.character, .place, .biography].contains(draft.kind) {
+                    AttachmentsSection(draft: $draft, bible: bible, open: { app.open(.sheet($0)) }, save: saveNow)
+                }
                 if let source = draft.meta["source"], let url = URL(string: source) {
                     HStack(spacing: 10) {
                         Link(L("Open the original"), destination: url)
-                        if let date = draft.meta["date"] { Text(L("Copy of ") + date.prefix(10)).foregroundStyle(.secondary) }
+                        if let archive = draft.meta["archive"] {
+                            Button(L("Open the kept copy")) { NSWorkspace.shared.open(bible.store.url(archive)) }.buttonStyle(.link)
+                        }
+                        if let date = draft.meta["date"] { Text(L("Copy of \(date.prefix(10))")).foregroundStyle(.secondary) }
                     }
                 }
                 if draft.kind == .reference { referenceFields }
@@ -687,22 +806,24 @@ struct BibleEntryView: View {
         session.pendingCommit = true
     }
 
-    /// The sheet and its tag in the plot grid carry one name.
+    /// The sheet's title is its name in the plot grid too: the grid's tag follows when the sheet is saved.
     private func commitTitle() {
         let title = draft.title.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty, title != originalTitle else { return }
-        if session.plot.canonical(originalTitle, column: "characters") != nil {
-            session.plot.renameTag(session.plot.canonical(originalTitle, column: "characters") ?? originalTitle, to: title, column: "characters")
-            session.savePlot()
-        }
         originalTitle = title
+        let grid = session.plot
         saveNow()
+        if session.plot != grid { session.savePlot() }
     }
 
     private var rail: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if [.character, .place, .biography].contains(draft.kind) { presence }
+                if BibleModel.trackedKinds.contains(draft.kind) {
+                    BookSaysView(app: app, session: session, path: draft.path)
+                    presence
+                    appearsWith
+                }
                 if draft.isFile, let passages = keptPassages, !passages.isEmpty {
                     section(L("Kept passages")) {
                         Text(passages).font(.ui(12)).textSelection(.enabled)
@@ -711,13 +832,31 @@ struct BibleEntryView: View {
                 links
                 todos
                 if draft.kind == .cut, draft.meta["from"] != nil {
-                    Button(L("Put back in the chapter")) { app.leaveBookPages(); session.restore(draft, bridge: bridge) }.buttonStyle(.inkSecondary)
+                    Button(L("Put back in the chapter")) { app.showChapter(); session.restore(draft, bridge: bridge) }.buttonStyle(.inkSecondary)
                 }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Ink.side)
+    }
+
+    /// The other characters and places found in the same chapters, most shared first.
+    @ViewBuilder private var appearsWith: some View {
+        let mine = Set((bible.occurrences[draft.path] ?? [:]).keys)
+        let others = bible.entries.filter { $0.path != draft.path && BibleModel.trackedKinds.contains($0.kind) }
+            .map { ($0, mine.intersection((bible.occurrences[$0.path] ?? [:]).keys).count) }
+            .filter { $0.1 > 0 }.sorted { $0.1 > $1.1 }.prefix(6)
+        if !mine.isEmpty, !others.isEmpty {
+            section(L("Appears with")) {
+                ForEach(Array(others), id: \.0.path) { e, n in
+                    Button { app.open(.sheet(e.path)) } label: {
+                        HStack { Text(e.title); Spacer(); Text(session.words.count(n, .piece)).foregroundStyle(.tertiary) }.contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain).font(.ui(12))
+                }
+            }
+        }
     }
 
     private var keptPassages: String? { try? String(contentsOf: bible.store.url(draft.path + ".md"), encoding: .utf8) }
@@ -733,12 +872,12 @@ struct BibleEntryView: View {
         let counts = bible.mentions[draft.path] ?? [:]
         let chapters = session.manifest.chapters
         let peak = max(counts.values.max() ?? 1, 1)
-        let absent = chapters.enumerated().filter { counts[$0.element.id] == nil }.map { "\($0.offset + 1)" }
+        let absent = chapters.enumerated().filter { counts[$0.element.id] == nil }.map { session.manifest.pieceReference(at: $0.offset) }
         return section(L("In the book")) {
             HStack(alignment: .bottom, spacing: 2) {
                 ForEach(chapters) { ch in
                     let n = counts[ch.id] ?? 0
-                    Button { app.leaveBookPages(); session.open(ch.id) } label: {
+                    Button { app.showChapter(); session.open(ch.id) } label: {
                         RoundedRectangle(cornerRadius: 1.5).fill(n == 0 ? Ink.hairline : Ink.accent)
                             .frame(height: n == 0 ? 3 : 6 + 34 * CGFloat(n) / CGFloat(peak))
                             .frame(maxWidth: .infinity, alignment: .bottom)
@@ -750,7 +889,7 @@ struct BibleEntryView: View {
             .frame(height: 42, alignment: .bottom)
             let total = counts.values.reduce(0, +)
             Text(total == 0 ? L("Not mentioned yet")
-                 : "\(total) " + L("mentions") + (absent.isEmpty || absent.count == chapters.count ? "" : " · " + L("absent from ") + absent.prefix(8).joined(separator: ", ")))
+                 : "\(total) " + L("mentions") + (absent.isEmpty || absent.count == chapters.count ? "" : " · " + L("absent from \(absent.prefix(8).listed)")))
                 .font(.ui(12)).foregroundStyle(.secondary)
         }
     }
@@ -759,11 +898,11 @@ struct BibleEntryView: View {
         let out = BibleLinks.targets(in: draft.body)
         let chapters = session.manifest.chapters
         let linked: [(String, String, () -> Void)] = out.compactMap { name in
-            let f = PlotGrid.fold(name)
-            if let ch = chapters.first(where: { PlotGrid.fold($0.title) == f }) {
-                return (L("Chapter"), ch.title, { app.leaveBookPages(); session.open(ch.id) })
+            let f = Fold.name(name)
+            if let ch = chapters.first(where: { Fold.name($0.title) == f }) {
+                return (session.words.name(.piece), ch.title, { app.showChapter(); session.open(ch.id) })
             }
-            if let e = bible.entry(named: name) { return (e.kind.label, e.title, { app.show(.entry(e.path)) }) }
+            if let e = bible.entry(named: name) { return (e.kind.label, e.title, { app.open(.sheet(e.path)) }) }
             return nil
         }
         let back = bible.backlinks(to: draft)
@@ -771,7 +910,7 @@ struct BibleEntryView: View {
             if !linked.isEmpty || !back.isEmpty {
                 section(L("Linked to")) {
                     ForEach(Array(linked.enumerated()), id: \.offset) { _, l in linkRow(l.0, l.1, l.2) }
-                    ForEach(back) { e in linkRow(e.kind.label, e.title) { app.show(.entry(e.path)) } }
+                    ForEach(back) { e in linkRow(e.kind.label, e.title) { app.open(.sheet(e.path)) } }
                 }
             }
         }
@@ -789,9 +928,9 @@ struct BibleEntryView: View {
     }
 
     @ViewBuilder private var todos: some View {
-        let names = Set(draft.names.map(PlotGrid.fold))
+        let names = Set(draft.names.map(Fold.name))
         let mine = session.collectTodos().filter { t in
-            !t.done && (t.source == draft.title || names.contains { !$0.isEmpty && PlotGrid.fold(t.text).contains($0) })
+            !t.done && (t.source == draft.title || names.contains { !$0.isEmpty && Fold.name(t.text).contains($0) })
         }
         if !mine.isEmpty {
             section(L("To do")) {

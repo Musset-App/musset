@@ -11,10 +11,20 @@ extension EditorBridge {
             session.pendingSelection = target
         }
     }
+
+    /// Opens a section in the editor: its chapter, the caret at the end of its heading, in view.
+    func show(_ section: ChapterSection, chapter: String, session: BookSession) {
+        let target = NSRange(location: NSMaxRange(section.line), length: 0)
+        if chapter == session.selectedChapterID {
+            scroll(to: target)
+        } else {
+            session.open(chapter)
+            session.pendingSelection = target
+        }
+    }
 }
 
-/// The plot grid: every scene of the book in rows, the author's columns across, the word counts. It replaces the editor
-/// (⌘5). Cells are edited in place; the AI fills the columns it may, and only proposes changes to the author's cells.
+/// Overview ▸ Grid (⌘5): every scene of the book in rows, the author's columns across, the word counts. Cells are edited in place; the AI fills the columns it may, and only proposes changes to the author's cells.
 struct PlotGridView: View {
     let app: AppState
     @Bindable var session: BookSession
@@ -24,12 +34,15 @@ struct PlotGridView: View {
     @State private var renamingColumn: PlotGrid.Column?
     @State private var columnTitle = ""
     @State private var addingColumn = false
+    @State private var deletingColumn: PlotGrid.Column?
     /// The tag whose scenes stand out (the others fade).
     @State private var highlight: PlotGrid.Tag?
     @State private var showIndex = false
+    /// Chapters shown at once: enough for most books; a longer one shows the rest on request.
+    @State private var shownChapters = 60
 
     static let sceneWidth: CGFloat = 230
-    static let wordsWidth: CGFloat = 64
+    static let wordsWidth: CGFloat = 80
     static let statusWidth: CGFloat = 104
     static let cellWidth: CGFloat = 230
 
@@ -43,13 +56,17 @@ struct PlotGridView: View {
                     header
                     Divider()
                     ScrollView(.vertical) {
-                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                            ForEach(Array(session.manifest.chapters.enumerated()), id: \.element.id) { idx, ch in
+                        // Eager and bounded (a LazyVStack whose rows change height in place spun forever in the chat).
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(session.manifest.chapters.prefix(shownChapters).enumerated()), id: \.element.id) { idx, ch in
                                 chapterHeader(ch, idx)
                                 ForEach(session.scenes[ch.id] ?? []) { scene in
                                     row(ch, scene)
                                     Divider()
                                 }
+                            }
+                            if session.manifest.chapters.count > shownChapters {
+                                Button(L("Show more")) { shownChapters += 60 }.buttonStyle(.link).font(.ui(12)).padding(16)
                             }
                         }
                     }
@@ -57,7 +74,6 @@ struct PlotGridView: View {
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
-        .onExitCommand { withAnimation { app.showPlotGrid = false } }
         .sheet(isPresented: $showIndex) { TagIndexSheet(session: session) { tag in highlight = tag; showIndex = false } }
         .alert(L("Rename column"), isPresented: Binding(get: { renamingColumn != nil }, set: { if !$0 { renamingColumn = nil } })) {
             TextField(L("Title"), text: $columnTitle)
@@ -79,40 +95,44 @@ struct PlotGridView: View {
             }
             Button(L("Cancel"), role: .cancel) {}
         }
+        .confirmationDialog(deletingColumn.map { L("Delete the column « \($0.shownTitle) »?") } ?? "",
+                            isPresented: Binding(get: { deletingColumn != nil }, set: { if !$0 { deletingColumn = nil } })) {
+            Button(L("Delete Column…").titled, role: .destructive) {
+                if let c = deletingColumn { session.plot.columns.removeAll { $0 == c }; session.savePlot() }
+                deletingColumn = nil
+            }
+            Button(L("Cancel"), role: .cancel) { deletingColumn = nil }
+        } message: {
+            Text(L("What its cells hold is lost, in every scene."))
+        }
     }
 
     // MARK: Parts
 
     private var toolbar: some View {
         HStack(spacing: 10) {
-            Button { withAnimation { app.showPlotGrid = false } } label: {
-                HStack(spacing: 5) { Image(systemName: "chevron.left").font(.ui(10, .semibold)); Text(L("Write")) }
-            }
-            .buttonStyle(.plain).foregroundStyle(.secondary).help(L("Back to the editor (⌘5, Esc)"))
-            Text(L("Plot grid", ctx: "Grille")).fontWeight(.semibold)
             let scenes = session.manifest.chapters.reduce(0) { $0 + (session.scenes[$1.id]?.count ?? 0) }
-            Text("\(session.manifest.chapters.count) " + L("chapters") + " · \(scenes) " + L("scenes") + " · \(session.bookWordCount.ui) " + L("words"))
+            Text(session.words.count(session.manifest.chapters.count, .piece) + " · " + session.words.count(scenes, .scene) + " · " + session.bookCounts.label)
                 .foregroundStyle(.tertiary)
             Spacer()
             if let s = analyst.lastError ?? analyst.status {
                 if analyst.running { ProgressView().controlSize(.small) }
-                Text(s).font(.ui(11)).foregroundStyle(analyst.lastError != nil ? .orange : .secondary).lineLimit(1)
+                Text(s).font(.ui(11)).foregroundStyle(analyst.lastError != nil ? Ink.warning : .secondary).lineLimit(1)
                 if analyst.running { Button(L("Stop")) { analyst.stop() }.controlSize(.small) }
             }
             if let h = highlight {
                 let n = session.plot.scenes(with: h.name, in: h.column).count
                 HStack(spacing: 8) {
                     TagChip(tag: h.name, motif: h.column != "characters", selected: true)
-                    Text("\(n) " + (n == 1 ? L("scene") : L("scenes"))).font(.ui(12)).foregroundStyle(.secondary)
+                    Text(session.words.count(n, .scene)).font(.ui(12)).foregroundStyle(.secondary)
                     Button { highlight = nil } label: { Image(systemName: "xmark").font(.ui(9, .semibold)) }
                         .buttonStyle(.plain).foregroundStyle(.secondary).help(L("Clear"))
                 }
                 .padding(.leading, 4).padding(.trailing, 8).frame(height: 28)
-                .background(Ink.panel, in: RoundedRectangle(cornerRadius: 7))
+                .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
             }
             Button { showIndex = true } label: {
-                Text(L("Index")).font(.ui(12)).padding(.horizontal, 10).frame(height: 28)
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline)).contentShape(Rectangle())
+                Text(L("Index")).toolbarButton()
             }
             .buttonStyle(.plain)
                 .help(L("The book's characters and motifs: one name each, used as tags in the grid"))
@@ -123,10 +143,8 @@ struct PlotGridView: View {
                         PopItem(title: L("Rebuild from the whole book")) { analyst.update(session, engine: engine, rebuild: true) },
                     ])
                 }) {
-                    HStack(spacing: 6) { Image(systemName: "sparkles").font(.ui(10)); Text(L("Update")).font(.ui(12, .medium)) }
-                        .foregroundStyle(Color(nsColor: .textBackgroundColor))
-                        .padding(.horizontal, 10).frame(height: 28)
-                        .background(Color.primary, in: RoundedRectangle(cornerRadius: 7))
+                    HStack(spacing: 6) { Image(systemName: "sparkles").font(.ui(10)); Text(L("Update")) }
+                        .toolbarButton(.filled)
                 }
                 .disabled(analyst.running)
                 .help(L("Update: the AI reads the scenes changed since its last reading (orange dot). Rebuild: it first reads the whole book to rebuild the index of characters and motifs, then fills every scene. Your cells are never overwritten."))
@@ -140,9 +158,9 @@ struct PlotGridView: View {
 
     private var header: some View {
         HStack(spacing: 0) {
-            headerCell(L("Scene"), width: Self.sceneWidth, leading: 16)
-            headerCell(L("Words"), width: Self.wordsWidth)
-            headerCell(L("Status", ctx: "Statut"), width: Self.statusWidth)
+            headerCell(session.words.name(.scene), width: Self.sceneWidth, leading: 16)
+            headerCell(CountUnit.current.heading, width: Self.wordsWidth)
+            headerCell(L("Status"), width: Self.statusWidth)
             ForEach(session.plot.columns) { c in
                 headerCell(c.shownTitle, width: Self.cellWidth, ai: c.ai)
                     .contextMenu {
@@ -153,9 +171,7 @@ struct PlotGridView: View {
                         Button(L("Move Left")) { move(c, by: -1) }.disabled(session.plot.columns.first == c)
                         Button(L("Move Right")) { move(c, by: 1) }.disabled(session.plot.columns.last == c)
                         Divider()
-                        Button(L("Delete Column"), role: .destructive) {
-                            session.plot.columns.removeAll { $0 == c }; session.savePlot()
-                        }
+                        Button(L("Delete Column…"), role: .destructive) { deletingColumn = c }
                     }
             }
         }
@@ -172,9 +188,10 @@ struct PlotGridView: View {
 
     private func chapterHeader(_ ch: ChapterEntry, _ idx: Int) -> some View {
         HStack(spacing: 8) {
-            Text("\(idx)").font(.uiMono(12)).foregroundStyle(.tertiary)
-            Text(ch.title).font(.ui(13, .semibold)).lineLimit(1)
-            Text((session.chapterWords[ch.id] ?? 0).ui).font(.ui(12)).foregroundStyle(.tertiary)
+            let mark = session.manifest.pieceMark(at: idx)
+            if !mark.isEmpty { Text(mark).font(.uiMono(12)).foregroundStyle(.tertiary) }
+            Text(session.manifest.shownTitle(of: ch)).font(.ui(13, .semibold)).lineLimit(1)
+            Text((session.chapterCounts[ch.id]?.size ?? 0).ui).font(.ui(12)).foregroundStyle(.tertiary)
             if AIStatus.shared.isOn {
                 Menu {
                     ForEach(AIStatus.shared.engines) { engine in
@@ -191,7 +208,7 @@ struct PlotGridView: View {
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .disabled(analyst.running)
             }
-            ChapterSynopsisField(session: session, chapter: ch.id, placeholder: L("Chapter synopsis"))
+            ChapterSynopsisField(session: session, chapter: ch.id)
                 .font(.ui(12))
         }
         .padding(.horizontal, 24).padding(.top, 18).padding(.bottom, 6)
@@ -204,11 +221,11 @@ struct PlotGridView: View {
         let row = session.plot.row(ch.id, scene.key)
         let lit = highlight.map { h in (row.cells[h.column]?.tags ?? []).contains(h.name) }
         return HStack(alignment: .top, spacing: 0) {
-            Button { withAnimation { app.showPlotGrid = false }; bridge.show(scene, chapter: ch.id, session: session) } label: {
+            Button { withAnimation { if app.activeTab?.overview != nil { app.showChapter() } }; bridge.show(scene, chapter: ch.id, session: session) } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Circle().fill(stale ? Color.orange : Color.clear).frame(width: 6, height: 6)
+                    Circle().fill(stale ? Ink.warning : Color.clear).frame(width: 6, height: 6)
                         .help(read == nil ? L("Not read by the AI yet") : L("Changed since the AI's last reading"))
-                    Text(scene.title ?? (scene.marker == nil && (session.scenes[ch.id]?.count ?? 0) == 1 ? L("Whole chapter", ctx: "Tout le chapitre") : L("Opening")))
+                    Text(scene.title ?? (scene.marker == nil && (session.scenes[ch.id]?.count ?? 0) == 1 ? session.words.wholePiece : L("Opening")))
                         .foregroundStyle(scene.title == nil ? .secondary : .primary)
                         .multilineTextAlignment(.leading)
                 }
@@ -216,7 +233,7 @@ struct PlotGridView: View {
             .buttonStyle(.plain)
             .help(L("Open this scene in the editor"))
             .padding(8).frame(width: Self.sceneWidth, alignment: .leading)
-            Text(scene.words.ui).font(.ui(12).monospacedDigit()).foregroundStyle(.secondary)
+            Text(scene.counts.size.ui).font(.ui(12).monospacedDigit()).foregroundStyle(.secondary)
                 .padding(8).frame(width: Self.wordsWidth, alignment: .trailing)
             let st = session.sceneStatus(ch.id, scene.key)
             PopMenu(ChapterStatus.allCases.map { s2 in PopItem(title: s2.label, checked: s2 == st, dot: s2.dot) { session.setSceneStatus(ch.id, scene.key, s2) } }) {
@@ -229,7 +246,7 @@ struct PlotGridView: View {
             }
         }
         .opacity(lit == false ? 0.28 : 1)
-        .background(lit == true ? Color.accentColor.opacity(0.06) : .clear)
+        .background(lit == true ? Ink.accent.opacity(0.06) : .clear)
     }
 
     private func move(_ c: PlotGrid.Column, by delta: Int) {
@@ -277,7 +294,7 @@ struct PlotCellView: View {
                     .buttonStyle(.link).font(.ui(11))
                 }
                 .padding(6)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 5))
+                .background(Ink.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.row))
                 .help(L("The AI thinks the scene no longer matches your cell"))
             }
         }
@@ -286,7 +303,7 @@ struct PlotCellView: View {
         .onChange(of: cell.text) { _, t in if !focused { draft = t } }
         .onChange(of: focused) { _, f in if !f { commit() } }
         .onDisappear(perform: commit)
-        .alert(motif ? L("New motif") : L("New character"), isPresented: $addingTag) {
+        .alert(motif ? L("New Motif…").titled : L("New Character…").titled, isPresented: $addingTag) {
             TextField(L("Name"), text: $newTag)
             Button(L("Add")) { addTag(newTag) }
             Button(L("Cancel"), role: .cancel) {}
@@ -328,11 +345,12 @@ struct PlotCellView: View {
     private func addTag(_ name: String) {
         let n = name.trimmingCharacters(in: .whitespaces)
         guard !n.isEmpty else { return }
-        let tag = session.plot.canonical(n, column: column.id) ?? n
         if session.plot.canonical(n, column: column.id) == nil {
             session.plot.index = session.plot.tags + [.init(name: n, column: column.id)]
+            // A name the Bible has a sheet for is that sheet from the start.
+            session.bindPlot()
         }
-        setTags((cell.tags ?? []) + [tag])
+        setTags((cell.tags ?? []) + [session.plot.canonical(n, column: column.id) ?? n])
     }
 
     private func setTags(_ t: [String]) {
@@ -366,20 +384,21 @@ struct PlotCellView: View {
     }
 }
 
-/// What a chapter accomplishes, shared by the Plan tab and the grid. Saved when the field loses focus.
+/// What a chapter is for: the one field for it, in Overview ▸ Synopsis, in the grid and in the Plan tab, each
+/// giving it its own type. Saved when the field loses focus; the others showing the same chapter follow.
 struct ChapterSynopsisField: View {
     @Bindable var session: BookSession
     let chapter: String
-    var placeholder: String
     @State private var draft = ""
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField(placeholder, text: $draft, axis: .vertical)
+        TextField(L("What this chapter is for"), text: $draft, axis: .vertical)
             .textFieldStyle(.plain)
             .focused($focused)
             .onAppear { draft = session.plot.chapterSynopsis(chapter) }
             .onChange(of: chapter) { old, new in save(old); draft = session.plot.chapterSynopsis(new) }
+            .onChange(of: session.plot.chapterSynopsis(chapter)) { _, kept in if !focused { draft = kept } }
             .onChange(of: focused) { _, f in if !f { save(chapter) } }
             .onDisappear { save(chapter) }
     }
@@ -402,7 +421,7 @@ struct TagChip: View {
 
     static func hue(_ s: String) -> Double {
         var h: UInt64 = 5381
-        for b in PlotGrid.fold(s).utf8 { h = (h &* 33) ^ UInt64(b) }
+        for b in Fold.name(s).utf8 { h = (h &* 33) ^ UInt64(b) }
         return Double(h % 360) / 360
     }
 
@@ -461,6 +480,7 @@ struct TagIndexSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var renaming: PlotGrid.Tag?
     @State private var newName = ""
+    @State private var deleting: PlotGrid.Tag?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -489,11 +509,21 @@ struct TagIndexSheet: View {
         .alert(L("Rename"), isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField(L("Name"), text: $newName)
             Button(L("Rename")) {
-                if let r = renaming { session.plot.renameTag(r.name, to: newName, column: r.column); session.savePlot() }
+                if let r = renaming { session.renameTag(r, to: newName) }
                 renaming = nil
             }
             Button(L("Cancel"), role: .cancel) { renaming = nil }
         } message: { Text(L("Give the name of another tag to merge the two.")) }
+        .confirmationDialog(deleting.map { L("Delete the tag « \($0.name) »?") } ?? "",
+                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+            Button(L("Delete"), role: .destructive) {
+                if let t = deleting { session.plot.deleteTag(t.name, column: t.column); session.savePlot() }
+                deleting = nil
+            }
+            Button(L("Cancel"), role: .cancel) { deleting = nil }
+        } message: {
+            Text(L("It is taken out of every scene that carries it."))
+        }
     }
 
     /// `kind` is the value the AI gave, kept as is in the book.
@@ -516,14 +546,14 @@ struct TagIndexSheet: View {
                         .help(L("Show its scenes in the grid"))
                     VStack(alignment: .leading, spacing: 1) {
                         if !tag.note.isEmpty { Text(tag.note).font(.ui(11)) }
-                        if !tag.aliases.isEmpty { Text(L("also: ") + tag.aliases.joined(separator: ", ")).font(.ui(10)).foregroundStyle(.tertiary) }
+                        if !tag.allAliases.isEmpty { Text(L("also: \(tag.allAliases.listed)")).font(.ui(10)).foregroundStyle(.tertiary) }
                     }
                     Spacer()
-                    Text("\(n)").font(.ui(11).monospacedDigit()).foregroundStyle(.secondary).help("\(n) " + (n == 1 ? L("scene") : L("scenes")))
+                    Text("\(n)").font(.ui(11).monospacedDigit()).foregroundStyle(.secondary).help(session.words.count(n, .scene))
                 }
                 .contextMenu {
                     Button(L("Rename or Merge…")) { newName = tag.name; renaming = tag }
-                    Button(L("Delete"), role: .destructive) { session.plot.deleteTag(tag.name, column: column); session.savePlot() }
+                    Button(L("Delete…"), role: .destructive) { deleting = tag }
                 }
             }
         }
@@ -539,21 +569,21 @@ struct ScenePlanSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(L("Scenes proposed by ") + planner.engine.label).font(.system(size: 22, design: .serif))
+            Text(L("Scenes proposed by \(planner.engine.label)")).font(.system(size: 22, design: .serif))
             Text(L("« \(session.selectedChapter?.title ?? "") »: each ticked scene gets a <!-- scene: … --> marker before its first paragraph. You can undo it in the editor (⌘Z)."))
                 .font(.ui(11)).foregroundStyle(.secondary)
             if planner.running {
                 HStack { ProgressView().controlSize(.small); Text(L("\(planner.engine.label) is reading the chapter…")).foregroundStyle(.secondary) }
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else if let e = planner.error {
-                Text(e).foregroundStyle(.orange)
+                Text(e).foregroundStyle(Ink.warning)
             } else {
                 List($planner.proposals) { $p in
                     HStack(alignment: .top) {
                         Toggle("", isOn: $p.include).labelsHidden()
                         VStack(alignment: .leading, spacing: 2) {
                             TextField(L("Title"), text: $p.title).textFieldStyle(.roundedBorder)
-                            Text("« \(p.start)… »").font(.ui(11)).italic().foregroundStyle(.secondary).lineLimit(2)
+                            Text(inQuotes("\(p.start)…")).font(.ui(11)).italic().foregroundStyle(.secondary).lineLimit(2)
                         }
                     }
                 }
@@ -562,7 +592,7 @@ struct ScenePlanSheet: View {
             HStack {
                 Spacer()
                 Button(L("Cancel")) { planner.showing = false; dismiss() }.buttonStyle(.inkSecondary)
-                Button(L("Insert ") + "\(planner.proposals.filter(\.include).count)" + L(" Markers")) {
+                Button(L("Insert \(planner.proposals.filter(\.include).count) Markers")) {
                     _ = planner.apply(session, bridge: bridge)
                     dismiss()
                 }

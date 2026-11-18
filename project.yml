@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: app.musset
   deploymentTarget:
     macOS: "14.0"
+    iOS: "17.0"
   createIntermediateGroups: true
 packages:
   libgit2:
@@ -10,6 +11,13 @@ packages:
     # no git on the Mac needed, and push/pull to a server later.
     url: https://github.com/ibrahimcetin/libgit2
     exactVersion: 1.9.2
+  Sparkle:
+    # Updates outside the App Store: the feed is musset.app/appcast.xml, each release signed with the project's key.
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.9.6
+  MussetPage:
+    # The reading engine (Packages/MussetPage, on musset-typeset): build it first with scripts/build-typeset.sh.
+    path: Packages/MussetPage
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -26,13 +34,23 @@ targets:
     platform: macOS
     sources:
       - path: Musset
+      - path: Shared
     dependencies:
       - package: libgit2
+      - package: MussetPage
+      - package: Sparkle
     info:
       path: Musset/Info.plist
       properties:
         CFBundleDisplayName: Musset
+        CFBundleURLTypes:
+          - CFBundleURLName: app.musset.Musset
+            CFBundleURLSchemes: [musset]
         LSApplicationCategoryType: public.app-category.productivity
+        SUFeedURL: https://musset.app/appcast.xml
+        SUPublicEDKey: phx1JTsVOh5nH2GAoIAtphMlSX0nu2a+wUfBQT44/YM=  # gitleaks:allow — a public key, safe to publish
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
         NSHumanReadableCopyright: ""
     settings:
       base:
@@ -42,18 +60,6 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:
-      - name: Bundle typst
-        basedOnDependencyAnalysis: false
-        script: |
-          # Ship the typst binary inside the app so reading mode and PDF export don't depend on Homebrew.
-          T="$(command -v typst || true)"
-          [ -z "$T" ] && [ -x /opt/homebrew/bin/typst ] && T=/opt/homebrew/bin/typst
-          if [ -n "$T" ]; then
-            mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
-            cp -fL "$T" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin/typst"
-          else
-            echo "warning: typst not found; reading mode and Typst export will look for it on PATH"
-          fi
       - name: Bundle pandoc
         basedOnDependencyAnalysis: false
         script: |
@@ -77,6 +83,57 @@ targets:
           else
             echo "warning: LanguageTool could not be prepared; proofreading will be off"
           fi
+  MussetReader:
+    # Musset Reader for iPhone and iPad: free, reading and annotating the books shared with you. No purchase inside.
+    type: application
+    platform: iOS
+    # Signing as for the Mac app: ad hoc by default; a team only in Local.xcconfig, never in the repository.
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: MussetReader
+      - path: Shared
+      - path: Musset/Resources/Localization
+        type: folder
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-Regular.otf
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-Italic.otf
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-SemiBold.otf
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-SemiBoldItalic.otf
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-Bold.otf
+        buildPhase: resources
+      - path: Musset/Resources/Fonts/EBGaramond-BoldItalic.otf
+        buildPhase: resources
+      # The book's template: the reading engine sets the pages as the printed book's.
+      - path: Musset/Resources/Typst/musset.typ
+        buildPhase: resources
+    dependencies:
+      - package: MussetPage
+    info:
+      path: MussetReader/Info.plist
+      properties:
+        CFBundleDisplayName: Musset Reader
+        UIAppFonts: [EBGaramond-Regular.otf, EBGaramond-Italic.otf]
+        CFBundleURLTypes:
+          - CFBundleURLName: app.musset.Reader
+            CFBundleURLSchemes: [musset]
+        UILaunchScreen: {}
+        UIBackgroundModes: [remote-notification]
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: MussetReader/MussetReader.entitlements
+      properties:
+        aps-environment: development
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.musset.Reader
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
   MussetTests:
     type: bundle.unit-test
     platform: macOS
@@ -89,6 +146,10 @@ targets:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Musset.app/Contents/MacOS/Musset"
         BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
+  MussetReader:
+    build:
+      targets:
+        MussetReader: all
   Musset:
     build:
       targets:

@@ -13,6 +13,22 @@ struct NoteAnchor: Codable, Hashable {
 }
 
 enum Anchoring {
+    /// The text as a pattern that forgives typography: straight or curly quotes, plain or non-breaking spaces.
+    static func tolerantRegex(_ text: String, wholeWords: Bool = true) -> NSRegularExpression? {
+        var pattern = ""
+        if wholeWords, text.first.map({ $0.isLetter || $0.isNumber }) == true { pattern += "(?<![\\p{L}\\p{N}])" }
+        for ch in text {
+            switch ch {
+            case "'", "’", "‘", "ʼ": pattern += "['’‘ʼ]"
+            case "\"", "“", "”": pattern += "[\"“”]"
+            case " ", "\u{00A0}", "\u{202F}": pattern += "[ \\u00A0\\u202F]+"
+            default: pattern += NSRegularExpression.escapedPattern(for: String(ch))
+            }
+        }
+        if wholeWords, text.last.map({ $0.isLetter || $0.isNumber }) == true { pattern += "(?![\\p{L}\\p{N}])" }
+        return try? NSRegularExpression(pattern: pattern)
+    }
+
     static let contextLength = 32
     /// Below this, a rewritten passage is considered gone.
     static let fuzzyThreshold = 0.7
@@ -36,7 +52,7 @@ enum Anchoring {
         if a.start >= 0, a.start + q.length <= ns.length, ns.substring(with: NSRange(location: a.start, length: q.length)) == a.quote {
             return NSRange(location: a.start, length: q.length)
         }
-        if let re = ProofFix.tolerantRegex(a.quote, wholeWords: false) {
+        if let re = tolerantRegex(a.quote, wholeWords: false) {
             let found = re.matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range)
             if let best = found.max(by: { score($0, a, ns) < score($1, a, ns) }) { return best }
         }

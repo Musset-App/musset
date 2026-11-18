@@ -63,7 +63,7 @@ struct MarkdownText: View {
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.row))
         case .rule:
             Divider()
         }

@@ -16,7 +16,7 @@ struct CheckersSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(L("Checkers")).font(.ui(17, .semibold))
+                Text(L("Checkers…").titled).font(.ui(17, .semibold))
                 Text(L("Your own writing rules, checked by the AI on the open chapter. It flags passages in the margin with the rule and a few leads; it never changes the text. The library is shared by all your books; tick the ones this book uses."))
                     .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
@@ -61,7 +61,7 @@ struct CheckersSheet: View {
                         }
                     }
                     if library.isEmpty && bookOnly.isEmpty {
-                        Text(L("No checker yet.")).font(.ui(12)).foregroundStyle(.secondary).padding(10)
+                        EmptyNote(L("No checker yet.")).padding(10)
                     }
                 }
                 .padding(8)
@@ -86,7 +86,7 @@ struct CheckersSheet: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(selected == c.id ? Ink.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(selected == c.id ? Ink.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
         .contentShape(Rectangle())
         .onTapGesture { save(); select(c.id) }
     }
@@ -104,8 +104,8 @@ struct CheckersSheet: View {
                     .font(.system(size: 12, design: .monospaced))
                     .scrollContentBackground(.hidden)
                     .padding(6)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ink.hairline))
+                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.row))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.hairline))
                 HStack {
                     Text(L("\(draft.rules.split(separator: "\n").count) lines") + " · " + (book.enabled.contains(draft.id) ? L("used by this book") : L("not used by this book")))
                         .font(.ui(11)).foregroundStyle(.tertiary)
@@ -144,7 +144,7 @@ struct CheckersSheet: View {
     private func duplicate() {
         save()
         guard selected != nil else { return }
-        let name = draft.name + L(" (copy)")
+        let name = L("\(draft.name) (copy)")
         let c = Checker(id: CheckerLibrary.newID(for: name), name: name, rules: draft.rules)
         try? CheckerLibrary.save(c)
         book.set(c, on: true)

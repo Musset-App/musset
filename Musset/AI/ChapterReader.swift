@@ -261,7 +261,7 @@ final class ChapterReader {
         // The same text, the same rubric, the same reader: the answer is the one already given.
         if !force, let same = earlier.last(where: { $0.agent == engine.rawValue && $0.model == model }), same.textHash == hash, same.baremeVersion == bareme.version, same.hasConcreteAdvice {
             lastError = nil
-            status = L("Text unchanged: the last reading still stands.")
+            status = L("Text unchanged: the last AI reading still stands.")
             return done(same, nil, .none)
         }
         let previousText = try? String(contentsOf: Reading.lastTextURL(session.root, chapter.id), encoding: .utf8)
@@ -298,7 +298,7 @@ final class ChapterReader {
             }
             let maluses = result.hits.map { ReadingCheck.maluses($0, bareme: bareme, text: text) }
             guard let total = Scoring.total(weights: bareme.weights, scores: result.scores, penalty: (maluses ?? []).reduce(0) { $0 + $1.points }) else {
-                self.lastError = L("No score could be verified in this reading.")
+                self.lastError = L("No score could be verified in this AI reading.")
                 return done(nil, nil, .none)
             }
             let ordered = bareme.chapter.compactMap { item in result.scores.first { $0.criterionId == item.criterionId } }

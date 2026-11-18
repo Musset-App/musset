@@ -37,7 +37,7 @@ struct GitService {
     func commit(paths: [String], message: String, merging: String? = nil) throws -> Bool {
         for _ in 0..<4 {
             do { return try commitOnce(paths: paths, message: message, merging: merging) }
-            catch let failure as Failure where failure.message.hasPrefix("could not find") || failure.message.contains("reading file for hashing") || failure.message.contains("file changed before") { Thread.sleep(forTimeInterval: 0.05) }
+            catch let failure as Failure where failure.message.hasPrefix("could not find") || failure.message.contains("reading file for hashing") || failure.message.contains("file changed before") || failure.message.contains("failed to read file into stream") { Thread.sleep(forTimeInterval: 0.05) }
         }
         return try commitOnce(paths: paths, message: message, merging: merging)
     }
@@ -183,12 +183,6 @@ struct GitService {
         } ?? nil
     }
 
-    /// Word diff of `path` between a commit and the working tree.
-    func wordDiff(from commit: String, path: String) -> String {
-        let now = (try? String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)) ?? ""
-        return Self.wordDiff(show(commit, path: path) ?? "", now)
-    }
-
     // MARK: Branches and remotes (for the collaboration server)
 
     /// The checked-out branch, nil when HEAD is detached or the repository has no commit yet.
@@ -223,7 +217,7 @@ struct GitService {
     /// A new branch at HEAD; the checked-out branch does not change.
     func createBranch(_ name: String) throws {
         try withRepo { repo in
-            guard let head = try headCommit(repo) else { throw Failure(message: L("The repository has no commit yet.")) }
+            guard let head = try headCommit(repo) else { throw Failure(message: L("This book’s history is still empty.")) }
             defer { git_commit_free(head) }
             var ref: OpaquePointer?
             try check(git_branch_create(&ref, repo, name, head, 0))
@@ -380,7 +374,13 @@ struct GitService {
         return "\(major).\(minor).\(rev)"
     }
 
-    static let start: Void = { _ = git_libgit2_init() }()
+    /// libgit2 writes to its sockets without guarding against SIGPIPE and leaves that to the application: a push or
+    /// fetch whose connection dies on a poor network would otherwise kill Musset outright, with no crash report.
+    /// Ignored, the write fails with EPIPE and the sync reports an error. The same holds for pipes to child processes.
+    static let start: Void = {
+        signal(SIGPIPE, SIG_IGN)
+        _ = git_libgit2_init()
+    }()
 
     func withRepo<T>(_ body: (OpaquePointer?) throws -> T) throws -> T {
         _ = Self.start
@@ -393,7 +393,7 @@ struct GitService {
     func check(_ code: Int32) throws {
         guard code < 0 else { return }
         var message = git_error_last().flatMap { $0.pointee.message.map { String(cString: $0) } } ?? ""
-        if message.isEmpty || code == GIT_ENONFASTFORWARD.rawValue { message = code == GIT_ENONFASTFORWARD.rawValue ? "non-fast-forward" : L("git error \(code)") }
+        if message.isEmpty || code == GIT_ENONFASTFORWARD.rawValue { message = code == GIT_ENONFASTFORWARD.rawValue ? "non-fast-forward" : L("History error \(code)") }
         throw Failure(message: message)
     }
 
@@ -456,76 +456,4 @@ private let credentialCallback: git_credential_acquire_cb = { out, _, _, _, payl
     creds.attempts += 1
     guard creds.attempts <= 2 else { return -1 }
     return git_credential_userpass_plaintext_new(out, creds.user, creds.token)
-}
-
-// MARK: Word diff
-
-extension GitService {
-    /// Word diff between two texts, in git's `--word-diff=plain` form: `[-removed-]{+added+}` inside the
-    /// new text, after a `@@` line. Words are runs of non-space characters. Empty when nothing changed.
-    static func wordDiff(_ a: String, _ b: String) -> String {
-        let old = Token.split(a), new = Token.split(b)
-        // Only the middle that differs goes through the diff: a chapter edit is usually small.
-        var head = 0
-        while head < old.count, head < new.count, old[head].word == new[head].word { head += 1 }
-        var tail = 0
-        while tail < old.count - head, tail < new.count - head, old[old.count - 1 - tail].word == new[new.count - 1 - tail].word { tail += 1 }
-        let diff = new[head..<(new.count - tail)].map(\.word).difference(from: old[head..<(old.count - tail)].map(\.word))
-        guard !diff.isEmpty else { return "" }
-        var removed = Set<Int>(), inserted = Set<Int>()
-        for change in diff {
-            switch change {
-            case .remove(let offset, _, _): removed.insert(head + offset)
-            case .insert(let offset, _, _): inserted.insert(head + offset)
-            }
-        }
-        var out = "@@ -1 +1 @@\n"
-        var i = 0, j = 0
-        var afterRemoval = false
-        while i < old.count || j < new.count {
-            if i < old.count, removed.contains(i) {
-                var run = old[i].space + "[-" + old[i].word
-                i += 1
-                while i < old.count, removed.contains(i) { run += old[i].space + old[i].word; i += 1 }
-                out += run + "-]"
-                afterRemoval = true
-            } else if j < new.count, inserted.contains(j) {
-                var run = (afterRemoval ? "" : new[j].space) + "{+" + new[j].word
-                j += 1
-                while j < new.count, inserted.contains(j) { run += new[j].space + new[j].word; j += 1 }
-                out += run + "+}"
-                afterRemoval = false
-            } else {
-                // After a removal at the very start, keep the space the old text had.
-                out += (afterRemoval && new[j].space.isEmpty ? old[i].space : new[j].space) + new[j].word
-                i += 1; j += 1
-                afterRemoval = false
-            }
-        }
-        out += Token.trailingSpace(b)
-        return out
-    }
-
-    /// A word and the whitespace before it.
-    private struct Token {
-        let space: String
-        let word: String
-
-        static func split(_ s: String) -> [Token] {
-            var out: [Token] = []
-            var space = "", word = ""
-            for c in s {
-                if c.isWhitespace {
-                    if !word.isEmpty { out.append(Token(space: space, word: word)); space = ""; word = "" }
-                    space.append(c)
-                } else {
-                    word.append(c)
-                }
-            }
-            if !word.isEmpty { out.append(Token(space: space, word: word)) }
-            return out
-        }
-
-        static func trailingSpace(_ s: String) -> String { String(s.reversed().prefix { $0.isWhitespace }.reversed()) }
-    }
 }

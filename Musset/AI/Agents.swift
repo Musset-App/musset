@@ -70,7 +70,7 @@ enum Agents {
                     let input = c["input"] as? [String: Any]
                     if name == "WebSearch", let q = input?["query"] as? String { out.append(.status(searching(q))); continue }
                     if name == "WebFetch", let u = (input?["url"] as? String).flatMap(URL.init(string:)) {
-                        out.append(.status(L("Reading ") + (u.host() ?? u.absoluteString))); continue
+                        out.append(.status(L("Reading \(u.host() ?? u.absoluteString)"))); continue
                     }
                     let target = (input?["file_path"] ?? input?["pattern"]) as? String ?? ""
                     out.append(.status("\(name) \((target as NSString).lastPathComponent)"))
@@ -106,7 +106,7 @@ enum Agents {
         }
     }
 
-    static func searching(_ query: String) -> String { L("Searching: ") + "« \(query.prefix(70)) »" }
+    static func searching(_ query: String) -> String { L("Searching: \(inQuotes(query.prefix(70)))") }
 
     static func json(_ line: String) -> [String: Any]? {
         guard let data = line.data(using: .utf8) else { return nil }

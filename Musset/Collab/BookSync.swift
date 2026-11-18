@@ -39,7 +39,19 @@ extension Collab {
             MainActor.assumeIsolated { if let s = app?.current { Collab.shared.sync(s) } }
         }
         Timer.scheduledTimer(withTimeInterval: 120, repeats: true) { [weak app] _ in
-            MainActor.assumeIsolated { if NSApp.isActive, let s = app?.current { Collab.shared.sync(s) } }
+            MainActor.assumeIsolated {
+                if NSApp.isActive, let s = app?.current { Collab.shared.sync(s) }
+                Task { await Collab.shared.refreshActivity() }
+            }
+        }
+        // A new writer (back from Stripe): the open book goes up now.
+        NotificationCenter.default.addObserver(forName: Collab.becameWriter, object: nil, queue: .main) { [weak app] _ in
+            MainActor.assumeIsolated { if let s = app?.current { Collab.shared.opened(s) } }
+        }
+        Task {
+            await refreshAccount()
+            await refreshCircle()
+            await refreshActivity()
         }
     }
 
@@ -47,9 +59,12 @@ extension Collab {
     func opened(_ session: BookSession) {
         guard signedIn else { sync = .off; return }
         Task {
-            if autoSync, !isLocalOnly(session), link(session.git) == nil, session.git.isRepo, session.store.hasManifest {
+            if account == nil { await refreshAccount() }
+            // Only a writer's books go online on their own; a free account's stay here, quietly.
+            if canSync, autoSync, !isLocalOnly(session), link(session.git) == nil, session.git.isRepo, session.store.hasManifest {
                 do { try await share(session) } catch { sync = .failed(error.localizedDescription); return }
             }
+            if link(session.git) == nil { sync = .off; return }
             if link(session.git) != nil, !isOwner(session.git) { try? await refreshRole(session.git) }
             await syncNow(session)
         }
@@ -61,10 +76,16 @@ extension Collab {
 
     /// One at a time per book: a request during a run makes one more run.
     func syncNow(_ session: BookSession, removed: [String] = []) async {
-        guard let creds = credentials, let l = link(session.git), role(session.git) != .editor else {
+        guard let creds = credentials, let l = link(session.git) else {
             if link(session.git) == nil || !signedIn { sync = .off }
             return
         }
+        // A reader or an editor: their own branch goes up (their notes and replies), the author's main comes down.
+        if role(session.git)?.reviews ?? false {
+            await syncReviewer(session, l, creds)
+            return
+        }
+        if !pendingNotices.isEmpty { await sendPendingNotices() }
         let key = session.root.path
         waitingRemovals[key, default: []] += removed
         guard !running.contains(key) else {
@@ -91,6 +112,27 @@ extension Collab {
         } while again.contains(key)
     }
 
+    /// Someone reading the book sends their conversation (their own branch) and receives the author's replies.
+    private func syncReviewer(_ session: BookSession, _ l: (remote: String, owner: String, repo: String), _ creds: GitService.Credentials) async {
+        let git = session.git
+        guard let user = username else { return }
+        sync = .working
+        do {
+            session.flushSave()
+            session.notes.save()
+            session.commitIfPending(message: "musset: notes by \(user)")
+            try await Task.detached { try git.fetch(l.remote, credentials: creds) }.value
+            let branch = Self.reviewBranch(user)
+            if git.currentBranch == branch {
+                try await Task.detached { try git.push(l.remote, refspecs: ["+refs/heads/\(branch):refs/heads/\(branch)"], credentials: creds) }.value
+            }
+            session.refreshTalk()
+            sync = .upToDate
+        } catch {
+            sync = Self.isOffline(error) ? .offline : .failed(error.localizedDescription)
+        }
+    }
+
     private nonisolated static func isOffline(_ error: Error) -> Bool {
         let m = error.localizedDescription.lowercased()
         return ["failed to connect", "failed to resolve", "could not resolve", "timed out", "network", "connection", "offline"].contains { m.contains($0) }
@@ -99,7 +141,7 @@ extension Collab {
     private func run(_ session: BookSession, _ l: (remote: String, owner: String, repo: String), _ creds: GitService.Credentials, removed: [String]) async throws -> SyncStatus {
         let git = session.git
         session.flushSave()
-        session.commitIfPending(message: "musset: edit \(session.selectedChapterID ?? "")")
+        session.commitIfPending(message: session.editMessage)
         if session.pendingCommit, session.piste == nil, let e = session.lastError { throw NSError(domain: "Musset.collab", code: 3, userInfo: [NSLocalizedDescriptionKey: e]) }
         try await Task.detached { try git.fetch(l.remote, credentials: creds) }.value
         let theirs = "\(l.remote)/main"
@@ -125,7 +167,8 @@ extension Collab {
             + session.jalons.map { "refs/tags/\($0.id):refs/tags/\($0.id)" } + removed.map { ":" + $0 }
         try await Task.detached { try git.push(l.remote, refspecs: refspecs, credentials: creds) }.value
         try await syncDocuments(session, l, creds)
-        if !held.isEmpty { return .failed(L("Track changed on two Macs: ") + held.joined(separator: ", ")) }
+        session.refreshTalk()
+        if !held.isEmpty { return .failed(L("Track changed on two Macs: \(held.listed)")) }
         return conflicts > 0 ? .corrections(conflicts) : .upToDate
     }
 

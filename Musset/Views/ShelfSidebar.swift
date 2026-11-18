@@ -5,11 +5,14 @@ extension View {
     @ViewBuilder
     func shelfDraggable(_ drag: ShelfDrag?, title: String) -> some View {
         if let drag {
-            draggable(drag.wire) {
+            onDrag {
+                PaneDragWatch.shared.began()
+                return NSItemProvider(object: drag.wire as NSString)
+            } preview: {
                 Text(title.components(separatedBy: "\n").first ?? title)
                     .font(.ui(12)).lineLimit(1).frame(maxWidth: 260, alignment: .leading)
                     .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Ink.panel, in: RoundedRectangle(cornerRadius: 6))
+                    .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.row))
             }
         } else {
             self
@@ -28,6 +31,7 @@ struct ShelfSection: View {
     @State private var overTrash = false
     @State private var previewing: UUID?
     @State private var confirmEmpty = false
+    @State private var deletingForGood: TrashItem?
 
     private static let rowHeight: CGFloat = 28
     private static let maxListHeight: CGFloat = 168
@@ -56,6 +60,16 @@ struct ShelfSection: View {
         } message: {
             Text(L("Files go to the Finder's Trash. Notes are gone, except in the book's history."))
         }
+        .confirmationDialog(deletingForGood.map { L("Delete « \($0.title) » for good?") } ?? "",
+                            isPresented: Binding(get: { deletingForGood != nil }, set: { if !$0 { deletingForGood = nil } })) {
+            Button(L("Delete for Good…").titled, role: .destructive) {
+                if let item = deletingForGood { session.deleteFromTrash([item.id]) }
+                deletingForGood = nil
+            }
+            Button(L("Cancel"), role: .cancel) { deletingForGood = nil }
+        } message: {
+            Text(L("Files go to the Finder's Trash. Notes are gone, except in the book's history."))
+        }
     }
 
     private var draftCount: Int { session.draftChapters.count + session.draftSheets.count }
@@ -75,7 +89,7 @@ struct ShelfSection: View {
             trailing
             if count > 0 { Text("\(count)").font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary) }
         }
-        .overlay { if over.wrappedValue { RoundedRectangle(cornerRadius: 6).strokeBorder(Ink.accent, lineWidth: 1.5) } }
+        .overlay { if over.wrappedValue { RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Ink.accent, lineWidth: 1.5) } }
         .contentShape(Rectangle())
         .onTapGesture { open.wrappedValue.toggle() }
         .accessibilityAddTraits(.isButton)
@@ -88,8 +102,8 @@ struct ShelfSection: View {
     private func receive(_ wires: [String], on target: BookSession.ShelfTarget) -> Bool {
         let result = session.drop(wires, on: target)
         guard result.accepted else { return false }
-        for (old, new) in result.sheets where app.bibleRoute == .entry(old) {
-            if let new { app.show(.entry(new)) } else { app.bibleRoute = nil }
+        for (old, new) in result.sheets where app.activeTab == .sheet(old) {
+            if let new { app.open(.sheet(new)) } else { app.showChapter() }
         }
         bridge.refreshHighlights()
         withAnimation(.easeOut(duration: 0.16)) { if target == .drafts { draftsOpen = true } else { trashOpen = true } }
@@ -100,42 +114,50 @@ struct ShelfSection: View {
 
     @ViewBuilder private var draftRows: some View {
         ForEach(session.draftChapters) { ch in
-            let open = app.specialPage == nil && app.bibleRoute == nil && ch.id == session.selectedChapterID
+            let open = app.activeTab?.special == nil && app.activeTab?.biblePath == nil && ch.id == session.selectedChapterID
             SidebarRowView(active: open) {
                 Image(systemName: "text.alignleft").font(.ui(11)).foregroundStyle(.tertiary).frame(width: 14)
                 Text(ch.title).lineLimit(1).truncationMode(.tail).fontWeight(open ? .medium : .regular)
                 Spacer(minLength: 4)
-                Text(ChapterSidebar.compact(session.chapterWords[ch.id] ?? 0)).font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary)
+                Text(ChapterSidebar.compact(session.chapterCounts[ch.id]?.size ?? 0)).font(.ui(11).monospacedDigit()).foregroundStyle(.tertiary)
             }
             .padding(.leading, 18)
             .onTapGesture {
-                app.leaveBookPages()
-                if ch.id != session.selectedChapterID { session.open(ch.id) }
+                app.open(.chapter(ch.id)) {
+                    app.showChapter()
+                    if ch.id != session.selectedChapterID { session.open(ch.id) }
+                }
             }
+            .rowButton(ch.title, selected: open)
             .shelfDraggable(.chapter(ch.id), title: ch.title)
             .contextMenu {
-                Button(L("Back in the book")) { session.draftToBook(ch.id) }
+                OpenElsewhere(tab: .chapter(ch.id), app: app, session: session)
                 Divider()
-                Button(L("Move to Trash")) { _ = receive([ShelfDrag.chapter(ch.id).wire], on: .trash) }
+                Button(L("Put in the Book")) { session.draftToBook(ch.id) }
+                Divider()
+                Button(L("Move to Trash"), role: .destructive) { _ = receive([ShelfDrag.chapter(ch.id).wire], on: .trash) }
             }
         }
         ForEach(session.draftSheets) { e in
-            SidebarRowView(active: app.bibleRoute == .entry(e.path)) {
+            SidebarRowView(active: app.activeTab == .sheet(e.path)) {
                 Image(systemName: e.kind.icon).font(.ui(11)).foregroundStyle(.tertiary).frame(width: 14)
                 Text(e.title).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 0)
             }
             .padding(.leading, 18)
-            .onTapGesture { app.show(.entry(e.path)) }
+            .onTapGesture { app.open(clicked: .sheet(e.path)) }
+            .rowButton(e.title, selected: app.activeTab == .sheet(e.path))
             .shelfDraggable(e.isFile ? nil : .sheet(e.path), title: e.title)
             .contextMenu {
+                OpenElsewhere(tab: .sheet(e.path), app: app, session: session)
+                Divider()
                 if !e.isFile {
-                    Button(L("Put in the book")) { intoBook(e.path) }
+                    Button(L("Put in the Book")) { intoBook(e.path) }
                 }
                 Button(L("Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([session.bible.store.url(e.path)]) }
                 if !e.isFile {
                     Divider()
-                    Button(L("Move to Trash")) { _ = receive([ShelfDrag.sheet(e.path).wire], on: .trash) }
+                    Button(L("Move to Trash"), role: .destructive) { _ = receive([ShelfDrag.sheet(e.path).wire], on: .trash) }
                 }
             }
         }
@@ -144,15 +166,15 @@ struct ShelfSection: View {
     /// The new chapter opens at once, in place of the sheet it came from.
     private func intoBook(_ path: String) {
         guard let id = session.sheetToBook(path) else { return }
-        if app.bibleRoute == .entry(path) { app.bibleRoute = nil }
-        app.leaveBookPages()
+        if app.activeTab == .sheet(path) { app.showChapter() }
+        app.showChapter()
         session.open(id)
     }
 
     private func newDraft() {
         guard let e = try? session.bible.create(title: BibleKind.draft.label, kind: .draft) else { return }
         draftsOpen = true
-        app.show(.entry(e.path))
+        app.open(.sheet(e.path))
     }
 
     // MARK: Trash
@@ -166,14 +188,15 @@ struct ShelfSection: View {
             }
             .padding(.leading, 18)
             .onTapGesture { previewing = item.id }
+            .rowButton(item.title, selected: previewing == item.id)
             .popover(isPresented: Binding(get: { previewing == item.id }, set: { if !$0 { previewing = nil } }), arrowEdge: .trailing) {
                 preview(item)
             }
             .shelfDraggable(.trashed(item.id), title: item.title)
             .contextMenu {
-                Button(L("Put back")) { restore(item) }
+                Button(L("Put Back")) { restore(item) }
                 Divider()
-                Button(L("Delete for good"), role: .destructive) { session.deleteFromTrash([item.id]) }
+                Button(L("Delete for Good…"), role: .destructive) { previewing = nil; deletingForGood = item }
             }
         }
     }
@@ -201,7 +224,7 @@ struct ShelfSection: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxHeight: 240)
-            Button(L("Put back")) { restore(item) }.buttonStyle(.inkSecondary)
+            Button(L("Put Back")) { restore(item) }.buttonStyle(.inkSecondary)
         }
         .padding(14).frame(width: 320)
     }

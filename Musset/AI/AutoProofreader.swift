@@ -48,22 +48,28 @@ final class AutoProofreader {
     @ObservationIgnored weak var bridge: EditorBridge?
     @ObservationIgnored private var root: URL?
     @ObservationIgnored private(set) var lang = "fr"
-    @ObservationIgnored private var cache: [String: [ProofFix]] = [:]
+    @ObservationIgnored private var cache: [String: [ProofFix]] = [:] { didSet { revision &+= 1 } }
+    /// Goes up whenever what the issues are made from changes (results, verdicts, the author's exceptions): the
+    /// issues of a text are found once, then kept until the text or this moves.
+    @ObservationIgnored private var revision = 0
+    @ObservationIgnored private var keptParagraphs: (text: String, lang: String, out: [Paragraph])?
+    @ObservationIgnored private var keptIssues: (text: String, revision: Int, context: String, out: [Issue])?
     /// LanguageTool's results by exact paragraph text: cheap to recompute, so kept in memory only,
     /// and keyed without folding typography, which they check.
-    @ObservationIgnored private var local: [String: [ProofFix]] = [:]
+    @ObservationIgnored private var local: [String: [ProofFix]] = [:] { didSet { revision &+= 1 } }
     /// The AI's answers on LanguageTool's grammar alerts, by `GrammarArbiter.key`.
-    @ObservationIgnored private var verdicts: [String: Bool] = [:]
+    @ObservationIgnored private var verdicts: [String: Bool] = [:] { didSet { revision &+= 1 } }
     @ObservationIgnored private var arbiterRunning = false
-    @ObservationIgnored private var arbiterPausedUntil = Date.distantPast
+    @ObservationIgnored private var arbiterPausedUntil = Date.distantPast { didSet { revision &+= 1 } }
     @ObservationIgnored private var bookFacts = ""
     /// Stands in for the AI in tests.
     @ObservationIgnored var arbiterVoice: ((String) async throws -> String)?
     /// Suggestions the author chose to keep as written ("original→replacement"), per book.
-    private(set) var ignored: Set<String> = []
+    private(set) var ignored: Set<String> = [] { didSet { revision &+= 1 } }
     /// Words the author taught the book: never flagged by the AI, LanguageTool or the spell checker.
     private(set) var dictionary: [String] = [] {
         didSet {
+            revision &+= 1
             dictionaryKeys = Set(dictionary.map { $0.lowercased() })
             Typography.bookNames = dictionary.filter { $0.count > 1 && $0.last.map { ";:!?".contains($0) } == true }
         }
@@ -72,7 +78,7 @@ final class AutoProofreader {
     @ObservationIgnored private var typoSpaced: Set<String> = []
     @ObservationIgnored private var dictionaryKeys: Set<String> = []
     /// LanguageTool rules switched off for this book.
-    private(set) var disabledRules: Set<String> = []
+    private(set) var disabledRules: Set<String> = [] { didSet { revision &+= 1 } }
     @ObservationIgnored private var inflight: Set<String> = []
     @ObservationIgnored private var timer: Task<Void, Never>?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -97,6 +103,22 @@ final class AutoProofreader {
         enabled = d.object(forKey: "autoProofread") as? Bool ?? true
         autoCorrect = d.object(forKey: "autoCorrect") as? Bool ?? true
         typography = d.object(forKey: "autoTypography") as? Bool ?? true
+        // Settings ▸ Proofreading writes the defaults: a switch flipped there is taken at once.
+        NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: d, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.readSwitches() }
+        }
+    }
+
+    /// The three switches as the defaults have them now. The defaults are the one place they are kept: the switches
+    /// in Settings write there, those of the Notes panel go through this object, which writes there too.
+    func readSwitches() {
+        let d = UserDefaults.standard
+        let on = d.object(forKey: "autoProofread") as? Bool ?? true
+        let correct = d.object(forKey: "autoCorrect") as? Bool ?? true
+        let typo = d.object(forKey: "autoTypography") as? Bool ?? true
+        if on != enabled { enabled = on }
+        if correct != autoCorrect { autoCorrect = correct }
+        if typo != typography { typography = typo }
     }
 
     /// nil when no AI is available (no CLI, or AI off): the AI pass is skipped, the rest still runs.
@@ -127,7 +149,7 @@ final class AutoProofreader {
         save()
         root = newRoot
         cache = [:]; local = [:]; verdicts = [:]; keys = [:]; ignored = []; inflight = []; corrections = []; lastError = nil; languageToolError = nil; typographyFixed = 0; typoClean = []
-        if let url = cacheURL, let data = try? Data(contentsOf: url), let s = try? JSONDecoder().decode(Saved.self, from: data) {
+        if let url = cacheURL, let s = JSONFile.read(Saved.self, at: url) {
             cache = s.cache
             ignored = Set(s.ignored)
             verdicts = s.verdicts ?? [:]
@@ -136,7 +158,7 @@ final class AutoProofreader {
         if let url = dictionaryURL, let text = try? String(contentsOf: url, encoding: .utf8) {
             dictionary = text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty && !$0.hasPrefix("#") }
         }
-        if let url = exceptionsURL, let data = try? Data(contentsOf: url), let e = try? JSONDecoder().decode(Exceptions.self, from: data) {
+        if let url = exceptionsURL, let e = JSONFile.read(Exceptions.self, at: url) {
             ignored.formUnion(e.ignored)
             disabledRules = Set(e.disabledRules)
         }
@@ -145,8 +167,7 @@ final class AutoProofreader {
 
     func save() {
         guard let url = cacheURL else { return }
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(Saved(cache: cache, ignored: [], verdicts: verdicts)).write(to: url, options: .atomic)
+        try? JSONFile.write(Saved(cache: cache, ignored: [], verdicts: verdicts), to: url, [])
         saveExceptions()
     }
 
@@ -159,9 +180,7 @@ final class AutoProofreader {
         }
         let e = Exceptions(ignored: ignored.sorted(), disabledRules: disabledRules.sorted())
         if !e.ignored.isEmpty || !e.disabledRules.isEmpty || FileManager.default.fileExists(atPath: excURL.path) {
-            let enc = JSONEncoder()
-            enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-            try? enc.encode(e).write(to: excURL, options: .atomic)
+            try? JSONFile.write(e, to: excURL)
         }
     }
 
@@ -253,6 +272,14 @@ final class AutoProofreader {
     }
 
     func paragraphs(of text: String) -> [Paragraph] {
+        // Asked several times for the same text (the underlines, the counts, the next check).
+        if let k = keptParagraphs, k.lang == lang, k.text == text { return k.out }
+        let out = splitParagraphs(text)
+        keptParagraphs = (text, lang, out)
+        return out
+    }
+
+    private func splitParagraphs(_ text: String) -> [Paragraph] {
         let ns = text as NSString
         var out: [Paragraph] = []
         var cursor = 0
@@ -278,11 +305,16 @@ final class AutoProofreader {
     /// Underlined issues in the current text (cached results that still match).
     func issues(in text: String) -> [Issue] {
         guard enabled else { return [] }
+        // Settings read once per pass, not once per paragraph.
+        let rules = (off: rulesOff, local: usesLocal)
+        // The same text with the same results behind it: the same issues (the editor, the automatic fixes and the
+        // Notes list each ask after every change).
+        let context = "\(rules.off)|\(rules.local)|\(arbiterOn)|\(Date() < arbiterPausedUntil)|\(lang)"
+        let paras = paragraphs(of: text)
+        if let k = keptIssues, k.revision == revision, k.context == context, k.text == text { return k.out }
         var out: [Issue] = []
         let ns = text as NSString
-        // Settings read once per pass, not once per paragraph: this runs on every redraw of the editor and the minimap.
-        let rules = (off: rulesOff, local: usesLocal)
-        for p in paragraphs(of: text) {
+        for p in paras {
             var found: [Issue] = []
             // AI fixes first; a LanguageTool match on the same words is dropped.
             for fix in (cache[p.hash] ?? []) + (ruleFixes(p, rules) ?? []) where !isSuppressed(fix) {
@@ -294,6 +326,7 @@ final class AutoProofreader {
             }
             out += found.sorted { $0.range.location < $1.range.location }
         }
+        keptIssues = (text, revision, context, out)
         return out
     }
 
@@ -555,6 +588,9 @@ final class AutoProofreader {
 
     /// Paragraph texts already known to need no typographic fix (skips the regex work on every keystroke).
     @ObservationIgnored private var typoClean: Set<Int> = []
+    @ObservationIgnored private var typoLists = ListOptions.none
+    /// The lists the open book recognises: a bullet's « - » is not a dialogue dash to fix.
+    private var lists: ListOptions { bridge?.session?.manifest.listOptions ?? .none }
 
     /// Typographic conventions in every paragraph except the one being written, as one undo step.
     func applyTypography() {
@@ -564,13 +600,15 @@ final class AutoProofreader {
         let caret = tv.selectedRange().location
         let ns = tv.string as NSString
         var edits: [Typography.Edit] = []
+        // A paragraph found clean was clean for the lists the book had then.
+        if lists != typoLists { typoLists = lists; typoClean = [] }
         for r in Typography.paragraphRanges(in: tv.string) {
             let inside = caret >= r.location && caret <= NSMaxRange(r)
             if inside && Date().timeIntervalSince(lastEdit) < 30 { continue }
             let text = ns.substring(with: r)
             if typoClean.contains(text.hashValue) { continue }
             if let name = refusedSpace(in: text) { learn(name) }
-            let found = Typography.edits(in: text, lang: lang)
+            let found = Typography.edits(in: text, lang: lang, lists: lists)
             if found.isEmpty { typoClean.insert(text.hashValue); continue }
             for key in Self.spaces(in: text, edits: found).map(\.key) { typoSpaced.insert(key) }
             edits += found.map { Typography.Edit(range: NSRange(location: r.location + $0.range.location, length: $0.range.length), replacement: $0.replacement) }
@@ -595,7 +633,7 @@ final class AutoProofreader {
 
     /// A word whose space the author has taken back out: `Yahoo!` must stay `Yahoo!`.
     private func refusedSpace(in text: String) -> String? {
-        Self.spaces(in: text, edits: Typography.edits(in: text, lang: lang)).first { typoSpaced.contains($0.key) }?.name
+        Self.spaces(in: text, edits: Typography.edits(in: text, lang: lang, lists: lists)).first { typoSpaced.contains($0.key) }?.name
     }
 
     /// The spaces these edits would add before ; : ! ?, each with the word it follows and the text around it.
@@ -705,6 +743,8 @@ final class AutoProofreader {
 
     func accept(_ issue: Issue, replacement: String? = nil) {
         apply([issue], logAsCorrections: false, replacement: replacement)
+        // Back in the text, wherever the correction was chosen from: ⌘Z takes it back.
+        if let tv = bridge?.textView, tv.window?.firstResponder !== tv { tv.window?.makeFirstResponder(tv) }
     }
 
     func ignore(_ fix: ProofFix) {

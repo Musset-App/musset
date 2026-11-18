@@ -1,0 +1,5 @@
+module MussetTypeset {
+    header "musset_typeset.h"
+    link "musset_typeset"
+    export *
+}

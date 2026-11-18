@@ -157,9 +157,9 @@ final class ImportTests: XCTestCase {
         e.meta = ["citekey": "pastoureau2000", "author": "Michel Pastoureau", "year": "2000", "publisher": "Seuil"]
         try BibleStore(root: root).write(e)
         let out = CitationPages.apply(to: [(id: "1", text: "Voir [@pastoureau2000, p. 3] et [@absente].")], root: root, lang: "fr")
-        XCTAssertEqual(out[0].text, "Voir (Pastoureau, 2000, p. 3) et [@absente].")
+        XCTAssertEqual(out[0].text, "Voir (Pastoureau 2000, p. 3) et [@absente].", "author-date, as pandoc's export writes it")
         XCTAssertEqual(out.last?.id, "_bibliographie")
-        XCTAssertTrue(out.last?.text.contains("Michel Pastoureau, *Bleu*, Seuil, 2000.") == true)
+        XCTAssertTrue(out.last?.text.contains("Pastoureau, Michel. 2000. *Bleu*. Seuil.") == true, out.last?.text ?? "")
     }
 
     func testIdentifiers() {

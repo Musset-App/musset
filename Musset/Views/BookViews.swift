@@ -3,30 +3,27 @@ import SwiftUI
 
 // MARK: Book settings
 
-/// Everything about one book, in one place: its identity, special pages, writing, the critic, export, its folder.
+/// What is the book's own: its identity, what its AI reader reads it against, who it is shared with, its folder.
+/// Its special pages are in the sidebar (and « Cover & Special Pages »); what an export takes, down to what goes
+/// between two scenes, is chosen in the export sheet; what holds for every book is in the app's Settings.
 struct BookSettingsView: View {
     let app: AppState
     @Bindable var session: BookSession
-    let proof: AutoProofreader
     @Environment(\.dismiss) private var dismiss
     @State private var section = Section.general
     var startSection: Section? = nil
     @State private var showRubric = false
     @State private var showCheckers = false
     @State private var showTics = false
-    @AppStorage("chatAllowRewrites") private var allowRewrites = false
-    var embedded = false
 
     enum Section: String, CaseIterable, Identifiable {
-        case general, pages, writing, critic, export, sharing, folder
+        case general, structure, critic, sharing, folder
         var id: String { rawValue }
         var label: String {
             switch self {
             case .general: L("General")
-            case .pages: L("Special pages")
-            case .writing: L("Writing")
-            case .critic: L("Critic")
-            case .export: L("Export")
+            case .structure: L("Structure")
+            case .critic: L("AI reader")
             case .sharing: L("Sharing")
             case .folder: L("Folder & history")
             }
@@ -36,35 +33,40 @@ struct BookSettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(L("Book settings")).font(.ui(13, .semibold)).padding(.horizontal, 10).padding(.bottom, 10)
+                Text(L("Book Settings…").titled).font(.ui(13, .semibold)).padding(.horizontal, 10).padding(.bottom, 10)
                 ForEach(Section.allCases) { s in
                     Button { section = s } label: {
                         Text(s.label).frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 10).frame(height: 28)
-                            .background(section == s ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 6))
+                            .background(section == s ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                             .fontWeight(section == s ? .medium : .regular)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
                 Spacer()
-                if !embedded { Button(L("Done", ctx: "Terminé")) { session.saveManifest(); dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.ink).padding(10) }
+                Button(L("Done", ctx: "Terminé")) { session.saveManifest(); dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.ink).padding(10)
             }
             .padding(12)
             .frame(width: 210)
             .background(Ink.side)
             Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    header
-                    content
+            if section == .structure {
+                // Its own page: a table too wide for the column, and what it gives beside it.
+                StructureSettings(session: session)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        header
+                        content
+                    }
+                    .padding(32)
+                    .frame(maxWidth: 620, alignment: .leading)
                 }
-                .padding(32)
-                .frame(maxWidth: 620, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
-        .frame(width: embedded ? nil : 860, height: embedded ? nil : 600)
+        .frame(width: section == .structure ? 1260 : 860, height: section == .structure ? 760 : 600)
         .sheet(isPresented: $showRubric) { BaremeSheet(session: session) }
         .sheet(isPresented: $showCheckers) { CheckersSheet(session: session) }
         .sheet(isPresented: $showTics) { TicsSheet(session: session) }
@@ -78,9 +80,11 @@ struct BookSettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.title).font(.system(size: 28, design: .serif).weight(.regular))
                 let scenes = session.manifest.chapters.reduce(0) { $0 + (session.scenes[$1.id]?.count ?? 0) }
-                Text("\(session.manifest.chapters.count) " + L("chapters") + " · \(scenes) " + L("scenes")
-                     + " · \(session.bookWordCount.ui) " + L("words"))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 0) {
+                    Text(session.words.count(session.manifest.chapters.count, .piece) + " · " + session.words.count(scenes, .scene) + " · ")
+                    CountButton(text: session.bookCounts.label)
+                }
+                .foregroundStyle(.secondary)
                 if let goal = session.manifest.goal, goal > 0 {
                     ProgressView(value: min(1, Double(session.bookWordCount) / Double(goal))).frame(width: 220)
                         .help("\(Int(100 * Double(session.bookWordCount) / Double(goal))) % " + L("of the goal"))
@@ -92,81 +96,42 @@ struct BookSettingsView: View {
     @ViewBuilder private var content: some View {
         switch section {
         case .general:
-            card {
+            SettingsCard(filled: true) {
                 field(L("Title"), text: $session.manifest.title)
                 field(L("Subtitle"), text: Binding(get: { session.manifest.subtitle ?? "" }, set: { session.manifest.subtitle = $0.isEmpty ? nil : $0 }))
                 field(L("Author"), text: $session.manifest.author)
                 field(L("Word goal"), text: Binding(get: { session.manifest.goal.map(String.init) ?? "" },
                                                                      set: { session.manifest.goal = Int($0.filter(\.isNumber)) }))
-                field(L("Contact (manuscript)"), text: $session.manifest.contact, last: true)
+                field(L("Contact (manuscript)"), text: $session.manifest.contact)
             }
-            card {
-                row(L("Book language")) {
+            SettingsCard(filled: true) {
+                SettingsRow(title: L("Book language"), style: .form) {
                     BookLanguagePicker(code: $session.manifest.lang)
                 }
             }
-        case .pages:
-            Text(L("Pages around the chapters, typeset with the book."))
-                .foregroundStyle(.secondary)
-            card {
-                ForEach(Array(SpecialPage.allCases.enumerated()), id: \.element) { i, page in
-                    Button { dismiss(); app.specialPage = page } label: {
-                        HStack {
-                            Image(systemName: page.icon).frame(width: 20).foregroundStyle(.secondary)
-                            Text(page.label)
-                            Spacer()
-                            Text((session.manifest.front ?? FrontMatter()).has(page) ? L("In the book") : L("Off", ctx: "Absente"))
-                                .font(.ui(11)).foregroundStyle(.secondary)
-                            Image(systemName: "chevron.right").font(.ui(11)).foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal, 16).frame(height: 40).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    if i < SpecialPage.allCases.count - 1 { Divider().padding(.leading, 16) }
-                }
-            }
-        case .writing:
-            card {
-                toggle(L("French typography"),
-                       L("Thin spaces before ; : ! ?, « » quotes, curly apostrophes, as you type."),
-                       isOn: Binding(get: { proof.typography }, set: { proof.typography = $0 }))
-                toggle(L("Automatic proofreading"),
-                       L("Grammalecte or Harper, then the AI, underline as you write."),
-                       isOn: Binding(get: { proof.enabled }, set: { proof.enabled = $0 }))
-                toggle(L("AI rewrites"),
-                       L("Off: the AI critiques, it never writes for you."),
-                       isOn: $allowRewrites, last: true)
-            }
+        case .structure:
+            EmptyView()
         case .critic:
             HStack(alignment: .top, spacing: 12) {
-                criticCard(L("Rubric"), L("Used by « Critique ». Markdown in .musset/rubric.md."),
+                criticCard(L("Rubric…").titled, L("Used by « Critique ». Markdown in .musset/rubric.md."),
                            L("Edit rubric")) { showRubric = true }
-                criticCard(L("Tics grid"), L("Six families, each with its test. Used by « Tics »."),
+                criticCard(L("Tics grid…").titled, L("Six families, each with its test. Used by « Tics »."),
                            L("Edit grid")) { showTics = true }
-                criticCard(L("Checkers"), L("Your own writing rules, checked on a chapter. Shared by all your books."),
+                criticCard(L("Checkers…").titled, L("Your own writing rules, checked on a chapter. Shared by all your books."),
                            L("Edit checkers")) { showCheckers = true }
             }
-        case .export:
-            card {
-                row(L("Between scenes")) {
-                    Segmented(options: SceneBreak.allCases.map { ($0, $0.localizedLabel) },
-                              selection: Binding(get: { session.manifest.sceneBreak ?? .none }, set: { session.manifest.sceneBreak = $0 == .none ? nil : $0 }))
-                        .frame(width: 240)
-                }
-            }
-            Button(L("Export…")) { dismiss(); app.showExport = true }
         case .sharing:
-            SharingSection(session: session)
+            SharingSection(session: session, app: app)
         case .folder:
-            card {
-                row(L("Folder")) {
+            SettingsCard(filled: true) {
+                SettingsRow(title: L("Folder"), style: .form) {
                     Text(session.root.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")).font(.uiMono(12))
                         .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
-                row("Git", last: true) {
+                SettingsRow(title: L("History"), style: .form) {
                     Text(session.git.isRepo
-                         ? (session.lastCommitAt.map { L("Last commit ") + $0.formatted(date: .omitted, time: .shortened) } ?? L("Tracked"))
-                         : L("Not tracked"))
+                         ? (session.lastCommitAt.map { L("Last save \($0.formatted(date: .omitted, time: .shortened))") } ?? L("In the history"))
+                         : L("Not in the history"))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -179,41 +144,9 @@ struct BookSettingsView: View {
 
     // MARK: Parts
 
-    private func card<C: View>(@ViewBuilder _ c: () -> C) -> some View {
-        VStack(spacing: 0) { c() }
-            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
-    }
-
-    private func field(_ label: String, text: Binding<String>, last: Bool = false) -> some View {
-        row(label, last: last) {
+    private func field(_ label: String, text: Binding<String>) -> some View {
+        SettingsRow(title: label, style: .form) {
             TextField("", text: text).textFieldStyle(.roundedBorder).onSubmit { session.saveManifest() }
-        }
-    }
-
-    private func row<C: View>(_ label: String, last: Bool = false, @ViewBuilder _ c: () -> C) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                Text(label).foregroundStyle(.secondary).frame(width: 170, alignment: .leading)
-                c().frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 10)
-            if !last { Divider().padding(.leading, 16) }
-        }
-    }
-
-    private func toggle(_ title: String, _ hint: String, isOn: Binding<Bool>, last: Bool = false) -> some View {
-        VStack(spacing: 0) {
-            Toggle(isOn: isOn) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                    Text(hint).font(.ui(11)).foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch).controlSize(.small)
-            .padding(.horizontal, 16).padding(.vertical, 10)
-            if !last { Divider().padding(.leading, 16) }
         }
     }
 
@@ -225,8 +158,8 @@ struct BookSettingsView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
     }
 }
 
@@ -312,7 +245,7 @@ struct SpecialPageView: View {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {
-                        Button { app.specialPage = nil } label: {
+                        Button { app.showChapter() } label: {
                             HStack(spacing: 5) { Image(systemName: "chevron.left").font(.ui(10, .semibold)); Text(L("Editor")) }
                         }
                         .buttonStyle(.plain).foregroundStyle(.secondary)
@@ -353,12 +286,12 @@ struct SpecialPageView: View {
     @ViewBuilder private var form: some View {
         switch page {
         case .cover:
-            Segmented(options: [("typographic", L("Typographic")), ("image", "Image"), ("plain", L("Plain"))],
+            Segmented(options: [("typographic", L("Typographic")), ("image", L("Image…").titled), ("plain", L("Plain"))],
                       selection: cover.style)
             labeled(L("Genre")) { TextField("", text: cover.genre).textFieldStyle(.roundedBorder) }
             labeled(L("Publisher line")) { TextField(L("[PUBLISHER]"), text: cover.publisher).textFieldStyle(.roundedBorder) }
             if cover.wrappedValue.style == "image" {
-                labeled("Image") {
+                labeled(L("Image…").titled) {
                     HStack {
                         Text(cover.wrappedValue.image.map { ($0 as NSString).lastPathComponent } ?? L("None", ctx: "Aucune")).foregroundStyle(.secondary)
                         Spacer()
@@ -404,7 +337,7 @@ struct SpecialPageView: View {
                 CoverThumb(manifest: session.manifest, root: session.root).frame(maxWidth: 300)
                 HStack(spacing: 12) {
                     ForEach([SpecialPage.title, .dedication, .epigraph, .contents]) { p in
-                        Button { app.specialPage = p } label: {
+                        Button { app.open(p.tab) } label: {
                             VStack(spacing: 6) {
                                 PagePreview(page: p, manifest: session.manifest, chapters: session.manifest.chapters.map(\.title))
                                     .frame(width: 300, height: 450).scaleEffect(64.0 / 300).frame(width: 64, height: 96)
@@ -436,8 +369,8 @@ struct SpecialPageView: View {
             .frame(minHeight: 140)
             .scrollContentBackground(.hidden)
             .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ink.hairline))
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.control))
+            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline))
     }
 
     private func swatch(_ hex: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -531,7 +464,8 @@ enum Colophon {
 
 extension AppState {
     /// A new book folder: its chapters, a rubric and outline for its genre, a manifest, git, then opens it.
-    func createBook(at root: URL, title: String, author: String, lang: String, genre: String?, chapters planned: [PlannedChapter]) async throws {
+    func createBook(at root: URL, title: String, author: String, lang: String, genre: String?, form: BookStructure.Form? = nil,
+                    chapters planned: [PlannedChapter]) async throws {
         let fm = FileManager.default
         if fm.fileExists(atPath: root.path), !((try? fm.contentsOfDirectory(atPath: root.path)) ?? []).filter({ !$0.hasPrefix(".") }).isEmpty {
             throw NSError(domain: "Musset", code: 1, userInfo: [NSLocalizedDescriptionKey: L("This folder already exists and is not empty.")])
@@ -542,8 +476,7 @@ extension AppState {
         var plot = PlotGrid.load(root)
         plot.columns = PlotGrid.columns(forGenre: genre)
         for (i, part) in planned.enumerated() {
-            let slug = part.title.lowercased().folding(options: .diacriticInsensitive, locale: nil)
-                .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.prefix(5).joined(separator: "_")
+            let slug = part.title.slug("_", words: 5)
             let id = String(format: "%02d_%@", i + 1, slug.isEmpty ? "chapitre" : slug)
             let entry = ChapterEntry(id: id, file: "\(id).md", title: part.title)
             try store.write(part.text, to: entry)
@@ -554,7 +487,8 @@ extension AppState {
         }
         var m = BookManifest(title: title, author: author, lang: lang, chapters: chapters)
         m.genre = genre
-        m.exports = store.defaultPresets(lang: lang)
+        // The form chosen for a new book; an imported one has none and reads as the book Musset always made.
+        if let form { m.setForm(form) }
         try store.saveManifest(m)
         try plot.save(root)
         if let preset = ScoringLibrary.shared.presets.first(where: { $0.id == genre }), var bareme = Bareme.forBook(root) ?? Bareme(migrating: nil) {
@@ -575,9 +509,12 @@ extension AppState {
 /// and for a reader, send the review.
 struct SharingSection: View {
     let session: BookSession
+    var app: AppState? = nil
     @State private var collab = Collab.shared
     @State private var invitee = ""
-    @State private var inviteRole = Collab.Role.editor
+    @State private var inviteRole = Collab.Role.reader
+    @State private var inviteRelation = Relation.betaReader
+    @State private var inviteMessage = ""
     @State private var people: [(user: String, role: Collab.Role)] = []
     @State private var reviews: [Collab.Review] = []
     @State private var message = ""
@@ -591,8 +528,14 @@ struct SharingSection: View {
             } else if collab.link(session.git) == nil {
                 Text(L("Send this book to your account to find it on your other Macs and invite people. It stays private: only those you invite can open it."))
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button(L("Send to my account")) { run { collab.setLocalOnly(session, false); try await collab.share(session); status = L("On your account."); await refresh() } }
-                    .buttonStyle(.ink)
+                if collab.canSync {
+                    Button(L("Send to my account")) { run { collab.setLocalOnly(session, false); try await collab.share(session); status = L("On your account."); await refresh() } }
+                        .buttonStyle(.ink)
+                } else {
+                    Button(L("Musset Sync, \(SyncPrice.perMonth)…")) { app?.offerSync(for: session) }.buttonStyle(.ink)
+                    Text(L("A free account reads the books shared with it. Putting your own online, and sharing them, is Musset Sync."))
+                        .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
             } else if collab.isOwner(session.git) {
                 owner
             } else {
@@ -600,10 +543,10 @@ struct SharingSection: View {
             }
             if working { ProgressView().controlSize(.small) }
             if let status { Text(status).font(.ui(12)).foregroundStyle(.secondary) }
-            if let e = collab.lastError { Text(e).font(.ui(12)).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
+            if let e = collab.lastError { Text(e).font(.ui(12)).foregroundStyle(Ink.error).fixedSize(horizontal: false, vertical: true) }
             if collab.signedIn {
                 HStack {
-                    Text(L("Signed in as ") + (collab.username ?? "")).font(.ui(12)).foregroundStyle(.secondary)
+                    Text(collab.username.map { L("Signed in as \($0)") } ?? "").font(.ui(12)).foregroundStyle(.secondary)
                     Button(L("Sign out")) { collab.signOut() }.buttonStyle(.link).font(.ui(12))
                     if collab.link(session.git) == nil {
                         Toggle(L("Keep this book on this Mac only"), isOn: Binding(get: { collab.isLocalOnly(session) }, set: { collab.setLocalOnly(session, $0) }))
@@ -617,9 +560,9 @@ struct SharingSection: View {
 
     private var owner: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L("On your account. Each save goes to your other Macs and your collaborators.")).foregroundStyle(.secondary)
+            Text(L("On your account. What you write goes to your other Macs and your collaborators as you go.")).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("SHARED WITH"))
+                SectionLabel(L("Shared with"))
                 ForEach(people, id: \.user) { person in
                     HStack {
                         Text(person.user)
@@ -633,18 +576,54 @@ struct SharingSection: View {
                     }
                     .frame(width: 420)
                 }
+                let shared = Set(people.map(\.user))
+                let others = collab.circle.filter { $0.username.map { !shared.contains($0) && $0 != collab.username } ?? false }
+                if !others.isEmpty {
+                    SectionLabel(L("From your circle")).padding(.top, 6)
+                    ForEach(others) { p in
+                        HStack {
+                            Text(p.name)
+                            Text(Relation(rawValue: p.relation)?.label ?? "").font(.ui(12)).foregroundStyle(.secondary)
+                            Spacer()
+                            Menu(L("Share as…")) {
+                                ForEach(Collab.Role.allCases) { role in
+                                    Button(role.label) {
+                                        run { try await collab.invite(p.username ?? "", as: role, to: session); await notifyShared(p.username ?? ""); await refresh() }
+                                    }
+                                }
+                            }
+                            .fixedSize()
+                        }
+                        .frame(width: 420)
+                    }
+                }
+                SectionLabel(L("Someone new")).padding(.top, 6)
                 HStack {
-                    TextField(L("Their user name"), text: $invitee).textFieldStyle(.roundedBorder).frame(width: 190)
-                    Segmented(options: Collab.Role.allCases.map { ($0, $0.label) }, selection: $inviteRole).frame(width: 220)
+                    TextField(L("Their e-mail"), text: $invitee).textFieldStyle(.roundedBorder).frame(width: 190)
+                    Segmented(options: Collab.Role.allCases.map { ($0, $0.label) }, selection: $inviteRole).frame(width: 260)
+                }
+                HStack {
+                    Picker(L("They are your"), selection: $inviteRelation) { ForEach(Relation.allCases) { Text($0.label).tag($0) } }.fixedSize()
+                    TextField(L("A word for them (optional)"), text: $inviteMessage).textFieldStyle(.roundedBorder).frame(width: 240)
                     Button(L("Invite")) {
-                        run { try await collab.invite(invitee, as: inviteRole, to: session); invitee = ""; await refresh() }
+                        let who = invitee.trimmingCharacters(in: .whitespaces)
+                        run {
+                            if who.contains("@") {
+                                try await collab.invite(email: who, as: inviteRole, to: session, relation: inviteRelation, message: inviteMessage)
+                                status = L("Invitation sent to \(who).")
+                            } else {
+                                try await collab.invite(who, as: inviteRole, to: session)
+                            }
+                            invitee = ""; inviteMessage = ""
+                            await refresh()
+                        }
                     }
                     .buttonStyle(.inkSecondary).disabled(invitee.isEmpty)
                 }
                 Text(inviteRole.help).font(.ui(12)).foregroundStyle(.secondary)
             }
             VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("REVIEWS TO READ"))
+                SectionLabel(L("Reviews to read"))
                 if reviews.isEmpty { Text(L("No review waiting.")).foregroundStyle(.secondary) }
                 ForEach(reviews) { r in
                     HStack {
@@ -674,7 +653,7 @@ struct SharingSection: View {
         VStack(alignment: .leading, spacing: 12) {
             let owner = collab.link(session.git)?.owner ?? ""
             if collab.role(session.git) == .collaborator {
-                Text(L("You are a collaborator on \(owner)'s book: you write in the text together, and each save is sent."))
+                Text(L("You are a collaborator on \(owner)'s book: you write in the text together, and what each of you writes is sent as you go."))
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if session.git.currentBranch?.hasPrefix("relecture/") == true {
                     Button(L("Write in the main text")) { run { try await collab.joinMainText(session); status = L("You are in the main text.") } }
@@ -705,6 +684,12 @@ struct SharingSection: View {
         guard collab.isOwner(session.git) else { try? await collab.refreshRole(session.git); return }
         people = (try? await collab.people(of: session)) ?? []
         reviews = (try? await collab.reviews(of: session)) ?? []
+        await collab.refreshCircle()
+    }
+
+    /// Someone already on Musset was given the book: they hear of it, in their activity and by e-mail.
+    private func notifyShared(_ user: String) async {
+        await collab.announceShare(to: user, in: session, as: people.first { $0.user == user }?.role ?? .reader)
     }
 
     private func run(_ work: @escaping () async throws -> Void) {

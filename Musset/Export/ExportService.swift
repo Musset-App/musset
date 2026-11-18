@@ -1,4 +1,5 @@
 import Foundation
+import MussetPage
 
 /// Concatenates active chapters in manifest order and runs pandoc with the book's own templates.
 enum ExportService {
@@ -69,7 +70,7 @@ enum ExportService {
     }
 
     static func export(manifest m: BookManifest, store: BookStore, preset p: ExportPreset, contents: String? = nil) async throws -> Output {
-        if p.usesTypst { return try await exportTypst(manifest: m, store: store, preset: p, contents: contents) }
+        if p.format == .pdf { return try await exportPDF(manifest: m, store: store, preset: p, contents: contents) }
         try store.ensureMussetDir()
         let work = store.exportsDir.appendingPathComponent("build", isDirectory: true)
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
@@ -87,7 +88,8 @@ enum ExportService {
 
         let out = store.exportsDir.appendingPathComponent(fileName(m, store: store, preset: p, contents: contents))
 
-        var args = [source.path, "--from", "markdown", "-o", out.path, "--resource-path", store.root.path,
+        // Without pandoc's fancy lists: only what Musset reads as a list is one (« a. », « (1) » open nothing).
+        var args = [source.path, "--from", "markdown-fancy_lists", "-o", out.path, "--resource-path", store.root.path,
                     "--metadata", "title=\(m.title)", "--metadata", "author=\(m.author)"]
         if p.format == .docx {
             // No date, no number typed into the titles, no section per chapter: a manuscript's page is set once.
@@ -95,13 +97,14 @@ enum ExportService {
             args += ["--metadata", "\(WordManuscript.exportProperty)=\(wordID)"]
         } else {
             args += ["--metadata", "lang=\(m.lang)", "--metadata", "date=\(Calendar.current.component(.year, from: Date()))", "--top-level-division=chapter"]
-            if p.numberSections { args.append("--number-sections") }
+            // A formed book says its own numbers in its headings: pandoc would count a prologue too.
+            if p.numberSections, !m.hasForm { args.append("--number-sections") }
         }
         if (m.front ?? FrontMatter()).has(.contents) { args += ["--toc", "--toc-depth=1"] }
 
         switch p.format {
         case .pdf:
-            break  // PDF goes through Typst (exportTypst).
+            break  // PDF goes through the typesetter (exportPDF).
         case .docx:
             if let t = p.template, FileManager.default.fileExists(atPath: store.root.appendingPathComponent(t).path) {
                 args += ["--reference-doc", store.root.appendingPathComponent(t).path]
@@ -120,7 +123,7 @@ enum ExportService {
         let r = try await runPandoc(args, cwd: store.root)
         guard r.ok, FileManager.default.fileExists(atPath: out.path) else {
             throw NSError(domain: "Musset.export", code: Int(r.status),
-                          userInfo: [NSLocalizedDescriptionKey: L("pandoc failed:\n") + String((r.stderr + r.stdout).suffix(2000))])
+                          userInfo: [NSLocalizedDescriptionKey: L("pandoc failed:\n\(String((r.stderr + r.stdout).suffix(2000)))")])
         }
         if p.format == .docx {
             let ownTemplate = p.template.map { FileManager.default.fileExists(atPath: store.root.appendingPathComponent($0).path) } ?? false
@@ -130,42 +133,21 @@ enum ExportService {
         return Output(file: out, log: r.stderr)
     }
 
-    /// PDF through Typst with Musset's templates: same page parameters as the preset, a fraction of xelatex's time.
-    static func exportTypst(manifest m: BookManifest, store: BookStore, preset p: ExportPreset, contents: String? = nil) async throws -> Output {
+    /// PDF by the typesetter Read mode sets its pages with: the same pages, written out.
+    static func exportPDF(manifest m: BookManifest, store: BookStore, preset p: ExportPreset, contents: String? = nil) async throws -> Output {
         try store.ensureMussetDir()
-        let chapters = CitationPages.apply(to: m.chapters.filter { !$0.excludeFromExport }.map { (id: $0.id, text: store.read($0)) }, root: store.root, lang: m.lang)
-        var layout = TypstLayout(style: p.typstStyle, geometry: p.geometry, fontSize: p.fontSize, crop: p.cropMarks, numbered: p.numberSections,
-                                 titlePage: false)
-        layout.facing = p.facing ?? false
-        let pseudonym = p.pseudonym.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
-        let author = pseudonym ?? m.author
-        let contact = pseudonym == nil && p.includeContact && !m.contact.isEmpty ? m.contact : nil
-        if let norm = p.manuscript {
-            layout.manuscript = (norm.typstArguments, norm.running(author: author, title: m.title),
-                                 norm.count(of: chapters.map(\.text).joined(separator: "\n\n"), lang: BookLanguage(code: m.lang)))
-        }
-        let image = m.front?.cover?.image.map { store.root.appendingPathComponent($0) }.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-        let coverName = image.map { "cover-image." + $0.pathExtension }
-        let pages = p.manuscript == nil ? TypstMarkup.specialPages(m, coverImage: coverName, contact: contact) : (front: "", back: "")
-        let source = TypstMarkup.document(title: m.title, author: author, contact: contact, lang: m.lang, layout: layout,
-                                          chapters: chapters, markers: false, sceneBreak: m.sceneBreak ?? .none,
-                                          front: pages.front, back: pages.back, parts: m.partOpenings)
-        let dir = store.root.appendingPathComponent(".musset/typst/export-\(p.id)", isDirectory: true)
-        let main = try TypstRunner.prepare(dir: dir, source: source, bookRoot: store.root)
-        if let image, let coverName {
-            let dest = dir.appendingPathComponent(coverName)
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.copyItem(at: image, to: dest)
-        }
+        let source = try Typesetting.source(manifest: m, store: store, preset: p)
         let out = store.exportsDir.appendingPathComponent(fileName(m, store: store, preset: p, contents: contents))
         try FileManager.default.createDirectory(at: store.exportsDir, withIntermediateDirectories: true)
         let start = Date()
-        try await TypstRunner.compile(main: main, output: out, bookRoot: store.root)
+        let pdf: Data
+        do { pdf = try await Task.detached(priority: .userInitiated) { try TypesetBook.pdf(source) }.value }
+        catch let failure as TypesetError { throw Typesetting.Failure(message: "Typst: " + failure.message) }
+        try pdf.write(to: out, options: .atomic)
         return Output(file: out, log: String(format: "Typst (%@), %.1f s", p.typstStyle, Date().timeIntervalSince(start)))
     }
 
     static func safe(_ s: String) -> String {
-        s.folding(options: .diacriticInsensitive, locale: nil).uppercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: "_")
+        s.slug("_").uppercased()
     }
 }

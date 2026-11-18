@@ -1,59 +1,5 @@
 import SwiftUI
 
-/// The book's reading rubric (barème), in `.musset/rubric.md`: Markdown, edited by the author, tracked in git.
-enum Rubric {
-    static func url(_ root: URL) -> URL { root.appendingPathComponent(".musset/rubric.md") }
-
-    static func load(_ root: URL) -> String? {
-        guard let s = try? String(contentsOf: url(root), encoding: .utf8),
-              !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        return s
-    }
-
-    static func save(_ text: String, root: URL) throws {
-        try FileManager.default.createDirectory(at: url(root).deletingLastPathComponent(), withIntermediateDirectories: true)
-        try text.write(to: url(root), atomically: true, encoding: .utf8)
-    }
-
-    /// The Collection Blanche reading rubric used for the French books.
-    static let blanche = """
-    # Barème de lecture « Collection Blanche »
-
-    Référence de travail pour ce livre (ce n’est pas une grille officielle de Gallimard).
-
-    | Critère | Points | Exigence |
-    |---|---:|---|
-    | **Nécessité** | **20** | Une urgence intérieure porte le texte. On sent pourquoi ce livre devait être écrit par cette personne. |
-    | **Langue** | **20** | Style précis, phrases nécessaires, musicalité à voix haute. Aucun jargon, cliché ou effet gratuit. |
-    | **Singularité** | **15** | Voix reconnaissable en quelques pages, influences digérées, originalité du regard, du rythme ou de la structure. |
-    | **Force existentielle** | **15** | Le vécu devient une expérience partageable et une pensée incarnée. Le texte atteint le lecteur. |
-    | **Maîtrise de la forme** | **10** | Architecture claire, proportions justes, économie, progression et équilibre entre récit et réflexion. |
-    | **Universalité** | **10** | Une expérience particulière résonne au-delà de son contexte. Le texte peut tenir dans le temps. |
-    | **Densité** | **5** | Chaque passage apporte quelque chose. Les répétitions ont une fonction ; aucune page ne meuble. |
-    | **Impact émotionnel** | **5** | Le texte laisse une trace, des images ou des phrases qui persistent après la lecture. |
-    | **Total** | **100** | |
-
-    **Seuil de travail : 80/100.** En dessous, révisions ciblées avant validation. Le total ne neutralise pas un défaut éliminatoire.
-
-    ## Risques éliminatoires
-
-    - Une opinion ou un essai interchangeable, sans nécessité propre.
-    - Un ton d’article, de mémoire universitaire, de blog ou de manifeste.
-    - Une abstraction qui remplace l’expérience.
-    - Une structure fortement réductible sans perte.
-    - Du remplissage ou des effets qui tiennent lieu de matière.
-    - Une dépendance aux modes qui condamne rapidement le texte.
-    - Une émotion aussitôt oubliée.
-    - Une tonalité de coaching, de développement personnel ou de pamphlet plat.
-
-    La compatibilité « Blanche » reste une exigence transversale : **sobriété, gravité tenue, tension entre douleur et lucidité, sans didactisme.**
-
-    ## Discipline de notation
-
-    Juger chaque version pour elle-même, étayer les réserves par des passages précis, et ne jamais confondre la gravité du sujet avec la réussite littéraire.
-    """
-}
-
 /// Musset's stance: the author writes by hand; the AI is a critic and writing partner, never a ghostwriter.
 enum WritingPartner {
     /// The earlier version shown beside the editor: the chapter is being rewritten from it.
@@ -99,7 +45,7 @@ enum ChatAction: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .style: L("Style, repetitions, inconsistencies, clichés, telling instead of showing — as margin notes")
         case .tics: L("The book's grid of tics: a pattern search finds the candidates, the AI applies each family's test")
-        case .critique: L("A blind reading with the book's rubric, outside this conversation: a score per criterion, proof from the text, reservations pinned to their passages")
+        case .critique: L("A blind AI reading with the book's rubric, outside this conversation: a score per criterion, proof from the text, reservations pinned to their passages")
         case .continuity: L("Contradictions with the other chapters (dates, ages, names, places), scenes told twice")
         case .cuts: L("Passages that can go without loss")
         case .openingEnding: L("Does the first paragraph open the chapter, does the last one land it?")
@@ -204,9 +150,7 @@ enum ScoreHistory {
     static func url(_ root: URL, _ chapter: String) -> URL { root.appendingPathComponent(".musset/scores/\(chapter).json") }
 
     static func load(_ root: URL, _ chapter: String) -> [Entry] {
-        guard let data = try? Data(contentsOf: url(root, chapter)) else { return [] }
-        let dec = JSONDecoder(); dec.dateDecodingStrategy = .iso8601
-        return (try? dec.decode([Entry].self, from: data)) ?? []
+        JSONFile.read(at: url(root, chapter), iso8601: true) ?? []
     }
 }
 
@@ -239,12 +183,12 @@ struct ScoreCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(fmt(score.total))").font(.title2.monospacedDigit().bold())
-                    .foregroundStyle(passes ? Color.primary : Color.orange)
+                    .foregroundStyle(passes ? Color.primary : Ink.warning)
                 Text("/ \(fmt(score.max))").foregroundStyle(.secondary)
-                if let t = score.threshold { Text(L("threshold ") + fmt(t)).font(.ui(11)).foregroundStyle(.secondary) }
+                if let t = score.threshold { Text(L("threshold \(fmt(t))")).font(.ui(11)).foregroundStyle(.secondary) }
                 if let p = previous {
                     let d = score.total - p
-                    Text(d >= 0 ? "+\(fmt(d))" : fmt(d)).font(.ui(11, .semibold)).foregroundStyle(d >= 0 ? .green : .red)
+                    Text(d >= 0 ? "+\(fmt(d))" : fmt(d)).font(.ui(11, .semibold)).foregroundStyle(d >= 0 ? Ink.positive : Ink.error)
                         .help(L("Since the previous critique of this chapter"))
                 }
                 Spacer()
@@ -255,7 +199,7 @@ struct ScoreCard: View {
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
                             Capsule().fill(.quaternary)
-                            Capsule().fill(Color.accentColor.opacity(0.7)).frame(width: g.size.width * CGFloat(c.max > 0 ? c.score / c.max : 0))
+                            Capsule().fill(Ink.accent.opacity(0.7)).frame(width: g.size.width * CGFloat(c.max > 0 ? c.score / c.max : 0))
                         }
                     }
                     .frame(height: 5)
@@ -264,11 +208,11 @@ struct ScoreCard: View {
                 .help(c.comment ?? "")
             }
             if let e = score.eliminatory, !e.isEmpty {
-                ForEach(e, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").font(.ui(11)).foregroundStyle(.orange) }
+                ForEach(e, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").font(.ui(11)).foregroundStyle(Ink.warning) }
             }
         }
         .padding(10)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: Radius.control))
     }
 
     private var passes: Bool { score.threshold.map { score.total >= $0 } ?? true }
@@ -279,7 +223,7 @@ struct TicsSheet: View {
     let session: BookSession
     var body: some View {
         BookFileSheet(title: "Tics — \(session.title)",
-                      caption: L("Used by « Tics » and « Style & problems ». Markdown, saved in .musset/tics.md and tracked with the book."),
+                      caption: L("Used by « Tics » and « Style & problems ». Markdown, saved in .musset/tics.md and kept in the book’s history."),
                       starter: (L("Start from the default grid"), Tics.grid),
                       load: { Tics.load(session.root) }, save: { try? Tics.save($0, root: session.root) })
     }

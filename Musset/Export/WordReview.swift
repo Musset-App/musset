@@ -207,37 +207,11 @@ enum WordReview {
         p.runs.map { "\($0.format.rawValue)|\($0.note != nil ? WordRun.noteMark : $0.text)" }.joined(separator: "\u{1}")
     }
 
-    /// Where each sent paragraph stands in the corrected file: pairs of stretches that differ.
-    static func gaps(_ x: [String], _ a: [String]) -> [(x: Range<Int>, a: Range<Int>)] {
-        var removed = Set<Int>(), inserted = Set<Int>()
-        for change in a.difference(from: x) {
-            switch change {
-            case .remove(let o, _, _): removed.insert(o)
-            case .insert(let o, _, _): inserted.insert(o)
-            }
-        }
-        var out: [(x: Range<Int>, a: Range<Int>)] = []
-        var i = 0, j = 0
-        while i < x.count || j < a.count {
-            if removed.contains(i) || inserted.contains(j) {
-                let si = i, sj = j
-                while removed.contains(i) || inserted.contains(j) {
-                    if removed.contains(i) { i += 1 }
-                    if inserted.contains(j) { j += 1 }
-                }
-                out.append((si..<i, sj..<j))
-            } else {
-                i += 1; j += 1
-            }
-        }
-        return out
-    }
-
     /// Every change between two lists of paragraphs.
     static func hunks(sent x: [WordParagraph], corrected a: [WordParagraph], isNote: Bool = false) -> [Hunk] {
         var out: [Hunk] = []
         let contextLength = 60
-        for gap in gaps(x.map(key), a.map(key)) {
+        for gap in Diff.gaps(x.map(key), a.map(key)).map({ (x: $0.old, a: $0.new) }) {
             var from: [Token] = [], to: [Token] = []
             var owners: [Int] = []
             for i in gap.x { let t = tokens(x[i]) + [Token.paragraph]; from += t; owners += Array(repeating: i, count: t.count) }
@@ -280,7 +254,7 @@ enum WordReview {
     private static func stretches(_ x: [Token], _ a: [Token]) -> [(x: Range<Int>, a: Range<Int>)] {
         // Beyond this, a word-by-word comparison says nothing more than « rewritten ».
         guard x.count * a.count < 400_000_000 else { return [(0..<x.count, 0..<a.count)] }
-        var out = gaps(x.map { "\($0.format.rawValue)|\($0.text)" }, a.map { "\($0.format.rawValue)|\($0.text)" })
+        var out = Diff.gaps(x.map { "\($0.format.rawValue)|\($0.text)" }, a.map { "\($0.format.rawValue)|\($0.text)" }).map { (x: $0.old, a: $0.new) }
         var i = 0
         while i + 1 < out.count {
             let first = out[i], second = out[i + 1]
@@ -358,7 +332,7 @@ enum WordReview {
         let old = h.oldText.trimmingCharacters(in: .whitespacesAndNewlines), new = h.newPlain.trimmingCharacters(in: .whitespacesAndNewlines)
         if old.isEmpty { return L("adds « \(new) »") }
         if new.isEmpty { return L("removes « \(old) »") }
-        return "« \(old) » → « \(new) »"
+        return inQuotes(old) + " → " + inQuotes(new)
     }
 
     /// Finds a change's place in `folded`: with its context, then with less of it.
@@ -620,16 +594,10 @@ enum WordImports {
     private static func url(_ root: URL) -> URL { WordManuscript.directory(root).appendingPathComponent("imports.json") }
 
     static func load(_ root: URL) -> [Entry] {
-        let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601
-        return (try? Data(contentsOf: url(root))).flatMap { try? dec.decode([Entry].self, from: $0) } ?? []
+        JSONFile.read(at: url(root), iso8601: true) ?? []
     }
 
     static func record(_ entry: Entry, root: URL) throws {
-        let enc = JSONEncoder()
-        enc.dateEncodingStrategy = .iso8601
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try FileManager.default.createDirectory(at: WordManuscript.directory(root), withIntermediateDirectories: true)
-        try enc.encode(load(root) + [entry]).write(to: url(root), options: .atomic)
+        try JSONFile.write(load(root) + [entry], to: url(root), iso8601: true)
     }
 }

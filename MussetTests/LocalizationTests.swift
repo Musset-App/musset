@@ -34,7 +34,7 @@ final class LocalizationTests: XCTestCase {
         let saved = UserDefaults.standard.string(forKey: UILang.key)
         defer { UserDefaults.standard.set(saved, forKey: UILang.key) }
         UserDefaults.standard.set(UILang.de.rawValue, forKey: UILang.key)
-        XCTAssertEqual(L("Book A5"), "Buch A5")
+        XCTAssertEqual(L("PDF for readers"), "PDF für Leser")
         let one = 1, many = 3
         XCTAssertTrue(L("\(one) notes may lose their passage.").hasPrefix("1 Notiz kann"))
         XCTAssertTrue(L("\(many) notes may lose their passage.").hasPrefix("3 Notizen können"))
@@ -54,5 +54,20 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(UILang.from("pt_PT"), .ptPT)
         XCTAssertEqual(UILang.from("de-AT"), .de)
         XCTAssertNil(UILang.from("nl"))
+    }
+
+    /// Words quoted in code, and English keys shown as they are, follow the interface's quotes.
+    func testQuotesFollowTheInterface() {
+        let d = UserDefaults.standard
+        let saved = d.string(forKey: UILang.key)
+        defer { d.set(saved, forKey: UILang.key) }
+        let expected: [UILang: String] = [.en: "“Le Bac”", .fr: "«\u{00A0}Le Bac\u{00A0}»", .de: "„Le Bac“", .es: "«Le Bac»",
+                                          .it: "«Le Bac»", .ptPT: "«Le Bac»", .ptBR: "“Le Bac”"]
+        for (lang, quoted) in expected {
+            d.set(lang.rawValue, forKey: UILang.key)
+            XCTAssertEqual(inQuotes("Le Bac"), quoted, lang.rawValue)
+        }
+        d.set("en", forKey: UILang.key)
+        XCTAssertEqual(L("Search « \("salt") » in the text"), "Search “salt” in the text", "English keys quote in English")
     }
 }

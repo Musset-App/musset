@@ -56,4 +56,23 @@ final class ChatTests: XCTestCase {
         XCTAssertTrue(answers[0].contains("gris"))
         XCTAssertTrue(answers[1].contains("grey") || answers[1].contains("gray"))
     }
+
+    /// A chat field that is closed takes its undo steps with it: left in the window's, the next ⌘Z there crashed.
+    func testTheChatFieldLeavesNoUndoStepsInTheWindow() {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        autoreleasepool {
+            let tv = ComposerTextView(usingTextLayoutManager: false)
+            tv.frame = NSRect(x: 0, y: 0, width: 300, height: 200)
+            tv.allowsUndo = true
+            window.contentView?.addSubview(tv)
+            window.makeFirstResponder(tv)
+            tv.insertText("a question", replacementRange: NSRange(location: 0, length: 0))
+            XCTAssertTrue(tv.undoManager?.canUndo ?? false)
+            window.makeFirstResponder(nil)
+            tv.removeFromSuperview()
+        }
+        XCTAssertFalse(window.undoManager?.canUndo ?? false)
+        window.undoManager?.undo()
+    }
 }

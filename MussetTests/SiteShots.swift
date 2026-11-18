@@ -2,149 +2,260 @@ import SwiftUI
 import XCTest
 @testable import Musset
 
-/// Screenshots for the website: the whole window on a demo book, and its typeset PDF. MUSSET_SITE_SHOTS=<dir>.
-/// The demo text is original, written for these pictures.
+/// Screenshots for the website, in one language: the whole window on a demo book (its chapters, its Bible, a board,
+/// its history), a window of panes as one parks it on a second screen, the typeset PDF and its country's manuscript.
+/// MUSSET_SITE_SHOTS=<dir>, MUSSET_SITE_LANG=en|fr|de|es|it|pt (scripts/site-shots.sh runs them all).
+/// The demo book and everything said about it are in SiteDemo/<lang>.json: original text, written for these pictures.
+/// The board's layout is here, the same in every language; only its words come from the demo.
 @MainActor
 final class SiteShots: XCTestCase {
-    static let ferry = """
-    # The Ferry
+    struct Demo: Decodable {
+        struct Chapter: Decodable { let title: String; let text: String }
+        struct NoteSpec: Decodable { let anchor: String; let author: String; let kind: String; let body: String }
+        struct Message: Decodable { let role: String; let text: String }
+        struct Versions: Decodable { let current: String; let other: String; let edits: [[String]] }
+        /// A sheet of the Bible. `fields`: born, occupation, wants, hides (characters). `facts`: chapter, fact, the
+        /// book's words. `found`: other names the text gives them. `tier`: where the cast shows them.
+        struct Sheet: Decodable {
+            let id: String, name: String, aliases: [String], body: String
+            let tier: String?, fields: [String]?, found: [String]?, facts: [[String]]?
+        }
+        struct Bible: Decodable { let characters: [Sheet]; let places: [Sheet] }
+        /// The words of the planning wall (`SiteShots.board` lays them out).
+        struct Board: Decodable {
+            let title: String, labels: [String: String], columns: [String], written: [String], passage: String
+            let next: [String], notes: [String: String], shape: String
+        }
+        struct History: Decodable { let milestone: String; let note: String }
+        let uiLang: String, bookLang: String, title: String, author: String
+        let chapters: [Chapter], notes: [NoteSpec], chat: [Message], versions: Versions
+        let bible: Bible?, board: Board?, history: History?
+    }
 
-    <!-- scene: Morning crossing -->
-
-    The ferry left at six, before the gulls were awake. Nora stood at the rail with her father's coat over her arm, as if he might still ask for it. The deck was wet and nobody else had come up; the other passengers were below, in the warm room that smelled of coffee and diesel, sleeping against their own reflections in the windows.
-
-    Below, the water kept its own counsel. She had rehearsed what she would say to her brother for three hundred miles, and now every sentence sounded like someone else's. She tried them again under her breath, one after the other, and none of them survived the wind.
-
-    "You came," he would say. Or he would say nothing, which was worse, and which was more like him.
-
-    They had not spoken since the funeral of their mother, eleven years ago, when Tom had stood at the back of the church in a borrowed suit and left before the last hymn. She had found him afterwards in the car park, smoking with the undertaker, and he had looked at her as if she were a stranger who had asked him for directions.
-
-    A man in an orange jacket came along the deck with a coil of rope and nodded at her without stopping. She nodded back. It was the first time anyone had looked at her since the motorway.
-
-    <!-- scene: The island -->
-
-    The island rose out of the haze in pieces: a church, a line of white houses, the long grey roof of the salt works where their mother had counted sacks for twenty years. Then the harbour wall, the crane, the two cars waiting on the slipway with their headlights still on, though it was day now and nobody needed them.
-
-    She folded the coat once more. It smelled of tobacco and of rain, and of the winter he had spent pretending not to be ill. In the inside pocket there was a ferry ticket from March, a pencil, and a list in his handwriting that she had not been able to read in the hospital and could not read now: *salt, glass, the blue boat, Tom.*
-
-    The engines changed their note. Somewhere below, a door banged, and the passengers began to come up the stairs with their bags, blinking, putting on their coats. A child asked whether this was the island. Its mother said it was. The child looked at the island for a long time and said that it was smaller than in the book.
-
-    Nora put the list back where she had found it.
-
-    <!-- scene: The harbour -->
-
-    He was not on the quay. She had known he would not be, and still she looked for him twice: once among the men by the crane, once in the doorway of the café, where an old woman was turning the sign from *Closed* to *Open* with great care, as if the word might break.
-
-    She walked up the hill with the coat over her arm and her bag on her shoulder. The road was the road she remembered, only narrower. The houses had new doors. At the top, where the road turned towards the salt works, someone had painted a blue boat on the side of the bus shelter, badly, a long time ago, and it was still there.
-
-    She stopped in front of it and laughed, because it was his, and because nobody had painted over it in eleven years, and because she did not know what else to do.
-    """
-
-    static let saltWorks = """
-    # The Salt Works
-
-    The gate was open. Nobody had {~~ever locked~>locked~~}{@Claire} anything on the island since the war, and the salt works least of all: there was nothing {--left--}{@Claire} to take but the salt, and the salt took care of itself.
-
-    Tom's van was parked by the old weighing house, {++its back doors open,++}{@Claire} with a dog asleep in the shade of it. The dog lifted its head when she came through the gate and put it down again, as if she had been expected.
-
-    {==She found him on the roof.==}{>>Too sudden? We haven't heard him yet. Maybe his voice first, then the roof.<<}{@Claire} He was kneeling between two rows of slates with a hammer in his hand, and he did not look round.
-
-    "It leaks over the drying room," he said. "It always leaked over the drying room."
-    """
-
-    static let inventory = "# Inventory\n\nHer brother had kept everything: receipts, tide tables, a calendar from 1987 with the high tides ringed in red.\n"
+    private static let ids = ["01", "02", "03"]
 
     func testSiteShots() async throws {
-        guard let dir = ProcessInfo.processInfo.environment["MUSSET_SITE_SHOTS"] else { throw XCTSkip("set MUSSET_SITE_SHOTS") }
+        let env = ProcessInfo.processInfo.environment
+        guard let dir = env["MUSSET_SITE_SHOTS"] else { throw XCTSkip("set MUSSET_SITE_SHOTS") }
+        let code = env["MUSSET_SITE_LANG"] ?? "en"
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("SiteDemo/\(code).json")
+        let demo = try JSONDecoder().decode(Demo.self, from: Data(contentsOf: file))
+        let bibleDemo = try XCTUnwrap(demo.bible), boardDemo = try XCTUnwrap(demo.board), historyDemo = try XCTUnwrap(demo.history)
         let out = URL(fileURLWithPath: dir)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+
         let d = UserDefaults.standard
         let saved = (d.string(forKey: UILang.key), d.stringArray(forKey: "libraryPaths"), d.string(forKey: "lastBook"), d.object(forKey: "sideBySideDiff"))
         defer {
             d.set(saved.0, forKey: UILang.key); d.set(saved.1, forKey: "libraryPaths"); d.set(saved.2, forKey: "lastBook")
             d.set(saved.3, forKey: "sideBySideDiff")
         }
-        d.set("en", forKey: UILang.key)
+        d.set(demo.uiLang, forKey: UILang.key)
         d.set(true, forKey: "sideBySideDiff")
         d.removeObject(forKey: "libraryPaths"); d.removeObject(forKey: "lastBook")
 
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent("The Salt Road")
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(demo.title)
         try? FileManager.default.removeItem(at: root)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-        for (name, text) in [("01.md", Self.ferry), ("02.md", Self.saltWorks), ("03.md", Self.inventory)] {
-            try Typography.correctedDocument(text, lang: "en-GB").text.write(to: root.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        let ids = Self.ids
+        for (id, ch) in zip(ids, demo.chapters) {
+            try Typography.correctedDocument(ch.text, lang: demo.bookLang).text.write(to: root.appendingPathComponent("\(id).md"), atomically: true, encoding: .utf8)
         }
-        var m = BookManifest(title: "The Salt Road", author: "Nora Vale", lang: "en-GB", chapters: [
-            ChapterEntry(id: "01", file: "01.md", title: "The Ferry", status: .edited),
-            ChapterEntry(id: "02", file: "02.md", title: "The Salt Works", status: .draft),
-            ChapterEntry(id: "03", file: "03.md", title: "Inventory", status: .draft)])
-        m.exports = BookStore(root: root).defaultPresets(lang: m.lang)
+        var m = BookManifest(title: demo.title, author: demo.author, lang: demo.bookLang, chapters: zip(ids, demo.chapters).enumerated().map { i, pair in
+            ChapterEntry(id: pair.0, file: "\(pair.0).md", title: pair.1.title, status: i == 0 ? .edited : .draft)
+        })
         m.sceneBreak = .asterism
         try BookStore(root: root).saveManifest(m)
         let git = GitService(root: root)
         try git.initRepo()
-        _ = try git.commit(paths: ["01.md", "02.md", "03.md", ".musset"], message: "start")
+        _ = try git.commit(paths: ids.map { "\($0).md" } + [".musset"], message: "start")
 
-        // The typeset book: Blanche, facing pages, as it would go to the printer.
-        var blanche = ExportPreset(id: "site-blanche", name: "Book", format: .pdf, template: "blanche")
-        blanche.facing = true
-        let pdf = try await ExportService.export(manifest: m, store: BookStore(root: root), preset: blanche)
-        try? FileManager.default.removeItem(at: out.appendingPathComponent("book.pdf"))
-        try FileManager.default.copyItem(at: pdf.file, to: out.appendingPathComponent("book.pdf"))
+        // The Bible: the author's sheets, what the book says about them, and the planning wall.
+        let sheets = try Self.writeBible(bibleDemo, root: root)
+        let boardPath = "\(BibleKind.board.folder)/\(boardDemo.title).canvas"
+        try Self.board(boardDemo, sheets: sheets).write(BibleStore(root: root).url(boardPath))
+        let tom = try XCTUnwrap(sheets["tom"])
+
+        // The typeset book: 120 × 188 mm, facing pages, as it would go to the printer; and the manuscript as the
+        // book's country expects it.
+        var book = ExportPreset(id: "site-book", name: "Book", format: .pdf, style: "book")
+        book.facing = true
+        let norm = ManuscriptNorm.for(BookLanguage(code: demo.bookLang)).preset
+        for (preset, name) in [(book, "book.pdf"), (norm, "manuscript.pdf")] {
+            let pdf = try await ExportService.export(manifest: m, store: BookStore(root: root), preset: preset)
+            try? FileManager.default.removeItem(at: out.appendingPathComponent(name))
+            try FileManager.default.copyItem(at: pdf.file, to: out.appendingPathComponent(name))
+        }
 
         let app = AppState()
         app.openBook(root)
         let s = try XCTUnwrap(app.current)
         s.open("01")
-        let text = s.text as NSString
-        s.notes.add(range: text.range(of: "kept its own counsel"), text: s.text, author: .claude, kind: .critique,
-                    body: "A borrowed phrase in a chapter that is otherwise all hers. What does Nora see in the water?")
-        s.notes.add(range: text.range(of: "which was worse, and which was more like him"), text: s.text, author: .claude, kind: .praise,
-                    body: "The brother arrives before he appears. Keep it.")
-        s.notes.add(range: text.range(of: "She folded the coat once more."), text: s.text, author: .claude, kind: .question,
-                    body: "The coat is folded for the second time. Deliberate echo, or one too many?")
-        s.notes.add(range: text.range(of: "eleven years ago"), text: s.text, author: .me, kind: .continuity,
-                    body: "Check against chapter 4: the funeral is in winter there.")
+        // The cast as the author sees it in a whole book: where three short chapters count otherwise, the sheet is
+        // kept in its column, as dropping it there does.
+        func keepCast(_ s: BookSession, _ sheets: [String: String]) async throws {
+            s.refreshBibleMentions()
+            try await Task.sleep(for: .seconds(0.6))
+            for sheet in bibleDemo.characters {
+                guard let wanted = sheet.tier.flatMap(NameTier.init(rawValue:)), let path = sheets[sheet.id], var e = s.bible.entry(path: path),
+                      s.bible.tier(of: e) != wanted else { continue }
+                e.meta["tier"] = wanted.rawValue
+                try s.bible.save(e)
+            }
+            s.refreshBibleMentions()
+        }
+        try await keepCast(s, sheets)
+        // A passage as it stands in the book: the demo's words, or the same after the book's typography.
+        func find(_ words: String) -> NSRange {
+            let ns = s.text as NSString
+            let r = ns.range(of: words)
+            return r.location != NSNotFound ? r : ns.range(of: Typography.correctedDocument(words, lang: demo.bookLang).text)
+        }
+        for n in demo.notes {
+            let r = find(n.anchor)
+            XCTAssertNotEqual(r.location, NSNotFound, "\(code): no passage « \(n.anchor) »")
+            guard r.location != NSNotFound else { continue }
+            s.notes.add(range: r, text: s.text, author: Note.Author(rawValue: n.author) ?? .claude, kind: Note.Kind(rawValue: n.kind) ?? .note, body: n.body)
+        }
 
         let bridge = EditorBridge(), chat = ChatModel(), ann = Annotator(), proof = AutoProofreader()
         bridge.annotator = ann; bridge.proof = proof
+        bridge.openSheet = { app.open(.sheet($0)) }
         let view = ContentView(app: app, bridge: bridge, chat: chat, pangram: PangramModel(), proof: proof, annotator: ann)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
-        window.contentView = NSHostingView(rootView: view.frame(width: 1440, height: 900))
-        func shot(_ name: String, dark: Bool = false, wait: TimeInterval = 1.2, _ setup: () -> Void) async throws {
-            window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        // On the Retina screen, so the pictures are drawn at 2× (a window on no screen draws at 1×). Never shown.
+        // 1440 × 900 points in all, its title bar included: 1920 × 1200 once on the site.
+        let retina = NSScreen.screens.max { $0.backingScaleFactor < $1.backingScaleFactor }
+        let size = NSSize(width: 1440, height: 900)
+        // The content goes under the title bar, which takes its height from the room left to the view.
+        let probe = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled], backing: .buffered, defer: true)
+        let bar = probe.frame.height - size.height
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: size.width, height: size.height - bar), styleMask: [.titled, .fullSizeContentView],
+                              backing: .buffered, defer: false, screen: retina)
+        window.contentView = NSHostingView(rootView: view.frame(width: size.width, height: size.height - bar))
+        func capture(_ v: NSView, _ name: String) throws {
+            let rep = try XCTUnwrap(v.bitmapImageRepForCachingDisplay(in: v.bounds))
+            v.cacheDisplay(in: v.bounds, to: rep)
+            try XCTUnwrap(rep.representation(using: .png, properties: [:])).write(to: out.appendingPathComponent(name))
+        }
+        func shot(_ name: String, wait: TimeInterval = 1.2, _ setup: () -> Void) async throws {
+            window.appearance = NSAppearance(named: .aqua)
             setup()
             // Sleeping, not spinning the run loop: typesetting and the history finish on the main actor meanwhile.
             try await Task.sleep(for: .seconds(wait))
-            let v = window.contentView!
-            let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds)!
-            v.cacheDisplay(in: v.bounds, to: rep)
-            try rep.representation(using: .png, properties: [:])!.write(to: out.appendingPathComponent(name))
+            try capture(window.contentView!, name)
         }
         try await shot("write-light.png") { app.showInspector = false }
-        try await shot("write-dark.png", dark: true) { app.showInspector = false }
         try await shot("notes-light.png") { app.inspectorTab = .edits; app.showInspector = true }
-        chat.messages = [
-            ChatMessage(role: .user, text: "Does the crossing hold without Tom in it? I’m afraid the first scene is all waiting."),
-            ChatMessage(role: .assistant, agent: .claude, text: "It holds, and the waiting is the point: Tom is present in every paragraph through what Nora rehearses, the coat, the list in his handwriting. The reader meets him before he appears.\n\nTwo things weaken it. « Kept its own counsel » is the only borrowed phrase in a chapter that is otherwise all hers. And the coat is folded twice; the second fold is the stronger one, so the first could go.\n\nI’ve left three notes in the margin. Would you like me to look at how the harbour scene ends?", action: .style, notesAdded: 3),
-            ChatMessage(role: .user, text: "Yes — does the laugh at the bus shelter come too soon?"),
-        ]
+        chat.messages = demo.chat.map { msg in
+            msg.role == "user" ? ChatMessage(role: .user, text: msg.text)
+                : ChatMessage(role: .assistant, agent: .claude, text: msg.text, action: .style, notesAdded: 3)
+        }
         try await shot("chat-light.png") { app.inspectorTab = .chat; app.showInspector = true }
         try await shot("palette-light.png") { app.showInspector = false; app.showQuickOpen = true }
         try await shot("read-light.png", wait: 14) { app.showQuickOpen = false; app.review.scope = .book; app.reviewMode = true }
-        try await shot("history-light.png", wait: 5) { app.reviewMode = false; app.inspectorTab = .history; app.showInspector = true }
+        app.reviewMode = false
+
+        // The Bible: a character's sheet in two parts (the author's, and what the book says), then the cast.
+        try await shot("bible-light.png", wait: 1.5) { app.showInspector = false; app.open(.sheet(tom)) }
+        try await shot("cast-light.png", wait: 1.5) { app.open(.folder(BibleKind.character.folder)) }
+
+        // Two panes: the chapter being written, and the wall beside it, closer in on the family.
+        BoardCamera.kept[boardPath] = (CGSize(width: Self.besideChapter.pan.x, height: Self.besideChapter.pan.y), Self.besideChapter.zoom)
+        try await shot("panes-light.png", wait: 2) {
+            s.open("01")
+            s.workspace.open(.sheet(boardPath), in: .split(.right))
+        }
+        // Back to the chapter alone, as the pictures that follow want it.
+        s.workspace.closeAll(.sheet(boardPath))
+
+        // The chapter as scene cards, then the whole book from further away.
+        try await shot("scenes-light.png", wait: 2) { s.workspace.toggleSceneCards() }
+        s.workspace.toggleSceneCards()
+        try await shot("overview-light.png", wait: 2.5) { app.open(OverviewTab.summary.tab) }
+        s.workspace.closeAll(OverviewTab.summary.tab)
+        s.open("01")
+
+        // Ultra Focus: the whole screen, the chapter so far dimmed above, the paragraph being written under it.
+        do {
+            let paragraphs = UltraFocus.readable(s.text).components(separatedBy: "\n").filter { !$0.isEmpty }
+            let last = paragraphs.last ?? ""
+            let written = String(last.prefix(last.count * 3 / 5))
+            let model = UltraFocusModel()
+            model.context = paragraphs.dropLast().joined(separator: "\n")
+            let w = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false, screen: retina)
+            w.contentView = NSHostingView(rootView: UltraFocusView(model: model) {})
+            w.setFrame(NSRect(origin: .zero, size: size), display: true)
+            try await Task.sleep(for: .seconds(1))
+            func editor(_ v: NSView) -> ForwardOnlyTextView? { v as? ForwardOnlyTextView ?? v.subviews.lazy.compactMap(editor).first }
+            let tv = try XCTUnwrap(editor(w.contentView!))
+            tv.insertText(String(written[..<(written.lastIndex(of: " ") ?? written.endIndex)]), replacementRange: NSRange(location: tv.floor, length: 0))
+            // Twice: the first sets the room above and below, the second scrolls once that is laid out.
+            tv.place()
+            try await Task.sleep(for: .seconds(0.6))
+            // Offscreen, the text view grows without its origin following: back to the top before scrolling.
+            tv.sizeToFit()
+            tv.setFrameOrigin(.zero)
+            tv.place()
+            try await Task.sleep(for: .seconds(0.6))
+            try capture(w.contentView!, "ultra-dark.png")
+        }
+        s.workspace.closeAll(.folder(BibleKind.character.folder))
+        s.open("01")
+        try await Task.sleep(for: .seconds(0.5))
+        BoardCamera.kept[boardPath] = nil
+
+        // A window of the book's own (what a tab dragged out of the main window becomes): the wall filling it,
+        // by day and by night; then the sheet and the wall side by side, for a second screen.
+        func paneWindow(_ id: String) -> NSWindow {
+            let w = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                             backing: .buffered, defer: false, screen: retina)
+            w.title = demo.title
+            w.appearance = NSAppearance(named: .aqua)
+            w.contentView = NSHostingView(rootView: PaneWindow(app: app, bridge: bridge, proof: proof,
+                                                               ref: WindowRef(bookPath: root.standardizedFileURL.path, windowID: id)))
+            w.setFrame(NSRect(origin: .zero, size: size), display: true)
+            return w
+        }
+        // The window with its title bar: the frame around the content.
+        func frame(of w: NSWindow) -> NSView { w.contentView?.superview ?? w.contentView! }
+        let wallID = s.newWindow(with: .sheet(boardPath))
+        let wall = paneWindow(wallID)
+        try await Task.sleep(for: .seconds(2))
+        try capture(frame(of: wall), "board-light.png")
+        wall.appearance = NSAppearance(named: .darkAqua)
+        try await Task.sleep(for: .seconds(1))
+        try capture(frame(of: wall), "board-dark.png")
+        wall.contentView = nil
+        s.closeWindow(wallID)
+        try await Task.sleep(for: .seconds(0.5))
+
+        BoardCamera.kept[boardPath] = (CGSize(width: Self.secondScreen.pan.x, height: Self.secondScreen.pan.y), Self.secondScreen.zoom)
+        let secondID = s.newWindow(with: .sheet(tom))
+        if let ws = s.windows[secondID] {
+            ws.open(.sheet(boardPath), in: .split(.right))
+            ws.resize([], fractions: [0.42, 0.58])
+        }
+        let second = paneWindow(secondID)
+        try await Task.sleep(for: .seconds(2))
+        try capture(frame(of: second), "second-light.png")
+        second.contentView = nil
+        s.closeWindow(secondID)
+        try await Task.sleep(for: .seconds(0.5))
+        BoardCamera.kept[boardPath] = nil
 
         // Two versions of the same chapter, side by side, what differs marked.
-        s.tryAnotherVersion(named: "Darker", blank: false, currentName: "First draft")
+        s.tryAnotherVersion(named: demo.versions.other, blank: false, currentName: demo.versions.current)
         try await Task.sleep(for: .seconds(0.5))
-        var darker = s.text
-        for (from, to) in [("The ferry left at six, before the gulls were awake.", "The ferry left in the dark."),
-                           ("as if he might still ask for it.", "as if he might still come up the stairs and ask for it."),
-                           ("Below, the water kept its own counsel.", "Below, the water was black and did not move."),
-                           ("which was worse, and which was more like him.", "which was what he had always done.")] {
-            darker = darker.replacingOccurrences(of: from, with: to)
+        var darker = s.text as NSString
+        for edit in demo.versions.edits where edit.count == 2 {
+            let r = darker.range(of: edit[0]).location != NSNotFound ? darker.range(of: edit[0])
+                : darker.range(of: Typography.correctedDocument(edit[0], lang: demo.bookLang).text)
+            XCTAssertNotEqual(r.location, NSNotFound, "\(code): no passage « \(edit[0]) » to rewrite")
+            guard r.location != NSNotFound else { continue }
+            darker = darker.replacingCharacters(in: r, with: Typography.correctedDocument(edit[1], lang: demo.bookLang).text) as NSString
         }
-        s.text = darker
+        s.text = darker as String
         s.flushSave()
         try await shot("versions-light.png", wait: 1.5) {
             app.showInspector = false
@@ -158,5 +269,242 @@ final class SiteShots: XCTestCase {
             bridge.trackChanges = true
             app.inspectorTab = .edits; app.showInspector = true
         }
+        bridge.trackChanges = false
+
+        // The book's history: six weeks of sittings, a milestone, a track still open. A book of its own, since
+        // sittings are dated by git and this one was written in a minute.
+        let past = try Self.bookWithAPast(demo, history: historyDemo)
+        defer { try? FileManager.default.removeItem(at: past.deletingLastPathComponent()) }
+        let pastSheets = try Self.writeBible(bibleDemo, root: past)
+        try Self.board(boardDemo, sheets: pastSheets).write(BibleStore(root: past).url(boardPath))
+        app.openBook(past)
+        let h = try XCTUnwrap(app.current)
+        h.open("01")
+        try await keepCast(h, pastSheets)
+        try await shot("history-light.png", wait: 2.5) { app.showInspector = false; app.open(.story) }
+    }
+
+    // MARK: The Bible
+
+    /// Writes the sheets and what the book says about them; returns each sheet's path by its id in the demo.
+    private static func writeBible(_ bible: Demo.Bible, root: URL) throws -> [String: String] {
+        let store = BibleStore(root: root)
+        var paths: [String: String] = [:]
+        var facts = BookFacts()
+        for (kind, list) in [(BibleKind.character, bible.characters), (.place, bible.places)] {
+            for sheet in list {
+                var e = BibleEntry(path: store.freePath(title: sheet.name, folder: kind.folder), kind: kind, title: sheet.name, aliases: sheet.aliases)
+                if let values = sheet.fields {
+                    e.fields = zip(kind.suggestedFields, values).map { .init(name: $0, value: $1) }
+                }
+                e.body = sheet.body + "\n"
+                try store.write(e)
+                paths[sheet.id] = e.path
+                let said = (sheet.facts ?? []).filter { $0.count == 3 }.map { BookFacts.Fact(text: $0[1], chapter: $0[0], quote: $0[2]) }
+                if !said.isEmpty || sheet.found?.isEmpty == false {
+                    facts.entities[e.path] = .init(facts: said, aliases: sheet.found ?? [])
+                }
+            }
+        }
+        // Read already: nothing to read again.
+        for id in ids {
+            facts.read[id] = PlotGrid.fingerprint((try? String(contentsOf: root.appendingPathComponent("\(id).md"), encoding: .utf8)) ?? "")
+        }
+        try facts.save(root)
+        return paths
+    }
+
+    // MARK: The wall
+
+    /// Where the wall is looked at from beside a chapter (the family, closer in) and on a second screen (what
+    /// happens and the island).
+    private static let besideChapter = (pan: CGPoint(x: 40, y: 104), zoom: CGFloat(1.1))
+    private static let secondScreen = (pan: CGPoint(x: -372, y: 112), zoom: CGFloat(0.88))
+
+    /// A novelist's planning wall for the demo book: the family on the left with what ties it, the book act by act
+    /// in two columns, the island and its open questions on the right. One layout for every language.
+    static func board(_ words: Demo.Board, sheets: [String: String]) -> JSONCanvas {
+        typealias Node = JSONCanvas.Node
+        var c = JSONCanvas()
+        func add(_ n: Node) -> String { c.nodes.append(n); return n.id }
+        func label(_ key: String, x: Int, y: Int, width: Int = 320) -> String {
+            add(Node(type: .text, x: x, y: y, width: width, height: 36, text: words.labels[key] ?? "", musset: ["kind": "label"]))
+        }
+        func sheet(_ id: String, x: Int, y: Int, width: Int = 198, height: Int = 117) -> String {
+            add(Node(type: .file, x: x, y: y, width: width, height: height, file: sheets[id] ?? ""))
+        }
+        func note(_ text: String, x: Int, y: Int, width: Int, height: Int, color: String? = nil) -> String {
+            add(Node(type: .text, x: x, y: y, width: width, height: height, color: color, text: text))
+        }
+        func arrow(_ from: String, _ fromSide: BoardSide, _ to: String, _ toSide: BoardSide) {
+            c.edges.append(.init(fromNode: from, toNode: to, fromSide: fromSide.rawValue, toSide: toSide.rawValue))
+        }
+        /// How wide a label's words are on the board (Inter semibold, 22 points).
+        func width(of key: String) -> CGFloat {
+            let font = NSFontManager.shared.font(withFamily: Typefaces.ui, traits: [], weight: 8, size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
+            return ((words.labels[key] ?? "") as NSString).size(withAttributes: [.font: font]).width
+        }
+
+        // Columns first: they lie under their cards.
+        let top = 54, colH = 540
+        _ = add(Node(type: .group, x: 459, y: top, width: 252, height: colH, label: words.columns[0]))
+        _ = add(Node(type: .group, x: 729, y: top, width: 252, height: colH, label: words.columns[1]))
+
+        // The family.
+        _ = label("family", x: 0, y: 0)
+        let walter = sheet("walter", x: 0, y: top), maud = sheet("maud", x: 216, y: top)
+        let nora = sheet("nora", x: 0, y: 225), tomCard = sheet("tom", x: 216, y: 225)
+        let list = note(words.notes["list"] ?? "", x: 0, y: 396, width: 198, height: 135, color: "3")
+        let boat = add(Node(type: .text, x: 225, y: 405, width: 180, height: 117, color: "5", text: words.shape, musset: ["kind": "shape", "shape": "ellipse"]))
+        arrow(walter, .bottom, nora, .top)
+        arrow(maud, .bottom, tomCard, .top)
+        arrow(nora, .bottom, list, .top)
+        arrow(list, .right, boat, .left)
+        arrow(tomCard, .bottom, boat, .top)
+
+        // What happens: written, then still to write (green).
+        _ = label("story", x: 459, y: 0)
+        let rows = [99, 219, 339, 459]
+        let crossing = [words.written[0], words.written[1], nil, words.written[2]]
+        var first: [String] = []
+        for (y, text) in zip(rows, crossing) {
+            if let text {
+                first.append(note(text, x: 477, y: y, width: 216, height: 108))
+            } else {
+                first.append(add(Node(type: .text, x: 477, y: y, width: 216, height: 108, text: "> " + words.passage,
+                                      musset: ["kind": "passage", "chapter": "01", "quote": words.passage])))
+            }
+        }
+        var second: [String] = []
+        for (i, (y, text)) in zip(rows, words.next).enumerated() {
+            second.append(note(text, x: 747, y: y, width: 216, height: 108, color: i >= 2 ? "4" : nil))
+        }
+        arrow(boat, .right, first[3], .left)
+
+        // The island: its places, and what is still not known.
+        let islandX = 1017
+        _ = label("island", x: islandX, y: 0)
+        let works = sheet("saltworks", x: islandX, y: top, width: 334, height: 99)
+        _ = sheet("harbour", x: islandX, y: 171, width: 334, height: 99)
+        let year = label("year", x: islandX + 27, y: 315, width: 108)
+        let ringed = note(words.notes["year"] ?? "", x: islandX + 158, y: 297, width: 176, height: 117, color: "3")
+        _ = note(words.notes["boat"] ?? "", x: islandX, y: 450, width: 158, height: 144, color: "1")
+        let tide = note(words.notes["tide"] ?? "", x: islandX + 176, y: 450, width: 158, height: 144, color: "5")
+        arrow(second[0], .right, works, .left)
+        arrow(second[1], .right, year, .left)
+        arrow(ringed, .bottom, tide, .top)
+
+        // The marker: a highlighter over « the family », the island underlined twice, the year ringed in red.
+        let family = width(of: "family")
+        let over = (0...24).map { i -> CGPoint in
+            let t = CGFloat(i) / 24
+            return CGPoint(x: 6 + t * (family + 6), y: 15 + 1.6 * sin(t * 5) - 2 * t)
+        }
+        if let n = BoardInk.make(over, width: 17, color: "3", highlighter: true) { c.nodes.append(n) }
+        let island = width(of: "island")
+        for (dy, shorter) in [(CGFloat(31), CGFloat(0)), (36, 0.22)] {
+            let line = (0...20).map { i -> CGPoint in
+                let t = CGFloat(i) / 20
+                return CGPoint(x: CGFloat(islandX) - 2 + t * (island + 8) * (1 - shorter) + (shorter > 0 ? 5 : 0), y: dy + 1.2 * sin(t * 6 + dy) - 1.5 * t)
+            }
+            if let n = BoardInk.make(line, width: 2.5, color: "5", highlighter: false) { c.nodes.append(n) }
+        }
+        let date = width(of: "year")
+        let centre = CGPoint(x: CGFloat(islandX + 27) + date / 2, y: 315 + 14)
+        let ring = (0...44).map { i -> CGPoint in
+            // One turn and a little more, as a hand closes a circle: it ends inside where it began.
+            let t = CGFloat(i) / 44
+            let a = -2.5 + t * 2 * .pi * 1.08
+            let r = 1 - 0.1 * t + 0.03 * sin(t * 9)
+            return CGPoint(x: centre.x + (date / 2 + 20) * r * cos(a) + 2 * sin(a), y: centre.y + 25 * r * sin(a) - 4 * cos(a) * 0.5)
+        }
+        if let n = BoardInk.make(ring, width: 3, color: "1", highlighter: false) { c.nodes.append(n) }
+        return c
+    }
+
+    // MARK: A book with a past
+
+    /// The demo book as six weeks of work would have left it: sittings on their days, a milestone, and a track that
+    /// left the manuscript and is still open. Written with git itself, which alone can date a commit in the past.
+    private static func bookWithAPast(_ demo: Demo, history: Demo.History) throws -> URL {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-site-\(UUID().uuidString)/\(demo.title)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let texts = demo.chapters.map { Typography.correctedDocument($0.text, lang: demo.bookLang).text }
+        func write(_ chapter: Int, upTo share: Double) throws {
+            let blocks = texts[chapter].components(separatedBy: "\n\n")
+            let n = max(1, min(blocks.count, Int((Double(blocks.count) * share).rounded())))
+            try (blocks.prefix(n).joined(separator: "\n\n") + "\n").write(to: root.appendingPathComponent("\(ids[chapter]).md"), atomically: true, encoding: .utf8)
+        }
+        var m = BookManifest(title: demo.title, author: demo.author, lang: demo.bookLang, chapters: zip(ids, demo.chapters).map {
+            ChapterEntry(id: $0.0, file: "\($0.0).md", title: $0.1.title, status: .draft)
+        })
+        m.sceneBreak = .asterism
+        try BookStore(root: root).saveManifest(m)
+        for i in ids.indices { try write(i, upTo: 0) }
+
+        let calendar = Calendar.current
+        func day(_ ago: Int, _ hour: Int, _ minute: Int) -> Date {
+            let d = calendar.date(byAdding: .day, value: -ago, to: Date()) ?? Date()
+            return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: d) ?? d
+        }
+        @discardableResult func git(_ args: [String], at date: Date? = nil) throws -> String {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            p.arguments = ["-C", root.path, "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "core.hooksPath=/dev/null"] + args
+            var e = ProcessInfo.processInfo.environment
+            e["GIT_AUTHOR_NAME"] = demo.author; e["GIT_COMMITTER_NAME"] = demo.author
+            e["GIT_AUTHOR_EMAIL"] = "author@example.com"; e["GIT_COMMITTER_EMAIL"] = "author@example.com"
+            e["GIT_CONFIG_GLOBAL"] = "/dev/null"
+            if let date {
+                let stamp = "@\(Int(date.timeIntervalSince1970)) +0000"
+                e["GIT_AUTHOR_DATE"] = stamp; e["GIT_COMMITTER_DATE"] = stamp
+            }
+            p.environment = e
+            let pipe = Pipe()
+            p.standardOutput = pipe; p.standardError = pipe
+            try p.run()
+            let said = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            p.waitUntilExit()
+            XCTAssertEqual(p.terminationStatus, 0, "git \(args.joined(separator: " ")): \(said)")
+            return said.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        func sitting(_ chapter: Int, _ share: Double, _ date: Date) throws -> String {
+            try write(chapter, upTo: share)
+            try git(["add", "-A"])
+            try git(["commit", "-q", "-m", "musset: edit \(ids[chapter])"], at: date)
+            return try git(["rev-parse", "HEAD"])
+        }
+        try git(["init", "-q", "-b", "main"])
+        _ = try sitting(0, 0.3, day(41, 9, 12))
+        _ = try sitting(0, 0.45, day(39, 8, 47))
+        _ = try sitting(0, 0.6, day(38, 21, 30))
+        _ = try sitting(0, 0.75, day(34, 9, 5))
+        _ = try sitting(1, 0.4, day(32, 7, 58))
+        _ = try sitting(0, 0.9, day(30, 22, 10))
+        let sent = try sitting(0, 1, day(27, 9, 20))
+        try git(["tag", "-a", "jalon/" + Pistes.slug(history.milestone, taken: []), "-m", history.milestone + "\n\n" + history.note, sent], at: day(27, 18, 40))
+        let fork = try sitting(1, 0.8, day(20, 8, 50))
+
+        // The track: the darker version of the first chapter, tried on its own line.
+        var piste = Piste(id: Pistes.slug(demo.versions.other, taken: []), name: demo.versions.other, created: day(19, 9, 0), from: L("the manuscript"))
+        piste.start = fork
+        try git(["checkout", "-q", "-b", piste.branch])
+        var darker = texts[0]
+        for (edits, date) in [(demo.versions.edits.prefix(1), day(19, 9, 30)), (demo.versions.edits.dropFirst(1).prefix(1), day(16, 21, 15)), (demo.versions.edits.dropFirst(2), day(13, 8, 20))] {
+            for edit in edits where edit.count == 2 {
+                for from in [edit[0], Typography.correctedDocument(edit[0], lang: demo.bookLang).text] where darker.contains(from) {
+                    darker = darker.replacingOccurrences(of: from, with: Typography.correctedDocument(edit[1], lang: demo.bookLang).text)
+                    break
+                }
+            }
+            try darker.write(to: root.appendingPathComponent("\(ids[0]).md"), atomically: true, encoding: .utf8)
+            try git(["add", "-A"])
+            try git(["commit", "-q", "-m", "musset: edit \(ids[0])"], at: date)
+        }
+        try git(["checkout", "-q", "main"])
+        try Pistes.save([piste], root: root)
+        _ = try sitting(1, 1, day(12, 9, 15))
+        _ = try sitting(2, 1, day(5, 8, 40))
+        return root
     }
 }

@@ -12,55 +12,60 @@ struct ContentView: View {
     @AppStorage("columnWidth") private var columnWidth = 640.0
     @AppStorage("inspectorWidth") private var inspectorWidth = 384.0
     @State private var analyst = PlotAnalyst()
+    /// The first chapter of the book just marked done.
+    @State private var chapterDone: DoneChapter?
     @State private var planner = ScenePlanner()
+    @State private var layoutName = ""
+    @State private var room = WindowRoom()
     /// The interface rebuilds when its language changes.
     @AppStorage(UILang.key) private var uiLanguage = UILang.system.rawValue
+    @Environment(\.openWindow) private var openWindow
 
-    private var covered: Bool { app.showPlotGrid || app.specialPage != nil || app.showOverview || app.bibleRoute != nil }
+    private func paneContext(_ session: BookSession) -> PaneContext {
+        PaneContext(app: app, session: session, workspace: session.mainWorkspace, bridge: bridge, proof: proof, analyst: analyst,
+                    planner: planner, fontName: fontName, fontSize: fontSize, columnWidth: columnWidth)
+    }
+
+    private var covered: Bool { app.activeTab?.isChapter == false }
 
     var body: some View {
         ZStack {
             if let session = app.current {
                 VStack(spacing: 0) {
                 TitleBar(app: app, session: session, bridge: bridge)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { room.width = $0 }
                 // A flat column, not the system sidebar: full height, flush, one hairline.
                 HStack(spacing: 0) {
-                    if app.showSidebar && !app.showPlotGrid {
+                    if app.showSidebar {
                         ChapterSidebar(session: session, app: app, bridge: bridge,
                                        scenePlanner: { engine in planner.propose(session, engine: engine) })
-                            .frame(width: 256)
+                            .frame(width: InspectorFit.sidebar)
                             .transition(.move(edge: .leading))
                         Divider()
                     }
                     HStack(spacing: 0) {
-                        // The grid covers the editor, which stays alive underneath (caret, undo).
-                        ZStack {
-                            EditorColumn(app: app, session: session, bridge: bridge, proof: proof,
-                                         fontName: fontName, fontSize: fontSize, columnWidth: columnWidth)
-                                .opacity(covered ? 0 : 1)
-                                .allowsHitTesting(!covered)
-                                .onChange(of: covered || app.showHome, initial: true) { _, hidden in bridge.covered = hidden }
-                            if app.showOverview {
-                                OverviewView(app: app, session: session, bridge: bridge, analyst: analyst, planner: planner, proof: proof)
-                            } else if case .folder(let folder)? = app.bibleRoute {
-                                BibleFolderView(app: app, session: session, bridge: bridge, folder: folder).id(folder)
-                            } else if case .entry(let path)? = app.bibleRoute, let entry = session.bible.entry(path: path) {
-                                BibleEntryView(app: app, session: session, bridge: bridge, entry: entry).id(path)
-                            } else if app.showPlotGrid {
-                                PlotGridView(app: app, session: session, bridge: bridge, analyst: analyst, planner: planner)
-                                    .transition(.opacity)
-                            } else if let page = app.specialPage {
-                                SpecialPageView(app: app, session: session, page: page)
-                                    .transition(.opacity)
+                        // The panes and their tabs; in Focus mode, only the pane one is in, without tabs.
+                        Group {
+                            if app.focusMode, let pane = session.mainWorkspace.focused {
+                                PaneView(ctx: paneContext(session), pane: pane)
+                            } else {
+                                PaneArea(ctx: paneContext(session))
                             }
                         }
+                        .onChange(of: covered || app.showHome, initial: true) { _, hidden in bridge.covered = hidden }
+                        // Chapters no pane shows any more are saved and let go.
+                        .onChange(of: session.mainWorkspace.root) { _, _ in session.pruneDocs() }
+                        // This window in front: its panes are where things open.
+                        .background(WindowWatcher(onKey: { session.activeWindow = nil }))
+                        .task(id: session.root) { await app.reopenWindows(of: session) }
+                        .onChange(of: session.bible.entries.count) { _, _ in session.pruneTabs() }
+                        .onChange(of: session.manifest.chapters.count) { _, _ in session.pruneTabs() }
                         if app.showInspector {
-                            // The handle sits on the panel's edge, so the panel keeps its exact width.
-                            InspectorPanel(app: app, session: session, bridge: bridge, chat: chat, pangram: pangram,
-                                           proof: proof, annotator: annotator, analyst: analyst, planner: planner)
-                                .frame(width: inspectorWidth)
-                                .overlay(alignment: .leading) { PanelResizeHandle(width: $inspectorWidth, range: 340...900).offset(x: -3) }
-                                .transition(.move(edge: .trailing))
+                            InspectorColumn(app: app, room: room, width: $inspectorWidth) {
+                                InspectorPanel(app: app, session: session, bridge: bridge, chat: chat, pangram: pangram,
+                                               proof: proof, annotator: annotator, analyst: analyst, planner: planner)
+                            }
+                            .transition(.move(edge: .trailing))
                         }
                     }
                 }
@@ -74,20 +79,23 @@ struct ContentView: View {
                 .onChange(of: bridge.openNoteID) { _, id in
                     if id != nil { withAnimation { app.inspectorTab = .edits; app.showInspector = true } }
                 }
-                .sheet(isPresented: $app.showStory) { StoryView(app: app, session: session) }
                 .sheet(item: $app.newPiste) { NewPisteSheet(session: session, start: $0) }
                 .sheet(item: $app.newJalon) { JalonSheet(session: session, start: $0) }
+                .sheet(item: $app.renaming) { target in
+                    RenameSheet(session: session, bridge: bridge, path: target.path) { app.renaming = nil }
+                }
                 .sheet(item: $app.takingBack) { TakeBackView(session: session, piste: $0) }
                 .sheet(item: $app.bringing) { TakeBackView(session: session, point: $0) }
+                .sheet(isPresented: $app.showRubric) { BaremeSheet(session: session) }
                 .sheet(isPresented: $app.showProofExceptions) { ProofExceptionsSheet(proof: proof) }
                 .sheet(isPresented: $app.showExport, onDismiss: { app.exportAt = nil }) {
-                    ExportSheet(session: session, preview: app.exportAt == nil ? { app.review.scope = .book; app.specialPage = nil; app.showPlotGrid = false; app.reviewMode = true } : nil,
+                    ExportSheet(session: session, preview: app.exportAt == nil ? { app.review.scope = .book; if app.activeTab?.special != nil || app.activeTab?.overview != nil { app.showChapter() }; app.reviewMode = true } : nil,
                                 at: app.exportAt)
                 }
                 .sheet(isPresented: $app.showWordReview) { WordReviewSheet(app: app, session: session, bridge: bridge) }
                 .sheet(isPresented: $planner.showing) { ScenePlanSheet(planner: planner, session: session, bridge: bridge) }
                 .sheet(isPresented: $app.showBookSettings, onDismiss: { app.bookSettingsSection = nil }) {
-                    BookSettingsView(app: app, session: session, proof: proof, startSection: app.bookSettingsSection)
+                    BookSettingsView(app: app, session: session, startSection: app.bookSettingsSection)
                 }
                 // A shared book opened by its reader: revision mode, so every change is a correction.
                 .onAppear { if Collab.shared.isReviewer(session.git) { bridge.trackChanges = true } }
@@ -103,13 +111,12 @@ struct ContentView: View {
                     }
                     .animation(.easeOut(duration: 0.12), value: app.showQuickOpen)
                 }
-                // Opening a chapter leaves a special page.
-                .onChange(of: session.selectedChapterID) { _, _ in app.specialPage = nil }
                 .opacity(app.showHome ? 0 : 1)
                 .allowsHitTesting(!app.showHome)
             }
             if app.showHome || app.current == nil {
-                if app.libraryPaths.isEmpty { WelcomeView(app: app) } else { HomeView(app: app) }
+                // No book yet: the welcome, unless Home was asked for (the account finds the books kept online).
+                if app.libraryPaths.isEmpty && !app.showHome { WelcomeView(app: app) } else { HomeView(app: app) }
             }
         }
         .overlay(alignment: .top) { KioskHint(on: app.kiosk) }
@@ -117,14 +124,30 @@ struct ContentView: View {
             ZStack { if let session = app.current { VersionSwitchToast(session: session) } }
                 .animation(.easeOut(duration: 0.25), value: app.current?.lastVersionSwitch)
         }
-        .onAppear { CaptureController.shared.app = app; CaptureController.shared.install(); Collab.shared.start(app) }
+        .onAppear {
+            CaptureController.shared.app = app; CaptureController.shared.install(); Collab.shared.start(app)
+            app.openWindow = { [openWindow] ref in openWindow(id: PaneWindow.sceneID, value: ref) }
+        }
         .sheet(isPresented: $app.showNewBook) { WelcomeView(app: app, sheet: true) }
+        .sheet(isPresented: $app.showSyncOffer) { SyncOfferSheet(app: app) }
+        .sheet(item: $chapterDone) { done in
+            if let s = app.current { ChapterDoneCard(app: app, session: s, chapterID: done.id) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: BookSession.firstChapterDone)) { note in
+            if let s = note.object as? BookSession, s === app.current, let id = note.userInfo?["chapter"] as? String { chapterDone = DoneChapter(id: id) }
+        }
         .sheet(isPresented: $app.showTryVersion) { if let session = app.current { TryVersionSheet(session: session) } }
         .sheet(isPresented: $app.showHelpers) { AIHelpersView() }
-        .sheet(isPresented: $app.showAccount) { AccountSheet(app: app) }
         .tint(Ink.accent)
         .id(uiLanguage)
         .sheet(item: $app.pendingSetup) { SetupSheet(app: app, setup: $0) }
+        .alert(L("Save the Layout…").titled, isPresented: $app.namingLayout) {
+            TextField(L("Name"), text: $layoutName)
+            Button(L("Save")) { app.current?.saveLayout(named: layoutName); layoutName = "" }
+            Button(L("Cancel"), role: .cancel) { layoutName = "" }
+        } message: {
+            Text(L("The panes and tabs of this window, to put back from the Panes menu."))
+        }
         .alert("Musset", isPresented: Binding(get: { app.alert != nil }, set: { if !$0 { app.alert = nil } })) {
             Button("OK") { app.alert = nil }
         } message: { Text(app.alert ?? "") }
@@ -140,25 +163,72 @@ extension ContentView {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             switch args[i + 1] {
             case "read": app.review.scope = .book; app.reviewMode = true
-            case "grid": app.showPlotGrid = true
-            case "special": app.specialPage = .cover
+            case "grid": app.open(OverviewTab.grid.tab)
+            case "special": app.open(SpecialPage.cover.tab)
             case "export": app.showExport = true
             case "settings": app.showBookSettings = true
             case "palette": app.showQuickOpen = true
             case "notes": app.inspectorTab = .edits; app.showInspector = true
             case "partner": app.inspectorTab = .chat; app.showInspector = true
             case "home": app.showHome = true
-            case "account": app.showAccount = true
+            case "account": app.showAccount()
             case "sharing": app.bookSettingsSection = .sharing; app.showBookSettings = true
             case "blame": bridge.blameOn = true
             case "find": bridge.setSearchQuery("elle"); bridge.openFind(replace: true)
-            case "overview": app.openOverview()
-            case "bible": app.show(.folder("personnages"))
+            case "overview": app.open(OverviewTab.summary.tab)
+            case "bible": app.open(.folder("personnages"))
             case "capture": CaptureController.shared.toggle()
             case "helpers": app.showHelpers = true
-            case "sheet": if let e = app.current?.bible.entries.first(where: { !$0.isFile }) { app.show(.entry(e.path)) }
+            case "sheet": if let e = app.current?.bible.entries.first(where: { !$0.isFile }) { app.open(.sheet(e.path)) }
             default: break
             }
+        }
+    }
+}
+
+/// The window's width, measured on the title bar. Kept in an object of its own so that resizing the window
+/// evaluates the inspector's column alone, not the whole window.
+@MainActor
+@Observable
+final class WindowRoom {
+    var width: CGFloat = .greatestFiniteMagnitude
+}
+
+/// How the inspector fits a window: the sidebar and the panes keep their room first.
+enum InspectorFit {
+    static let sidebar: CGFloat = 256
+    static let panes: CGFloat = 280
+    static let range: ClosedRange<Double> = 340...900
+
+    /// The widest the inspector may be in a window `window` points wide; nil when even its narrowest does not fit.
+    static func most(window: CGFloat, sidebar shown: Bool) -> Double? {
+        let most = Double(window - (shown ? sidebar + 1 : 0) - panes)
+        return most >= range.lowerBound ? min(most, range.upperBound) : nil
+    }
+
+    /// The inspector's width: the one the author set, less in a narrow window; nil when it has to fold away.
+    static func width(wanted: Double, window: CGFloat, sidebar shown: Bool) -> Double? {
+        most(window: window, sidebar: shown).map { min(max(wanted, range.lowerBound), $0) }
+    }
+}
+
+/// The inspector at the width the window allows. Too narrow a window for the panes and the inspector together:
+/// the inspector folds away rather than being cut, and comes back when there is room again.
+private struct InspectorColumn<Panel: View>: View {
+    let app: AppState
+    let room: WindowRoom
+    @Binding var width: Double
+    @ViewBuilder let panel: () -> Panel
+
+    var body: some View {
+        if let most = InspectorFit.most(window: room.width, sidebar: app.showSidebar),
+           let shown = InspectorFit.width(wanted: width, window: room.width, sidebar: app.showSidebar) {
+            // The handle sits on the panel's edge, so the panel keeps its exact width.
+            panel()
+                .frame(width: shown)
+                .overlay(alignment: .leading) {
+                    PanelResizeHandle(width: $width, range: InspectorFit.range.lowerBound...most).offset(x: -3)
+                }
         }
     }
 }
@@ -171,6 +241,15 @@ struct EditorColumn: View {
     let fontName: String
     let fontSize: Double
     let columnWidth: Double
+    /// The chapter shown, in a pane; nil: the one written in.
+    var doc: ChapterDoc? = nil
+    /// The pane the author is in: the find bar, the status bar, reading mode and the side version are its own.
+    var live = true
+    var onFocus: (() -> Void)? = nil
+    var drops: PaneDrops? = nil
+    /// The pane's kept editors, and this chapter's place among them.
+    var editors: EditorCache? = nil
+    var editorKey: String? = nil
     @AppStorage("repetitionWindow") private var repetitionWindow = 50
     @AppStorage("paragraphSpacing") private var paragraphSpacing = 0.73
     /// The width of the version read beside the editor; the handle between them sets it.
@@ -186,12 +265,12 @@ struct EditorColumn: View {
             // The editor keeps its place in the hierarchy in every mode, so its caret and undo history survive.
             ZStack(alignment: .trailing) {
                 HStack(spacing: 0) {
-                    editor(width: geo.size.width - (side ? previewWidth : 0))
-                    if side { Color.clear.frame(width: previewWidth) }
+                    editor(width: geo.size.width - (live && side ? previewWidth : 0))
+                    if live && side { Color.clear.frame(width: previewWidth) }
                 }
-                .opacity(app.reviewMode && !side ? 0 : 1)
-                .allowsHitTesting(!app.reviewMode || side)
-                if app.reviewMode {
+                .opacity(live && app.reviewMode && !side ? 0 : 1)
+                .allowsHitTesting(!live || !app.reviewMode || side)
+                if live && app.reviewMode {
                     HStack(spacing: 0) {
                         if side { Divider() }
                         ReviewView(app: app, session: session, model: app.review, bridge: bridge, sideBySide: side)
@@ -200,7 +279,7 @@ struct EditorColumn: View {
                 }
             }
         }
-        .navigationTitle(session.selectedChapter?.title ?? session.title)
+        .navigationTitle(session.selectedChapter.map(session.manifest.shownTitle(of:)) ?? session.title)
         .navigationSubtitle(session.title)
         .onReceive(NotificationCenter.default.publisher(for: .mussetProofread)) { _ in proof.revealNext() }
         .onReceive(NotificationCenter.default.publisher(for: .mussetProofExceptions)) { _ in app.showProofExceptions = true }
@@ -212,7 +291,7 @@ struct EditorColumn: View {
     private func editor(width: CGFloat) -> some View {
         HStack(spacing: 0) {
             writing
-            if session.reference != nil, !app.reviewMode {
+            if live, session.reference != nil, !app.reviewMode {
                 SplitHandle(width: $referenceWidth, total: width)
                 ReferencePane(session: session, fontName: fontName, fontSize: fontSize,
                               columnWidth: columnWidth, paragraphSpacing: paragraphSpacing)
@@ -223,48 +302,55 @@ struct EditorColumn: View {
 
     private var writing: some View {
         VStack(spacing: 0) {
-            if bridge.findOpen { FindBar(bridge: bridge, text: session.text) }
+            if live && bridge.findOpen { FindBar(bridge: bridge, text: session.text) }
             HStack(spacing: 0) {
-                ZenEditorView(session: session, bridge: bridge, fontName: fontName, fontSize: fontSize,
+                ZenEditorView(session: session, bridge: bridge, doc: doc, onFocus: onFocus, drops: drops, live: live, fontName: fontName, fontSize: fontSize,
                               columnWidth: columnWidth, focusMode: app.focusMode, typewriter: app.typewriter,
                               lineNumbers: app.lineNumbers, repetitions: app.repetitions, repetitionWindow: repetitionWindow,
-                              paragraphSpacing: paragraphSpacing)
+                              paragraphSpacing: paragraphSpacing, cache: editors, cacheKey: editorKey)
                     .frame(minWidth: 280)
-                if app.minimap {
+                if live && app.minimap {
                     Minimap(bridge: bridge)
                         .frame(width: 72)
                         .help(L("The whole chapter: click or drag to move"))
                 }
             }
             .overlay(alignment: .top) {
-                if bridge.trackChanges { RevisionBar(bridge: bridge).padding(.top, 12) }
-                else if app.formatBar && !app.focusMode { FormatBar(bridge: bridge).padding(.top, 12) }
+                if live && bridge.trackChanges { RevisionBar(bridge: bridge).padding(.top, 12) }
+                else if live && app.formatBar && !app.focusMode { FormatBar(bridge: bridge).padding(.top, 12) }
             }
         }
         .overlay(alignment: .bottomLeading) {
-            if bridge.blameOn { AttributionBar(bridge: bridge, session: session).padding([.bottom, .leading], 16) }
+            if live && bridge.blameOn { AttributionBar(bridge: bridge, session: session).padding([.bottom, .leading], 16) }
         }
-        .overlay(alignment: .bottom) { if let hint = bridge.keyHint { KeyHintCard(hint: hint).padding(.bottom, 56) } }
+        .overlay(alignment: .bottom) { if live, let hint = bridge.keyHint { KeyHintCard(hint: hint).padding(.bottom, 56) } }
+        // A new name that just got its sheet, in the right margin (never in focus mode).
+        .overlay(alignment: .topTrailing) {
+            if live && !app.focusMode {
+                NameJoinedNotice(spotter: session.spotter) { app.open(.sheet($0)) }.padding([.top, .trailing], 24)
+            }
+        }
         // In the corner, beside the column rather than over its last lines.
-        .overlay(alignment: .bottomTrailing) { StatusBar(app: app, session: session, proof: proof, bridge: bridge).padding([.bottom, .trailing], 16) }
+        .overlay(alignment: .bottomTrailing) { if live { StatusBar(app: app, session: session, proof: proof, bridge: bridge).padding([.bottom, .trailing], 16) } }
         .background(Color(nsColor: .textBackgroundColor))
     }
 
 }
 
-/// The window's title bar, drawn by the app at the design's 44 points: room for the window buttons,
-/// the chapters toggle, "Book / Chapter / Scene", then Write/Read, the status, ⌘K and the panel.
+/// The window's title bar, drawn by the app at the design's 44 points: room for the window buttons, the sidebar
+/// toggle, "Book / Chapter / Scene" (with the version, when the chapter has several), then the track when one
+/// writes on one, Write/Revise/Read, ⌘K and the panel. The chapter's status and its corrections are in the
+/// status pill under the text; every book is in the sidebar's book menu.
 struct TitleBar: View {
     let app: AppState
     let session: BookSession
     let bridge: EditorBridge
     static let height: CGFloat = 44
 
-    /// The width of the controls on the right, as laid out: they vary with the track, the versions, the corrections.
+    /// The width of the controls on the right, as laid out: wider on a track.
     @State private var controlsWidth: CGFloat = 0
-    /// The window buttons and the chapters toggle; in kiosk mode there are no window buttons.
-    private var leading: CGFloat { app.kiosk ? 48 : 112 }
-    @AppStorage("helpersSeen") private var helpersSeen = false
+    /// The window buttons, the way home and the chapters toggle; in kiosk mode there are no window buttons.
+    private var leading: CGFloat { app.kiosk ? 86 : 150 }
 
     var body: some View {
         // The breadcrumb on the left, beside the chapters toggle. Never under the controls: it truncates first.
@@ -272,8 +358,8 @@ struct TitleBar: View {
           let beside = geo.size.width - leading - controlsWidth - 16
             HStack(spacing: 10) {
                 Color.clear.frame(width: app.kiosk ? 4 : 64)
-                iconButton("house", L("All books (⇧⌘H)")) { app.showHome = true }
-                iconButton("sidebar.left", L("Show or hide the chapters (⌘1)")) { withAnimation { app.showSidebar.toggle() } }
+                iconButton("house", L("All Books"), AppCommand.hint(L("All Books"), "go.home")) { app.showHome = true }
+                iconButton("sidebar.left", L("Sidebar"), AppCommand.hint(L("Show or hide the sidebar"), "view.sidebar")) { withAnimation { app.showSidebar.toggle() } }
                 if beside > 120 {
                     Breadcrumb(app: app, session: session, bridge: bridge).frame(maxWidth: beside, alignment: .leading)
                         .padding(.leading, 4)
@@ -294,58 +380,38 @@ struct TitleBar: View {
 
     private func controls(compact: Bool) -> some View {
         HStack(spacing: 10) {
-            if !AIStatus.shared.isOn && !helpersSeen {
-                Button(L("A second reader?")) { app.showHelpers = true }.buttonStyle(.link).font(.ui(12))
-            }
-            if session.git.isRepo { PisteMenu(app: app, session: session) }
-            if bridge.pendingRevisions > 0 {
-                PopMenu([PopItem(title: L("Next correction")) { bridge.textView?.nextRevision() },
-                         PopItem(title: L("Accept all")) { bridge.textView?.decideRevision(accept: true, all: true) },
-                         PopItem(title: L("Reject all")) { bridge.textView?.decideRevision(accept: false, all: true) }]) {
-                    HStack(spacing: 6) {
-                        Circle().fill(Color(red: 0.76, green: 0.22, blue: 0.18)).frame(width: 6, height: 6)
-                        Text("\(bridge.pendingRevisions) " + (bridge.pendingRevisions == 1 ? L("correction") : L("corrections")))
-                            .font(.ui(12))
-                    }
-                    .padding(.leading, 7).padding(.trailing, 9).frame(height: 22)
-                    .background(Ink.panel, in: Capsule())
-                }
-                .help(L("Corrections in this chapter"))
-            }
+            if let piste = session.piste { TrackChip(app: app, piste: piste) }
             Segmented(options: [(0, L("Write")), (1, L("Revise")), (2, L("Read"))],
                       selection: Binding(get: { app.reviewMode ? 2 : (bridge.trackChanges ? 1 : 0) },
                                          set: { mode in app.reviewMode = mode == 2; bridge.trackChanges = mode == 1 }))
                 .frame(width: 204)
-                .help(L("Write · Revise: changes become corrections (⇧⌘E) · Read: as printed (⇧⌘R)"))
-            if let ch = session.selectedChapter {
-                PopMenu(ChapterStatus.allCases.map { st in PopItem(title: st.label, checked: (ch.status ?? .draft) == st, dot: st.dot) { session.setStatus(ch.id, st) } }) {
-                    HStack(spacing: 6) { StatusDot(status: ch.status ?? .draft); Text((ch.status ?? .draft).label).font(.ui(12)) }
-                        .padding(.leading, 7).padding(.trailing, 9).frame(height: 22)
-                        .background(Ink.panel, in: Capsule())
-                }
-                .help(L("Chapter status"))
-            }
+                .help(L("Write · Revise: changes become corrections (\(AppCommand.glyphs("revise.mode"))) · Read: as printed (\(AppCommand.glyphs("view.reading")))"))
             Button { app.showQuickOpen = true } label: {
                 HStack(spacing: 10) {
                     if !compact { Text(L("Search or command")).font(.ui(12)).foregroundStyle(.secondary) }
-                    Kbd("⌘K")
+                    Kbd(AppCommand.glyphs("app.palette"))
                 }
                 .padding(.leading, compact ? 6 : 10).padding(.trailing, 6).frame(height: 28)
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline))
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(L("Command bar (⌘K)"))
-            iconButton("sidebar.right", InspectorTab.edits.label + ", Chat, Stats, Plan, " + InspectorTab.history.label + " (⌘2 ⌘3 ⌘4 ⌘6 ⌘7)") { withAnimation { app.showInspector.toggle() } }
+            .help(AppCommand.hint(L("Command Bar…").titled, "app.palette"))
+            .accessibilityLabel(L("Command Bar…").titled)
+            // Without AI, no AI reader's tab: the tooltip names the tabs there are.
+            let tabs = InspectorTab.allCases.filter { AIHome.shown || $0 != .chat }
+            iconButton("sidebar.right", tabs.map(\.label).joined(separator: ", "),
+                       tabs.map(\.label).joined(separator: ", ") + " (" + tabs.map(\.shortcut).joined(separator: " ") + ")") { withAnimation { app.showInspector.toggle() } }
         }
     }
 
-    private func iconButton(_ icon: String, _ help: String, action: @escaping () -> Void) -> some View {
+    /// An icon alone: `label` names it for VoiceOver, `help` is its tooltip with the shortcut.
+    private func iconButton(_ icon: String, _ label: String, _ help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon).font(.ui(14)).foregroundStyle(.secondary).frame(width: 28, height: 28).contentShape(Rectangle())
         }
-        .buttonStyle(.plain).help(help)
+        .buttonStyle(.plain).help(help).accessibilityLabel(label)
     }
 }
 
@@ -394,45 +460,83 @@ enum WindowChrome {
     }
 }
 
-/// "Book / Chapter / Scene" in the title bar. The book opens its settings and special pages.
+/// "Book / Chapter / Scene" in the title bar: where one is, not a menu (the sidebar's book menu goes from book to book).
 struct Breadcrumb: View {
     let app: AppState
     let session: BookSession
     let bridge: EditorBridge
 
+    /// The pane one is in, when it shows the chapter as its scenes' cards.
+    private var cards: (pane: String, chapter: String)? {
+        let w = session.workspace
+        guard let chapter = w.focusedSceneCards, chapter == session.selectedChapterID else { return nil }
+        return (w.focusedPane, chapter)
+    }
+
+    /// The scene the caret is in; among the cards, the one chosen. In a book with sections, the innermost of the
+    /// scene and the section the caret is in: the trail stays one name long.
     private var scene: String? {
-        guard let id = session.selectedChapterID, let scenes = session.scenes[id], scenes.count > 1 else { return nil }
-        return Scenes.scene(at: bridge.selectedRange.location, in: scenes)?.title
+        guard let id = session.selectedChapterID else { return nil }
+        let scenes = session.scenes[id] ?? []
+        if let cards {
+            guard scenes.count > 1, let i = session.workspace.selectedSceneCard(pane: cards.pane, chapter: cards.chapter), scenes.indices.contains(i) else { return nil }
+            return scenes[i].title ?? session.words.scene(i + 1)
+        }
+        let at = bridge.selectedRange.location
+        let scene = scenes.count > 1 ? Scenes.scene(at: at, in: scenes) : nil
+        guard let section = Sections.section(at: at, in: session.sections[id] ?? []) else { return scene?.title }
+        if let scene, scene.title != nil, scene.range.location > section.line.location { return scene.title }
+        return section.title
+    }
+
+    /// Text or scene cards, for a chapter of several scenes shown in the pane one is in.
+    @ViewBuilder private var sceneSwitch: some View {
+        let w = session.workspace
+        if let pane = w.focused, let id = pane.activeTab?.chapterID, id == session.selectedChapterID,
+           cards != nil || (session.scenes[id]?.count ?? 0) > 1 {
+            Segmented(options: [(false, L("Text")), (true, session.words.plural(.scene))],
+                      selection: Binding(get: { w.showsSceneCards(pane: pane.id, chapter: id) }, set: { w.setSceneCards($0, pane: pane.id, chapter: id) }))
+                .frame(width: 124)
+                .fixedSize()
+                .help(AppCommand.hint(session.words.sceneCards, "view.sceneCards"))
+        }
+    }
+
+    /// On Overview's first page, the trail is its board's zoom: the book, then the part when one is shown; the book's name goes
+    /// back to the whole book.
+    @ViewBuilder private var scenesTrail: some View {
+        let w = session.workspace
+        if let part = session.scenesPart(in: w) {
+            Button { w.zoomScenes(toPart: nil) } label: { Text(session.title).foregroundStyle(.secondary).contentShape(Rectangle()) }
+                .buttonStyle(.plain)
+            Text("/").foregroundStyle(.tertiary)
+            Text(session.partName(part)).fontWeight(.medium)
+        } else {
+            Text(session.title).fontWeight(.medium)
+        }
     }
 
     var body: some View {
         HStack(spacing: 7) {
-            Menu {
-                Button(L("Book settings…")) { app.showBookSettings = true }
-                Button(L("Cover & special pages")) { app.specialPage = .cover }
-                Button(L("Plot grid", ctx: "Grille d’intrigue")) { app.showPlotGrid = true }
-                Divider()
-                ForEach(Array(app.books.enumerated()), id: \.element.path) { i, b in
-                    Button(b.title) { app.switchToBook(index: i) }
-                }
-                Divider()
-                Button(L("New book…")) { app.showNewBook = true }
-                Button(L("Open a book folder…")) { app.addBookViaPanel() }
-                Button(L("Musset account…")) { app.showAccount = true }
-                Button(L("Share this book…")) { app.bookSettingsSection = .sharing; app.showBookSettings = true }
-            } label: { Text(session.title).foregroundColor(.secondary) }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
-            if let page = app.specialPage {
+            if app.activeTab?.overview == .summary {
+                scenesTrail
+            } else {
+                Text(session.title).foregroundStyle(.secondary)
+            }
+            if app.activeTab?.overview == .summary {
+                // The trail above says it all: the chapter last written in is not where one is.
+            } else if let page = app.activeTab?.special {
                 Text("/").foregroundStyle(.tertiary)
                 Text(page.label).fontWeight(.medium)
             } else if let ch = session.selectedChapter {
                 Text("/").foregroundStyle(.tertiary)
-                Text(ch.title).foregroundStyle(scene == nil ? .primary : .secondary).fontWeight(scene == nil ? .medium : .regular)
+                Text(session.manifest.shownTitle(of: ch)).foregroundStyle(scene == nil ? .primary : .secondary).fontWeight(scene == nil ? .medium : .regular)
                 if session.piste == nil { VersionChip(app: app, session: session).fixedSize() }
                 if let scene {
                     Text("/").foregroundStyle(.tertiary)
                     Text(scene).fontWeight(.medium)
                 }
+                sceneSwitch.padding(.leading, 4)
             }
         }
         .font(.ui(13))
@@ -466,7 +570,7 @@ struct RepetitionsPopover: View {
                                     .frame(width: 50, alignment: .leading)
                             }
                             .padding(.vertical, 3).padding(.horizontal, 6)
-                            .background(bridge.focusedStem == c.stem ? Color.accentColor.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 5))
+                            .background(bridge.focusedStem == c.stem ? Ink.accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -495,73 +599,91 @@ extension Notification.Name {
     static let mussetAskComment = Notification.Name("mussetAskComment")
 }
 
-/// Auto-corrections made this session, each one revertible.
-struct CorrectionsPopover: View {
-    let proof: AutoProofreader
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L("Auto-corrected")).font(.ui(13, .semibold))
-            if proof.corrections.isEmpty {
-                Text(L("Nothing yet.")).foregroundStyle(.secondary)
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(proof.corrections) { c in
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(c.original).strikethrough().foregroundStyle(.secondary)
-                            Image(systemName: "arrow.right").font(.ui(11)).foregroundStyle(.tertiary)
-                            Text(c.replacement)
-                            Spacer()
-                            Button(L("Undo")) { proof.revert(c) }.controlSize(.small)
-                        }
-                        .help(LocalProofreader.shown(c.reason))
-                    }
-                }
-            }
-            .frame(maxHeight: 260)
-            ForEach([proof.lastError, proof.languageToolError].compactMap { $0 }, id: \.self) { e in
-                Text(e).font(.ui(11)).foregroundStyle(.orange).textSelection(.enabled)
-            }
-            Divider()
-            Toggle(L("Correct obvious mistakes automatically", ctx: "Corriger d’office les fautes évidentes"), isOn: Binding(get: { proof.autoCorrect }, set: { proof.autoCorrect = $0 }))
-            Toggle(L("Apply the book's typography (spaces, « », ’, —, …)"), isOn: Binding(get: { proof.typography }, set: { proof.typography = $0 }))
-            if proof.typographyFixed > 0 {
-                Text(L("\(proof.typographyFixed) typographic fixes this session") + " " + L("(⌘Z undoes the last batch).")).font(.ui(11)).foregroundStyle(.secondary)
-            }
-            Toggle(L("Proofread while I write", ctx: "Relire pendant que j’écris"), isOn: Binding(get: { proof.enabled }, set: { proof.enabled = $0 }))
-            HStack {
-                Button(L("Check this chapter again")) { proof.recheckAll() }
-                Button(L("Dictionary & exceptions…")) { NotificationCenter.default.post(name: .mussetProofExceptions, object: nil) }
-            }
-        }
-        .padding(14)
-        .frame(width: 380)
-    }
-}
-
-/// The counters, gathered in a small floating pill at the bottom of the page. It fades while you type
-/// and comes back when you stop.
+/// The counters, the chapter's status and its corrections, gathered in a small floating pill at the bottom of the
+/// page. It fades while you type and comes back when you stop.
 struct StatusBar: View {
     let app: AppState
     let session: BookSession
     let proof: AutoProofreader
     let bridge: EditorBridge
-    @State private var showCorrections = false
     @State private var showRepetitions = false
     @State private var typing = false
     @State private var fade: Task<Void, Never>?
 
     var body: some View {
-        HStack(spacing: 12) {
+        // Everything spelled out when the pane has the room; else the short forms (a dot for the status, counts alone),
+        // shorter still in a very narrow pane.
+        ViewThatFits(in: .horizontal) {
+            pill(compact: false)
+            pill(compact: true)
+            pill(compact: true, tight: true)
+        }
+        .opacity(typing ? 0 : 1)
+        .animation(.easeInOut(duration: 0.35), value: typing)
+        .onChange(of: session.text) { _, _ in
+            typing = true
+            fade?.cancel()
+            fade = Task { try? await Task.sleep(nanoseconds: 1_600_000_000); if !Task.isCancelled { typing = false } }
+        }
+    }
+
+    /// A segment shows only when it has something to say: the words and the chapter's status always do.
+    private func pill(compact: Bool, tight: Bool = false) -> some View {
+        HStack(spacing: compact ? 9 : 12) {
             if let mode = bridge.keyStatus {
                 Text(mode).font(.uiMono(11).weight(.medium)).foregroundStyle(.primary)
                     .padding(.horizontal, 6).frame(height: 18)
                     .background(Ink.panel, in: RoundedRectangle(cornerRadius: 4))
                 separator
             }
-            Text("\(session.wordCount.ui) " + L("words"))
-                .help(L("Book: ") + "\(session.bookWordCount.ui)" + (session.wordsToday > 0 ? " · +\(session.wordsToday) " + L("today") : ""))
+            ChapterCount(session: session)
+            if let ch = session.selectedChapter {
+                separator
+                PopMenu(ChapterStatus.allCases.map { st in PopItem(title: st.label, checked: (ch.status ?? .draft) == st, dot: st.dot) { session.setStatus(ch.id, st) } }) {
+                    HStack(spacing: 6) {
+                        StatusDot(status: ch.status ?? .draft)
+                        if !compact { Text((ch.status ?? .draft).label) }
+                    }
+                    .frame(minWidth: 14, minHeight: 20).contentShape(Rectangle())
+                }
+                .help(session.words.pieceStatus + (compact ? " : " + (ch.status ?? .draft).label : ""))
+                .accessibilityLabel(session.words.pieceStatus + ", " + (ch.status ?? .draft).label)
+            }
+            if bridge.pendingRevisions > 0 {
+                separator
+                PopMenu([PopItem(title: L("Next Correction")) { bridge.textView?.nextRevision() },
+                         PopItem(title: L("Accept all")) { bridge.textView?.decideRevision(accept: true, all: true) },
+                         PopItem(title: L("Reject all…")) { RejectAll.confirm(bridge.pendingRevisions) { bridge.textView?.decideRevision(accept: false, all: true) } }]) {
+                    HStack(spacing: 6) {
+                        Circle().fill(Ink.revision).frame(width: 6, height: 6)
+                        Text(compact ? "\(bridge.pendingRevisions)" : L("\(bridge.pendingRevisions) corrections"))
+                    }
+                    .frame(minHeight: 20).contentShape(Rectangle())
+                }
+                .help(L("Corrections in this chapter"))
+                .accessibilityLabel(L("\(bridge.pendingRevisions) corrections"))
+            }
+            let openNotes = session.notes.notes.filter { $0.status == .open && !$0.kind.isPositive }.count
+            if openNotes > 0 {
+                separator
+                Button { withAnimation { app.toggleInspector(.edits) } } label: { Text(L("\(openNotes) notes")) }
+                    .buttonStyle(.plain).help(AppCommand.hint("view.notes"))
+            }
+            if proofSpeaks {
+                separator
+                Button { withAnimation { app.inspectorTab = .edits; app.showInspector = true } } label: { proofSummary }
+                    .buttonStyle(.plain)
+                    .help([proof.lastError, proof.languageToolError].compactMap { $0 }.joined(separator: "\n").nilIfEmpty
+                          ?? L("Proofreading: purple = AI suggestion, blue = grammar checker"))
+            }
+            if app.repetitions {
+                separator
+                Button { showRepetitions.toggle() } label: {
+                    Text(tight ? "\(bridge.closeRepetitions)" : "\(bridge.closeRepetitions) " + L("close repetitions")).foregroundStyle(.pink)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showRepetitions, arrowEdge: .top) { RepetitionsPopover(bridge: bridge) }
+            }
             if let work = bridge.tenseWork {
                 separator
                 HStack(spacing: 5) {
@@ -572,54 +694,52 @@ struct StatusBar: View {
             if let word = Collab.shared.sync.word {
                 separator
                 Button { app.bookSettingsSection = .sharing; app.showBookSettings = true } label: { Text(word) }
-                    .buttonStyle(.plain).foregroundStyle(Collab.shared.sync.isProblem ? Color.orange : .secondary)
+                    .buttonStyle(.plain).foregroundStyle(Collab.shared.sync.isProblem ? Ink.warning : .secondary)
                     .help(Collab.shared.sync.help)
+            } else if !Collab.shared.canSync, !Collab.shared.isLocalOnly(session), !session.repoStatus.linked {
+                // The book lives on this Mac only: said once, quietly, and an open door to Musset Sync.
+                separator
+                Button { app.offerSync(for: session) } label: {
+                    if compact { Image(systemName: "icloud.slash") } else { Label(L("Not synced"), systemImage: "icloud.slash") }
+                }
+                .buttonStyle(.plain)
+                .help(L("This book lives on this Mac only. Musset Sync keeps it on all your Macs, safe, with its history."))
+                .accessibilityLabel(L("Not synced"))
+                .contextMenu {
+                    Button(L("Keep this book on this Mac only")) { Collab.shared.setLocalOnly(session, true) }
+                }
             }
             if let e = session.lastError {
                 separator
-                Text(e).foregroundStyle(.red).lineLimit(1).frame(maxWidth: 260)
-                    .onTapGesture { session.lastError = nil }
-            }
-            let openNotes = session.notes.notes.filter { $0.status == .open && !$0.kind.isPositive }.count
-            if openNotes > 0 {
-                separator
-                Button { withAnimation { app.toggleInspector(.edits) } } label: { Text("\(openNotes) " + (openNotes == 1 ? L("note") : L("notes"))) }
-                    .buttonStyle(.plain).help(InspectorTab.edits.label + " (⌘2)")
-            }
-            if app.repetitions {
-                separator
-                Button { showRepetitions.toggle() } label: {
-                    Text("\(bridge.closeRepetitions) " + L("close repetitions")).foregroundStyle(.pink)
+                HStack(spacing: 5) {
+                    Text(e).foregroundStyle(Ink.error).lineLimit(1).frame(maxWidth: tight ? 70 : compact ? 150 : 260).help(e)
+                    Button { session.lastError = nil } label: {
+                        Image(systemName: "xmark.circle.fill").font(.ui(12)).frame(width: 18, height: 20).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .help(L("Close")).accessibilityLabel(L("Close"))
                 }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showRepetitions, arrowEdge: .top) { RepetitionsPopover(bridge: bridge) }
             }
-            separator
-            Button { withAnimation { app.inspectorTab = .edits; app.showInspector = true } } label: { proofSummary }
-                .buttonStyle(.plain)
-                .help([proof.lastError, proof.languageToolError].compactMap { $0 }.joined(separator: "\n").nilIfEmpty
-                      ?? L("Proofreading: purple = AI suggestion, blue = grammar checker"))
-            if !session.git.isRepo {
+            if !session.repoStatus.isRepo {
                 separator
-                Text(L("no git")).foregroundStyle(.orange)
+                Text(L("history off")).foregroundStyle(Ink.warning)
             } else if session.pendingCommit {
                 separator
-                Image(systemName: "circle.dotted").help(L("Saved, commit pending"))
+                Image(systemName: "circle.dotted").help(L("Saved"))
             }
         }
         .font(.ui(12).monospacedDigit())
         .foregroundStyle(.secondary)
         .padding(.horizontal, 14).frame(height: 28)
+        .fixedSize()
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(Ink.hairline))
         .shadow(color: .black.opacity(0.06), radius: 12, y: 4)
-        .opacity(typing ? 0 : 1)
-        .animation(.easeInOut(duration: 0.35), value: typing)
-        .onChange(of: session.text) { _, _ in
-            typing = true
-            fade?.cancel()
-            fade = Task { try? await Task.sleep(nanoseconds: 1_600_000_000); if !Task.isCancelled { typing = false } }
-        }
+    }
+
+    /// The proofreader has something to say: it is working, it stumbled, it found something, or it is switched off.
+    private var proofSpeaks: Bool {
+        !proof.enabled || proof.running > 0 || proof.issueCount > 0 || proof.lastError != nil || proof.languageToolError != nil
     }
 
     private var separator: some View { Rectangle().fill(Ink.hairline).frame(width: 1, height: 12) }
@@ -627,23 +747,47 @@ struct StatusBar: View {
     @ViewBuilder private var proofSummary: some View {
         HStack(spacing: 6) {
             if proof.running > 0 { ProgressView().controlSize(.mini) }
-            if proof.languageToolError != nil { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+            if proof.languageToolError != nil { Image(systemName: "exclamationmark.triangle").foregroundStyle(Ink.warning) }
             if !proof.enabled {
                 Text(L("proofreading off"))
             } else {
                 // The grammar checker runs on this Mac, so its count stays when the AI is unavailable.
                 let ai = proof.issueCount - proof.languageToolCount
-                if proof.lastError != nil { Text(L("AI paused")).foregroundStyle(.orange) }
+                if proof.lastError != nil { Text(L("AI paused")).foregroundStyle(Ink.warning) }
                 else if ai > 0 { Text("\(ai) " + L("to review")).foregroundStyle(.purple) }
                 if proof.languageToolCount > 0 { Text("\(proof.languageToolCount) " + L("grammar")).foregroundStyle(.blue) }
-                if proof.issueCount == 0 && proof.running == 0 && proof.lastError == nil { Text(L("no issues")) }
             }
         }
     }
 }
 
+/// The open chapter's count in the status pill, recounted once typing pauses rather than on each keystroke.
+/// A click on it changes the unit, here and everywhere.
+private struct ChapterCount: View {
+    let session: BookSession
+    @State private var count: TextCounts?
+    @State private var chapter: String?
+
+    var body: some View {
+        Button { CountUnit.cycle() } label: {
+            Text((count ?? .zero).label).foregroundStyle(.primary).underline(true, pattern: .dot, color: .secondary.opacity(0.6))
+        }
+        .buttonStyle(.plain)
+        .help(L("Book: \(session.bookCounts.label)") + (session.wordsToday > 0 ? " · " + L("+\(session.wordsToday) today") : "") + "\n" + CountUnit.help)
+        .task(id: session.text) {
+            // Another chapter (or the first count): at once. While typing: when the hand stops.
+            if count != nil, chapter == session.selectedChapterID {
+                try? await Task.sleep(for: .milliseconds(300))
+                if Task.isCancelled { return }
+            }
+            count = session.textCounts
+            chapter = session.selectedChapterID
+        }
+    }
+}
+
 /// The version being written, beside the chapter in the breadcrumb. Green: it is the book's. Its menu holds
-/// everything about versions. A chapter with a single version shows only a faint icon, to try another.
+/// everything about versions, and it is always there: a chapter with a single version shows it too, to try another.
 struct VersionChip: View {
     let app: AppState
     @Bindable var session: BookSession
@@ -651,18 +795,18 @@ struct VersionChip: View {
     @State private var newName = ""
 
     var body: some View {
-        if session.versions.count <= 1, session.selectedChapter != nil {
+        if session.versions.count <= 1, let ch = session.selectedChapter {
+            // A single version: the same chip, named, with the way to start another.
             PopMenu(sections: [PopSection(title: L("Versions"), items: [
-                PopItem(title: L("Try Something Else…"),
-                        subtitle: L("Another version of this chapter")) { app.showTryVersion = true }])]) {
-                HStack(spacing: 4) {
-                    Image(systemName: "square.on.square").font(.ui(11))
-                    Image(systemName: "chevron.down").font(.ui(8, .semibold))
+                PopItem(title: session.words.newVersion) { app.showTryVersion = true }])]) {
+                HStack(spacing: 6) {
+                    Circle().fill(Ink.added).frame(width: 7, height: 7)
+                    Text(BookSession.versionLabel(ch.activeVersion)).font(.ui(12)).lineLimit(1)
+                    Image(systemName: "chevron.down").font(.ui(8, .semibold)).foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 7).frame(height: 22)
+                .padding(.leading, 7).padding(.trailing, 8).frame(height: 22)
                 .background(Ink.panel, in: Capsule())
-                .contentShape(Capsule())
+                .overlay(Capsule().strokeBorder(Ink.hairline))
             }
             .help(L("Versions of this chapter"))
         } else if let ch = session.selectedChapter, let open = session.editingVersion {
@@ -694,7 +838,7 @@ struct VersionChip: View {
             PopItem(title: BookSession.versionLabel(v), checked: v == open, dot: v == ch.activeVersion ? Ink.added : nil,
                     subtitle: v == ch.activeVersion ? L("in the book") : nil) { session.openVersion(v) }
         }
-        var tools = [PopItem(title: L("Try Something Else…")) { app.showTryVersion = true }]
+        var tools = [PopItem(title: session.words.newVersion) { app.showTryVersion = true }]
         if session.reference != nil {
             tools.append(PopItem(title: L("Close Side by Side")) { session.showBeside(nil) })
         } else {
@@ -717,46 +861,6 @@ struct VersionChip: View {
     }
 }
 
-struct ImportRevisionsSheet: View {
-    let session: BookSession
-    let candidates: [(name: String, url: URL)]
-    @State private var chosen: Set<String> = []
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L("Import revisions")).font(.ui(13, .semibold))
-            Text(L("Copies these files in as versions of this chapter. The originals are not moved or changed."))
-                .font(.ui(12)).foregroundStyle(.secondary)
-            if candidates.isEmpty {
-                Text(L("No loose revision files found for this chapter.")).foregroundStyle(.secondary).padding(.vertical)
-            } else {
-                List(candidates, id: \.url) { c in
-                    Toggle(isOn: Binding(get: { chosen.contains(c.url.path) }, set: { if $0 { chosen.insert(c.url.path) } else { chosen.remove(c.url.path) } })) {
-                        VStack(alignment: .leading) {
-                            Text(c.name)
-                            Text(c.url.path.replacingOccurrences(of: session.root.path + "/", with: "")).font(.ui(11)).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .frame(minHeight: 260)
-            }
-            HStack {
-                Button(L("Select all")) { chosen = Set(candidates.map(\.url.path)) }.disabled(candidates.isEmpty)
-                Spacer()
-                Button(L("Cancel")) { dismiss() }
-                Button(L("Import \(chosen.count)")) {
-                    session.importRevisions(candidates.filter { chosen.contains($0.url.path) })
-                    dismiss()
-                }
-                .keyboardShortcut(.defaultAction).disabled(chosen.isEmpty)
-            }
-        }
-        .padding(20)
-        .frame(width: 560)
-    }
-}
-
 /// How to get out, said once when kiosk mode starts, then gone.
 private struct KioskHint: View {
     let on: Bool
@@ -765,7 +869,7 @@ private struct KioskHint: View {
     var body: some View {
         Group {
             if shown {
-                Text(L("Kiosk mode · ⌃⌘K to leave"))
+                Text(L("Kiosk mode · \(AppCommand.glyphs("view.kiosk")) to leave"))
                     .font(.ui(12, .medium)).foregroundStyle(.secondary)
                     .padding(.horizontal, 14).padding(.vertical, 7)
                     .background(.regularMaterial, in: Capsule())
@@ -809,3 +913,6 @@ struct KeyHintCard: View {
         .allowsHitTesting(false)
     }
 }
+
+
+struct DoneChapter: Identifiable { let id: String }

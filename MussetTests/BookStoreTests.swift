@@ -125,23 +125,28 @@ final class FixtureTests: XCTestCase {
 }
 
 final class ExportTests: XCTestCase {
+    /// Every layout of the fixture books, exported from a copy: the books themselves are only read.
     func testAllPresetsOnFixtures() async throws {
         let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures")
+        let scratch = FileManager.default.temporaryDirectory.appendingPathComponent("musset-fixture-exports-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: scratch) }
         for book in ["conatus", "brainiacs"] {
-            let root = fixtures.appendingPathComponent(book)
-            try XCTSkipUnless(FileManager.default.fileExists(atPath: root.path))
-            let store = BookStore(root: root)
+            try XCTSkipUnless(FileManager.default.fileExists(atPath: fixtures.appendingPathComponent(book).path))
+            // The book without its history and without what earlier exports left.
+            let copy = Process()
+            copy.executableURL = URL(fileURLWithPath: "/usr/bin/rsync")
+            copy.arguments = ["-a", "--exclude", ".git", "--exclude", ".musset/exports", "--exclude", ".musset/typst", "--exclude", ".musset/chat",
+                              "--exclude", ".musset/pangram", "--exclude", ".musset/proof", fixtures.appendingPathComponent(book).path, scratch.path + "/"]
+            try copy.run()
+            copy.waitUntilExit()
+            XCTAssertEqual(copy.terminationStatus, 0)
+            let store = BookStore(root: scratch.appendingPathComponent(book))
             let m = store.seedManifest()
-            for p in m.exports {
+            for p in store.presets(m) {
                 do {
-                    let known = Set((try? FileManager.default.contentsOfDirectory(atPath: WordManuscript.directory(root).path)) ?? [])
                     let out = try await ExportService.export(manifest: m, store: store, preset: p)
-                    print("EXPORT OK \(book) \(p.id) \(out.file.path)")
-                    // A Word export keeps what it sent, tracked with the book: not for a test's file.
-                    for name in (try? FileManager.default.contentsOfDirectory(atPath: WordManuscript.directory(root).path)) ?? [] where !known.contains(name) {
-                        try? FileManager.default.removeItem(at: WordManuscript.directory(root).appendingPathComponent(name))
-                    }
-                    if known.isEmpty { try? FileManager.default.removeItem(at: WordManuscript.directory(root)) }
+                    XCTAssertGreaterThan((try FileManager.default.attributesOfItem(atPath: out.file.path)[.size] as? Int) ?? 0, 1000, "\(book) \(p.id)")
                 } catch {
                     XCTFail("\(book) \(p.id): \(error.localizedDescription)")
                 }
@@ -236,13 +241,13 @@ final class AgentWebSearchTests: XCTestCase {
     func testSearchesShowInTheStatus() {
         let claude = #"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"WebSearch","input":{"query":"prix Goncourt 2025"}}]}}"#
         guard case .status(let s) = Agents.parseClaude(claude).first else { return XCTFail() }
-        XCTAssertTrue(s.contains("« prix Goncourt 2025 »"))
+        XCTAssertTrue(s.contains(inQuotes("prix Goncourt 2025")), s)
         let fetch = #"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"WebFetch","input":{"url":"https://actualitte.com/livres/1"}}]}}"#
         guard case .status(let f) = Agents.parseClaude(fetch).first else { return XCTFail() }
         XCTAssertTrue(f.hasSuffix("actualitte.com"))
         let codex = #"{"type":"item.completed","item":{"type":"web_search","query":"prix Goncourt 2025"}}"#
         guard case .status(let c) = Agents.parseCodex(codex).first else { return XCTFail() }
-        XCTAssertTrue(c.contains("« prix Goncourt 2025 »"))
+        XCTAssertTrue(c.contains(inQuotes("prix Goncourt 2025")), c)
     }
 }
 

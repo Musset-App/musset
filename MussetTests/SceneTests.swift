@@ -85,13 +85,92 @@ final class SceneTests: XCTestCase {
         XCTAssertEqual(s.plot.row("01", "Part").cells["main"]?.text, "résumé")
     }
 
-    func testTypstSceneBreaks() {
-        let none = TypstMarkup.chapter(chapter, id: "c", markers: false)
+    // MARK: Plot rows follow their scene
+
+    private func scenes(_ titles: String...) -> [ChapterScene] {
+        Scenes.parse(titles.enumerated().map { $1.isEmpty ? "Du texte avant." : "<!-- scene: \($1) -->\nLe texte de la scène \($0)." }.joined(separator: "\n"))
+    }
+
+    private func grid(_ keys: String...) -> PlotGrid {
+        var g = PlotGrid()
+        for k in keys { g.update("01", k) { $0.cells["main"] = .init(text: "row of " + k) } }
+        return g
+    }
+
+    func testARenameIsFollowedEvenWhenScenesWereAddedOrRemovedElsewhere() {
+        // Renamed, and a scene added at the end in the same save.
+        var g = grid("A", "B", "C")
+        var out = g.follow("01", from: scenes("A", "B", "C"), to: scenes("A", "Bis", "C", "D"))
+        XCTAssertTrue(out.moved)
+        XCTAssertEqual(g.rows["01"]?.keys.sorted(), ["A", "Bis", "C"])
+        XCTAssertEqual(g.row("01", "Bis").cells["main"]?.text, "row of B")
+        // Renamed, and a scene removed before it.
+        g = grid("A", "B", "C")
+        out = g.follow("01", from: scenes("A", "B", "C"), to: scenes("B", "Fin"))
+        XCTAssertEqual(g.row("01", "Fin").cells["main"]?.text, "row of C")
+        XCTAssertNotNil(g.rows["01"]?["A"], "a scene gone keeps its row: an undo brings both back")
+        // The opening gets a marker.
+        g = grid("", "B")
+        _ = g.follow("01", from: scenes("", "B"), to: scenes("Ouverture", "B"))
+        XCTAssertEqual(g.rows["01"]?.keys.sorted(), ["B", "Ouverture"])
+        // Two scenes swapped: nothing was renamed, each keeps its row.
+        g = grid("A", "B")
+        out = g.follow("01", from: scenes("A", "B"), to: scenes("B", "A"))
+        XCTAssertFalse(out.moved)
+        XCTAssertEqual(g.row("01", "A").cells["main"]?.text, "row of A")
+        // Renamed, with a scene added right beside it: it is the one whose text did not change.
+        g = grid("A", "B")
+        out = g.follow("01", from: scenes("A", "B"), to: scenes("A", "Bis", "Y"))
+        XCTAssertEqual(g.rows["01"]?.keys.sorted(), ["A", "Bis"])
+        // Renamed and rewritten, among scenes added: which is which cannot be told, nothing moves.
+        g = grid("A", "B")
+        out = g.follow("01", from: scenes("A", "B"), to: Scenes.parse("<!-- scene: A -->\nLe texte de la scène 0.\n<!-- scene: X -->\nAutre.\n<!-- scene: Y -->\nAutre encore."))
+        XCTAssertFalse(out.moved)
+        XCTAssertNotNil(g.rows["01"]?["B"])
+    }
+
+    /// « Scène 12 » retyped: for a moment it reads « Scène 1 », which is another scene's title.
+    func testARowNeverGoesToAnotherScenesTitleAndIsNotLostOnTheWay() {
+        var g = grid("Scène 1", "Scène 12")
+        let typing = g.follow("01", from: scenes("Scène 1", "Scène 12"), to: scenes("Scène 1", "Scène 1"))
+        XCTAssertFalse(typing.moved)
+        XCTAssertEqual(typing.scenes.map(\.key), ["Scène 1", "Scène 12"], "it still shows its own row, not its namesake's")
+        XCTAssertEqual(g.row("01", typing.scenes[1].key).cells["main"]?.text, "row of Scène 12")
+        let done = g.follow("01", from: typing.scenes, to: scenes("Scène 1", "Le marché"))
+        XCTAssertTrue(done.moved)
+        XCTAssertEqual(done.scenes.map(\.key), ["Scène 1", "Le marché"])
+        XCTAssertEqual(g.row("01", "Scène 1").cells["main"]?.text, "row of Scène 1", "the first scene kept its row")
+        XCTAssertEqual(g.row("01", "Le marché").cells["main"]?.text, "row of Scène 12")
+        XCTAssertNil(g.rows["01"]?["Scène 12"])
+        // Two scenes of the same name share a row; renaming one leaves it with the other.
+        g = grid("Part")
+        _ = g.follow("01", from: scenes("Part", "Part"), to: scenes("Part", "Partie deux"))
+        XCTAssertEqual(g.rows["01"]?.keys.sorted(), ["Part"])
+    }
+
+    func testARenameTypedInAChapterFollowsWithItsRowWhateverElseChanged() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try "# Un\n\n<!-- scene: A -->\nTexte A.\n<!-- scene: B -->\nTexte B.\n".write(to: root.appendingPathComponent("01.md"), atomically: true, encoding: .utf8)
+        let m = BookManifest(title: "T", chapters: [ChapterEntry(id: "01", file: "01.md", title: "Un")])
+        try BookStore(root: root).saveManifest(m)
+        let s = BookSession(root: root, manifest: m)
+        s.setSceneStatus("01", "B", .final)
+        s.textDidChange(s.text.replacingOccurrences(of: "scene: B", with: "scene: La fin") + "<!-- scene: Encore -->\nEt après.\n")
+        s.flushSave()
+        XCTAssertEqual(s.scenes["01"]?.map(\.key), ["A", "La fin", "Encore"])
+        XCTAssertEqual(s.sceneStatus("01", "La fin"), .final)
+        XCTAssertEqual(PlotGrid.load(root).rows["01"]?.keys.sorted(), ["La fin"], "and it is saved")
+    }
+
+    func testTypstSceneBreaks() throws {
+        let none = try Typeset.chapter(chapter)
         XCTAssertFalse(none.contains("scene"))
         XCTAssertFalse(none.contains("asterism"))
-        let star = TypstMarkup.chapter(chapter, id: "c", markers: false, sceneBreak: .asterism)
+        let star = try Typeset.chapter(chapter, sceneBreak: .asterism)
         XCTAssertEqual(star.components(separatedBy: "#asterism()").count - 1, 1, "no break before the first scene")
-        XCTAssertTrue(TypstMarkup.chapter(chapter, id: "c", markers: false, sceneBreak: .blank).contains("#scenegap()"))
+        XCTAssertTrue(try Typeset.chapter(chapter, sceneBreak: .blank).contains("#scenegap()"))
         let pandoc = BookStore.sceneBreaks(ParagraphCodec.encode(chapter), .asterism)
         XCTAssertEqual(pandoc.components(separatedBy: "⁂").count - 1, 1)
         XCTAssertTrue(pandoc.contains("<!-- scene: Le marché -->"))

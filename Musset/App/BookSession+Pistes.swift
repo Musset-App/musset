@@ -20,7 +20,14 @@ extension BookSession {
     /// What was written is saved and committed before moving between lines.
     private func settle() {
         flushSave()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")")
+        commitIfPending(message: editMessage)
+        commitBesideTrack()
+    }
+
+    /// In a track, commits go to the track's line and hold its chapters only. What else was written meanwhile in the
+    /// book's folder (its settings, notes, the plot) is committed on the manuscript when the track is left or the book closed.
+    func commitBesideTrack() {
+        if piste != nil { commitManuscript("musset: notes et réglages") }
     }
 
     func refreshTracks() {
@@ -52,7 +59,7 @@ extension BookSession {
     /// With `opening`, the open chapter starts from that text in the track (a blank page, a version).
     func newPiste(named name: String, from rev: String = "HEAD", fromLabel: String, opening: String? = nil) {
         guard git.isRepo else {
-            lastError = L("This book has no history yet (not a git repository).")
+            lastError = L("This book has no history yet.")
             return
         }
         settle()
@@ -65,7 +72,7 @@ extension BookSession {
             try Pistes.save(pistes, root: root)
             commitManuscript("musset: piste « \(p.name) »")
             enter(p)
-            if let opening { replaceText(opening); commitNow("musset: edit \(selectedChapterID ?? "")") }
+            if let opening { replaceText(opening); commitNow(editMessage) }
         } catch { lastError = error.localizedDescription }
     }
 
@@ -79,7 +86,7 @@ extension BookSession {
     func versionAsPiste(_ version: String) {
         guard piste == nil, let ch = selectedChapter else { return }
         let body = ParagraphCodec.decode(store.readVersion(ch, version))
-        newPiste(named: "\(ch.title) · \(version)", fromLabel: L("the version ") + version, opening: body)
+        newPiste(named: "\(ch.title) · \(version)", fromLabel: L("the version \(version)"), opening: body)
     }
 
     /// Puts a track away (or back): its branch stays, it leaves the list.
@@ -163,9 +170,8 @@ extension BookSession {
         enter(nil)
         for (id, chosen) in chapters {
             guard let ch = manifest.chapters.first(where: { $0.id == id }) else { continue }
-            if id == selectedChapterID { replaceText(chosen); continue }
-            do { try store.write(ParagraphCodec.encode(chosen), to: ch) }
-            catch { lastError = L("Could not save \(ch.file): ") + error.localizedDescription; return }
+            do { try writeChapterText(id, chosen) }
+            catch { lastError = L("Could not save \(ch.file): \(error.localizedDescription)"); return }
         }
         commitManuscript("musset: reprise de la piste « \(p.name) »", merging: p.branch)
         pendingCommit = false
@@ -180,7 +186,7 @@ extension BookSession {
     /// without, the manuscript stays unless the author picks otherwise.
     func prepareBring(rev: String, base: String?, chapters ids: [String]? = nil) -> [MergeChapter] {
         flushSave()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")")
+        commitIfPending(message: editMessage)
         return manifest.chapters.compactMap { ch in
             if let ids, !ids.contains(ch.id) { return nil }
             guard let disk = git.show(rev, path: ch.file) else { return nil }
@@ -197,9 +203,8 @@ extension BookSession {
     func applyBring(_ chapters: [String: String], message: String) {
         for (id, chosen) in chapters {
             guard chosen != editorText(of: id), let ch = manifest.chapters.first(where: { $0.id == id }) else { continue }
-            if id == selectedChapterID { replaceText(chosen); continue }
-            do { try store.write(ParagraphCodec.encode(chosen), to: ch) }
-            catch { lastError = L("Could not save \(ch.file): ") + error.localizedDescription; return }
+            do { try writeChapterText(id, chosen) }
+            catch { lastError = L("Could not save \(ch.file): \(error.localizedDescription)"); return }
         }
         pendingCommit = true
         commitNow(message)
@@ -215,7 +220,7 @@ extension BookSession {
             guard old != now else { continue }
             changed += 1
             words += BookStore.wordCount(old) - BookStore.wordCount(now)
-            lost += notes.notes(of: ch.id).filter { $0.status == .open && !$0.anchor.quote.isEmpty && Anchoring.resolve($0.anchor, in: now) != nil && Anchoring.resolve($0.anchor, in: old) == nil }.count
+            lost += noteStore(for: ch.id).notes(of: ch.id).filter { $0.status == .open && !$0.anchor.quote.isEmpty && Anchoring.resolve($0.anchor, in: now) != nil && Anchoring.resolve($0.anchor, in: old) == nil }.count
         }
         return (words, changed, lost)
     }
@@ -225,13 +230,12 @@ extension BookSession {
     func goBack(to rev: String, label: String, chapters ids: [String], order: Bool) {
         guard inManuscript() else { return }
         flushSave()
-        commitIfPending(message: "musset: edit \(selectedChapterID ?? "")")
+        commitIfPending(message: editMessage)
         addJalon(title: L("Before going back to \(label)"), note: "")
         for ch in manifest.chapters where ids.contains(ch.id) {
             guard let disk = git.show(rev, path: ch.file) else { continue }
-            if ch.id == selectedChapterID { replaceText(ParagraphCodec.decode(disk)); continue }
-            do { try store.write(disk, to: ch) }
-            catch { lastError = L("Could not save \(ch.file): ") + error.localizedDescription; return }
+            do { try writeChapterText(ch.id, ParagraphCodec.decode(disk), file: disk) }
+            catch { lastError = L("Could not save \(ch.file): \(error.localizedDescription)"); return }
         }
         if order, let data = git.data(rev, path: ".musset/book.json"), let old = try? JSONDecoder().decode(BookManifest.self, from: data) {
             let rank = Dictionary(old.chapters.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { a, _ in a })

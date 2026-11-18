@@ -62,14 +62,14 @@ extension BookSession {
     func collectTodos() -> [TodoItem] {
         var items: [TodoItem] = []
         let titles = Dictionary(manifest.chapters.map { ($0.id, $0.title) }, uniquingKeysWith: { a, _ in a })
-        let byTitle = Dictionary(titles.map { (PlotGrid.fold($0.value), $0.key) }, uniquingKeysWith: { a, _ in a })
+        let byTitle = Dictionary(titles.map { (Fold.name($0.value), $0.key) }, uniquingKeysWith: { a, _ in a })
         for page in manifest.chapters.map(\.id) + [NoteStore.bookPage] {
-            for n in notes.notes(of: page) where n.kind == .todo {
+            for n in noteStore(for: page).notes(of: page) where n.kind == .todo {
                 // A task can name another chapter, with @[Titre].
-                let linked = BibleLinks.targets(in: n.body).compactMap { byTitle[PlotGrid.fold($0)] }.first
+                let linked = BibleLinks.targets(in: n.body).compactMap { byTitle[Fold.name($0)] }.first
                 items.append(TodoItem(text: n.body.isEmpty ? n.anchor.quote : BibleLinks.plain(n.body), done: n.isClosed,
                                       origin: .margin(chapter: page, note: n.id), chapter: linked ?? (page == NoteStore.bookPage ? nil : page),
-                                      source: L("notes")))
+                                      source: L("Notes")))
             }
         }
         for e in bible.entries where !e.isFile {
@@ -80,10 +80,10 @@ extension BookSession {
 
     private func lines(of file: URL, chapter: String?, source: String, titles: [String: String]) -> [TodoItem] {
         guard let text = try? String(contentsOf: file, encoding: .utf8), text.contains("- [") else { return [] }
-        let byTitle = Dictionary(titles.map { (PlotGrid.fold($0.value), $0.key) }, uniquingKeysWith: { a, _ in a })
+        let byTitle = Dictionary(titles.map { (Fold.name($0.value), $0.key) }, uniquingKeysWith: { a, _ in a })
         return text.components(separatedBy: "\n").enumerated().compactMap { i, line in
             guard let t = TodoSyntax.parse(Substring(line)) else { return nil }
-            let linked = BibleLinks.targets(in: t.text).compactMap { byTitle[PlotGrid.fold($0)] }.first
+            let linked = BibleLinks.targets(in: t.text).compactMap { byTitle[Fold.name($0)] }.first
             return TodoItem(text: BibleLinks.plain(t.text), done: t.done, origin: .line(file: file, index: i), chapter: linked ?? chapter, source: source)
         }
     }
@@ -91,7 +91,7 @@ extension BookSession {
     func toggle(_ todo: TodoItem) {
         switch todo.origin {
         case .margin(let chapter, let note):
-            notes.change(note, in: chapter) { $0.status = todo.done ? .open : .done }
+            noteStore(for: chapter).change(note, in: chapter) { $0.status = todo.done ? .open : .done }
         case .line(let file, let index):
             guard let text = try? String(contentsOf: file, encoding: .utf8), let next = TodoSyntax.toggled(text, line: index) else { return }
             try? next.write(to: file, atomically: true, encoding: .utf8)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// « Try something else »: two questions, and the book keeps its version until one chooses.
+/// A new version of the open chapter: two questions, and the book keeps its version until one chooses.
 struct TryVersionSheet: View {
     let session: BookSession
     @Environment(\.dismiss) private var dismiss
@@ -13,7 +13,7 @@ struct TryVersionSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(L("Try Something Else")).font(.ui(15, .semibold))
+                Text(session.words.newVersion.titled).font(.ui(15, .semibold))
                 Text(L("The book keeps « \(BookSession.versionLabel(session.selectedChapter?.activeVersion ?? "")) » until you choose. Nothing is erased."))
                     .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
@@ -58,8 +58,8 @@ struct TryVersionSheet: View {
                 Spacer(minLength: 0)
             }
             .padding(10)
-            .background(on ? Ink.accent.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(on ? Ink.accent.opacity(0.6) : Ink.hairline))
+            .background(on ? Ink.accent.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
+            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(on ? Ink.accent.opacity(0.6) : Ink.hairline))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -92,8 +92,8 @@ struct VersionSwitchToast: View {
             }
             .font(.ui(13))
             .padding(.horizontal, 16).padding(.vertical, 10)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ink.hairline))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
             .padding(.bottom, 28)
             .transition(.opacity.combined(with: .move(edge: .bottom)))

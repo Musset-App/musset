@@ -82,18 +82,7 @@ struct ProofFix: Identifiable, Hashable, Codable {
 
     /// Whole words only: "nou" must not match inside "nous".
     static func tolerantRegex(_ text: String, wholeWords: Bool = true) -> NSRegularExpression? {
-        var pattern = ""
-        if wholeWords, text.first.map({ $0.isLetter || $0.isNumber }) == true { pattern += "(?<![\\p{L}\\p{N}])" }
-        for ch in text {
-            switch ch {
-            case "'", "’", "‘", "ʼ": pattern += "['’‘ʼ]"
-            case "\"", "“", "”": pattern += "[\"“”]"
-            case " ", "\u{00A0}", "\u{202F}": pattern += "[ \\u00A0\\u202F]+"
-            default: pattern += NSRegularExpression.escapedPattern(for: String(ch))
-            }
-        }
-        if wholeWords, text.last.map({ $0.isLetter || $0.isNumber }) == true { pattern += "(?![\\p{L}\\p{N}])" }
-        return try? NSRegularExpression(pattern: pattern)
+        Anchoring.tolerantRegex(text, wholeWords: wholeWords)
     }
 
     /// The replacement written in the surrounding text's typography (curly apostrophes, non-breaking spaces).

@@ -71,6 +71,27 @@ struct Composer: NSViewRepresentable {
 }
 
 final class ComposerTextView: NSTextView {
+    /// Its own undo, gone with it: steps left in the window's would outlive the field, and the next ⌘Z there crashes.
+    private let ownUndo = UndoManager()
+    override var undoManager: UndoManager? { ownUndo }
+
+    /// The Edit menu's Undo and Redo come here: left to the window, they would go to the window's own history,
+    /// which holds none of this text's steps.
+    @objc func undo(_ sender: Any?) { if ownUndo.canUndo { ownUndo.undo() } }
+    @objc func redo(_ sender: Any?) { if ownUndo.canRedo { ownUndo.redo() } }
+
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(undo(_:)):
+            (item as? NSMenuItem)?.title = ownUndo.undoMenuItemTitle
+            return ownUndo.canUndo
+        case #selector(redo(_:)):
+            (item as? NSMenuItem)?.title = ownUndo.redoMenuItemTitle
+            return ownUndo.canRedo
+        default:
+            return super.validateUserInterfaceItem(item)
+        }
+    }
     var onSend: (() -> Void)?
     var placeholder = "" { didSet { needsDisplay = true } }
 
@@ -102,10 +123,8 @@ struct PanelResizeHandle: View {
     var body: some View {
         Rectangle()
             .fill(Color(nsColor: .textBackgroundColor))
-            .frame(width: 6)
             .overlay(Divider())
-            .contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .resizeGrip()
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .global)
                     .onChanged { g in

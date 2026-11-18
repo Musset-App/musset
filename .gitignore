@@ -8,3 +8,6 @@ Local.xcconfig
 scripts/local.env
 .claude/
 .public/
+website/dist/
+website/.wrangler/
+node_modules/

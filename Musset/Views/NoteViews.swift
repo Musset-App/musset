@@ -66,7 +66,7 @@ struct NotePreview: View {
                 }
                 Text(LocalizedStringKey(note.body)).font(.ui(12)).lineLimit(compact ? 4 : 12).fixedSize(horizontal: false, vertical: true)
                 HStack {
-                    Button(note.replies.isEmpty ? L("Open thread") : L("Open thread (\(note.replies.count) replies)"), action: open)
+                    Button(note.replies.isEmpty ? L("Open Thread") : L("Open Thread (\(note.replies.count) replies)"), action: open)
                         .buttonStyle(.link)
                     Spacer()
                     Button(note.status == .open ? L("Resolve") : L("Reopen")) {
@@ -129,7 +129,7 @@ struct NoteThread: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button(action: back) { Label("Notes", systemImage: "chevron.left") }.buttonStyle(.borderless)
+                Button(action: back) { Label(L("Notes"), systemImage: "chevron.left") }.buttonStyle(.borderless)
                 Spacer()
                 if let note {
                     if note.run != nil { Button(L("Keep")) { session.notes.keep(noteID) }.help(L("Keep this AI note")) }
@@ -139,7 +139,7 @@ struct NoteThread: View {
                     Menu {
                         Button(L("Edit note")) { draft = note.body; draftKind = note.kind; editing = true }
                         Divider()
-                        Button(L("Delete note"), role: .destructive) { session.notes.delete(noteID); back() }
+                        Button(L("Delete Note"), role: .destructive) { session.notes.delete(noteID); back() }
                     } label: { Image(systemName: "ellipsis.circle") }
                     .menuStyle(.borderlessButton).fixedSize()
                 }
@@ -155,8 +155,8 @@ struct NoteThread: View {
                             if note.hasPassage { Button { if let r = session.notes.live[noteID] { bridge.scroll(to: r) } } label: {
                                 HStack(alignment: .top, spacing: 8) {
                                     RoundedRectangle(cornerRadius: 1).fill(note.kind.color.opacity(0.6)).frame(width: 3)
-                                    Text("« \(note.anchor.quote) »").font(.ui(fontSize - 1)).italic()
-                                        .foregroundStyle(note.orphaned ? .orange : .secondary).multilineTextAlignment(.leading)
+                                    Text(inQuotes(note.anchor.quote)).font(.ui(fontSize - 1)).italic()
+                                        .foregroundStyle(note.orphaned ? Ink.warning : .secondary).multilineTextAlignment(.leading)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -193,7 +193,7 @@ struct NoteThread: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     if let e = annotator.askError, annotator.answering == nil {
-                        Text(e).font(.ui(11)).foregroundStyle(.orange).lineLimit(3).textSelection(.enabled)
+                        Text(e).font(.ui(11)).foregroundStyle(Ink.warning).lineLimit(3).textSelection(.enabled)
                     }
                     // Without that AI on this Mac (or with AI off), a reply is just a note.
                     let ai = partner(of: note).flatMap { AIStatus.shared.engines.contains($0.engine) ? $0 : nil }
@@ -242,7 +242,7 @@ struct NoteThread: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(body).font(.ui(fontSize)).textSelection(.enabled)
                     .padding(8)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Ink.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: Radius.control))
                 HStack(spacing: 4) {
                     if let kind { Text(kind).font(.ui(10)).foregroundStyle(.secondary) }
                     Text(date.relativeInUI).font(.ui(10)).foregroundStyle(.tertiary)
@@ -293,7 +293,7 @@ struct NoteComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("« \(quote) »").font(.ui(11)).foregroundStyle(.secondary).lineLimit(2)
+            Text(inQuotes(quote)).font(.ui(11)).foregroundStyle(.secondary).lineLimit(2)
             Picker("", selection: $kind) {
                 ForEach([Note.Kind.note, .question, .todo], id: \.self) { Text($0.label).tag($0) }
             }
@@ -303,7 +303,7 @@ struct NoteComposer: View {
                 Text(L("⌘↩ to save")).font(.ui(10)).foregroundStyle(.tertiary)
                 Spacer()
                 Button(L("Cancel"), action: cancel).keyboardShortcut(.cancelAction)
-                Button(L("Add Note")) { save(kind, text) }
+                Button(L("Add the note")) { save(kind, text) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }

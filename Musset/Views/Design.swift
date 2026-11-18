@@ -1,138 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// The interface language: the system's, or one of Musset's six by choice (Settings ▸ General).
-enum UILang: String, CaseIterable, Identifiable {
-    case system, en, fr, de, es, it, ptBR = "pt-BR", ptPT = "pt-PT"
-    var id: String { rawValue }
-    static let key = "uiLanguage"
-
-    /// The language the interface is in now: the chosen one, or the first of the system's that Musset speaks.
-    static var current: UILang {
-        let chosen = UILang(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .system
-        if chosen != .system { return chosen }
-        for code in Locale.preferredLanguages {
-            if let l = from(code) { return l }
-        }
-        return .en
-    }
-
-    /// "pt-BR", "pt_PT", "de-CH", "fr"… → the interface language, if Musset has it.
-    static func from(_ code: String) -> UILang? {
-        let c = code.replacingOccurrences(of: "_", with: "-").lowercased()
-        if c.hasPrefix("pt") { return c.hasPrefix("pt-pt") ? .ptPT : .ptBR }
-        return [UILang.en, .fr, .de, .es, .it].first { c.hasPrefix($0.rawValue) }
-    }
-
-    static var isFrench: Bool { current == .fr }
-
-    /// Dates and numbers in the interface's language.
-    static var locale: Locale { Locale(identifier: current.localeID) }
-
-    var localeID: String {
-        switch self {
-        case .system: UILang.current.localeID
-        case .en: "en_US"
-        case .fr: "fr_FR"
-        case .de: "de_DE"
-        case .es: "es_ES"
-        case .it: "it_IT"
-        case .ptBR: "pt_BR"
-        case .ptPT: "pt_PT"
-        }
-    }
-
-    /// Each language in its own name, so anyone can find theirs.
-    var label: String {
-        switch self {
-        case .system: L("System")
-        case .en: "English"
-        case .fr: "Français"
-        case .de: "Deutsch"
-        case .es: "Español"
-        case .it: "Italiano"
-        case .ptBR: "Português (Brasil)"
-        case .ptPT: "Português (Portugal)"
-        }
-    }
-
-    /// One when the count takes the singular (CLDR): French and Brazilian Portuguese count 0 as singular.
-    func isOne(_ n: Int) -> Bool {
-        switch self {
-        case .fr, .ptBR: n == 0 || n == 1
-        default: n == 1
-        }
-    }
-}
-
-/// A piece of interface text, written in English at the call site: `L("\(n) notes")`.
-/// Its key is the English with `{%0}`, `{%1}`… for what is interpolated, so a translation may reorder them.
-struct LKey: ExpressibleByStringInterpolation {
-    var key: String
-    var args: [String]
-    /// The first whole number interpolated: it picks the singular or plural form.
-    var count: Int?
-
-    init(stringLiteral value: String) { key = value; args = []; count = nil }
-    init(stringInterpolation s: StringInterpolation) { key = s.key; args = s.args; count = s.count }
-
-    struct StringInterpolation: StringInterpolationProtocol {
-        var key = "", args: [String] = [], count: Int?
-        init(literalCapacity: Int, interpolationCount: Int) {}
-        mutating func appendLiteral(_ literal: String) { key += literal }
-        mutating func appendInterpolation<T>(_ value: T) {
-            key += "{%\(args.count)}"
-            if count == nil, let n = value as? Int { count = n }
-            args.append(String(describing: value))
-        }
-    }
-}
-
-/// The interface's text tables, one per language, keyed by the English (`Resources/Localization/<lang>.json`).
-/// An entry is a string, or `{"one": …, "other": …}` when it holds a count.
-enum Strings {
-    nonisolated(unsafe) private static var tables: [UILang: [String: Any]] = [:]
-    private static let lock = NSLock()
-
-    static func table(_ lang: UILang) -> [String: Any] {
-        lock.lock(); defer { lock.unlock() }
-        if let t = tables[lang] { return t }
-        var t: [String: Any] = [:]
-        if let url = Bundle.main.url(forResource: lang.rawValue, withExtension: "json", subdirectory: "Localization")
-            ?? Bundle.main.url(forResource: lang.rawValue, withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            t = json
-        }
-        tables[lang] = t
-        return t
-    }
-
-    static func text(_ key: LKey, ctx: String? = nil, lang: UILang = UILang.current) -> String {
-        let lookup = ctx.map { key.key + "@@" + $0 } ?? key.key
-        var form: String?
-        for l in [lang, .en] {
-            let entry = table(l)[lookup] ?? (ctx == nil ? nil : table(l)[key.key])
-            if let s = entry as? String { form = s; break }
-            if let p = entry as? [String: String] {
-                let one = key.count.map { l.isOne($0) } ?? false
-                form = (one ? p["one"] : p["other"]) ?? p["other"]
-                break
-            }
-        }
-        var out = form ?? key.key
-        for (i, a) in key.args.enumerated().reversed() { out = out.replacingOccurrences(of: "{%\(i)}", with: a) }
-        return out
-    }
-}
-
-/// A piece of interface text in the interface's language. `ctx` tells apart two senses of the same English
-/// (« Done » the status, « Done » the button): it is the French sense, which the tables also key on.
-func L(_ key: LKey, ctx: String? = nil) -> String { Strings.text(key, ctx: ctx) }
-
-/// A text that is only known at run time (a preset's stored name, an engine's label): looked up as it is.
-func L(dynamic text: String) -> String { Strings.text(LKey(stringLiteral: text)) }
-
 /// Musset's palette: grey carries the interface; colour only ever means something (a note kind, a status, a tag).
 enum Ink {
     static let hairline = Color(nsColor: .separatorColor)
@@ -151,15 +19,41 @@ enum Ink {
         ? NSColor(white: 1, alpha: 0.08) : NSColor(srgbRed: 0.1, green: 0.1, blue: 0.09, alpha: 0.07) })
     static let side = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua]) != nil
         ? NSColor(srgbRed: 0.106, green: 0.106, blue: 0.102, alpha: 1) : NSColor(srgbRed: 0.969, green: 0.965, blue: 0.953, alpha: 1) })
+
+    /// Something to look at: a problem that stops nothing (a stale reading, a paused AI, a score under the bar).
+    static let warning = Color(nsColor: .systemOrange)
+    /// Something failed.
+    static let error = Color(nsColor: .systemRed)
+    /// Good news, quietly: connected, words written today, the final status.
+    static let positive = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua]) != nil
+        ? NSColor(srgbRed: 0.40, green: 0.74, blue: 0.53, alpha: 1) : NSColor(srgbRed: 0.18, green: 0.54, blue: 0.34, alpha: 1) })
+    /// The corrector's red pencil: Revise mode and the corrections waiting in the text.
+    static let revision = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua]) != nil
+        ? NSColor(srgbRed: 0.93, green: 0.42, blue: 0.37, alpha: 1) : NSColor(srgbRed: 0.76, green: 0.22, blue: 0.18, alpha: 1) })
+    /// Text and icons on an `accent` ground (a badge, the chosen tool): white on the light theme's deep blue,
+    /// ink on the dark theme's pale blue.
+    static let onAccent = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua]) != nil
+        ? NSColor(srgbRed: 0.07, green: 0.08, blue: 0.16, alpha: 1) : .white })
+    /// Text and icons on a ground of `Color.primary` (the main button, an avatar): the page's own colour, so it
+    /// turns with the theme as the ground does.
+    static let onPrimary = Color(nsColor: .textBackgroundColor)
+}
+
+/// Corner radii: rows and small grounds, controls, cards.
+enum Radius {
+    static let row: CGFloat = 6
+    static let control: CGFloat = 8
+    static let card: CGFloat = 10
 }
 
 extension ChapterStatus {
+    /// The status's colour, wherever it is drawn: the one palette for chapters and scenes.
     var dot: Color {
         switch self {
         case .draft: Color(nsColor: .tertiaryLabelColor)
         case .done: Color(red: 0.18, green: 0.42, blue: 0.84)
         case .edited: Color(red: 0.82, green: 0.48, blue: 0.07)
-        case .final: Color(red: 0.18, green: 0.54, blue: 0.34)
+        case .final: Ink.positive
         }
     }
 }
@@ -199,7 +93,7 @@ struct Segmented<T: Hashable>: View {
                         .font(.ui(12, on ? .medium : .regular))
                         .foregroundStyle(on ? .primary : .secondary)
                         .frame(maxWidth: .infinity, minHeight: 22)
-                        .background(on ? Color(nsColor: .controlBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                        .background(on ? Color(nsColor: .controlBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
                         .shadow(color: on ? .black.opacity(0.06) : .clear, radius: 1, y: 1)
                         .contentShape(Rectangle())
                 }
@@ -207,7 +101,7 @@ struct Segmented<T: Hashable>: View {
             }
         }
         .padding(3)
-        .background(Ink.panel, in: RoundedRectangle(cornerRadius: 8))
+        .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
     }
 }
 
@@ -225,7 +119,7 @@ struct Chip: View {
         }
         .fixedSize()
         .padding(.horizontal, 10).frame(height: 26)
-        .foregroundStyle(on ? Color(nsColor: .textBackgroundColor) : .primary)
+        .foregroundStyle(on ? Ink.onPrimary : .primary)
         .background(RoundedRectangle(cornerRadius: 13).fill(on ? Color.primary : Color(nsColor: .textBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 13).strokeBorder(on ? Color.clear : Ink.hairline, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 13))
@@ -235,13 +129,103 @@ struct Chip: View {
     }
 }
 
-/// Section title in settings-like pages.
-struct SectionLabel: View {
+/// « Nothing yet »: the one quiet line a list or a panel shows while it has nothing to show.
+struct EmptyNote: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text).font(.ui(11, .semibold)).foregroundStyle(.secondary)
+        Text(text).font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }
+}
+
+/// A section's heading, in small capitals of its own making: its key is written as a sentence, and the label
+/// capitalises it in the interface's language. `tracking` spaces the letters (the Settings window's groups).
+struct SectionLabel: View {
+    let text: String
+    var tracking: CGFloat = 0
+    init(_ text: String, tracking: CGFloat = 0) { self.text = text; self.tracking = tracking }
+    var body: some View {
+        Text(text.uppercased(with: UILang.locale)).font(.ui(11, .semibold)).tracking(tracking).foregroundStyle(.secondary)
+    }
+}
+
+// MARK: Settings rows (the Settings window, Book Settings)
+
+/// Rows in a rounded hairline box, a hairline between each. `filled`: on a sheet's grey, the box is paper white.
+struct SettingsCard<Content: View>: View {
+    var filled = false
+    @ViewBuilder let content: Content
+    var body: some View {
+        Group {
+            if #available(macOS 15, *) {
+                VStack(spacing: 0) {
+                    Group(subviews: content) { rows in
+                        ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
+                            if i > 0 { SettingsHairline() }
+                            row
+                        }
+                    }
+                }
+            } else {
+                // macOS 14 has no Group(subviews:): the older way to walk a view's rows.
+                _VariadicView.Tree(SettingsCardRows()) { content }
+            }
+        }
+        .background(filled ? Color(nsColor: .textBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
+    }
+}
+
+private struct SettingsHairline: View {
+    var body: some View { Rectangle().fill(Ink.hairline.opacity(0.6)).frame(height: 1) }
+}
+
+private struct SettingsCardRows: _VariadicView_MultiViewRoot {
+    func body(children: _VariadicView.Children) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(children.enumerated()), id: \.offset) { i, row in
+                if i > 0 { SettingsHairline() }
+                row
+            }
+        }
+    }
+}
+
+/// One setting: its name (and a line of explanation) on the left, its control on the right; or, as a `form` row,
+/// a quiet label in a column and the field beside it.
+struct SettingsRow<Control: View>: View {
+    enum Style { case setting, form }
+    let title: String
+    var hint: String? = nil
+    var style = Style.setting
+    @ViewBuilder let control: Control
+    var body: some View {
+        switch style {
+        case .setting:
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.ui(13, .medium))
+                    if let hint { Text(hint).font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+                }
+                Spacer(minLength: 12)
+                control
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+        case .form:
+            HStack(spacing: 16) {
+                Text(title).foregroundStyle(.secondary).frame(width: 170, alignment: .leading)
+                control.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+        }
+    }
+}
+
+/// An on/off setting.
+struct SettingsSwitch: View {
+    @Binding var on: Bool
+    var body: some View { Toggle("", isOn: $on).toggleStyle(.switch).labelsHidden().controlSize(.small) }
 }
 
 extension Date {
@@ -319,7 +303,7 @@ private struct PopRow: View {
             }
             .font(.ui(13))
             .padding(.horizontal, 10).frame(minHeight: 26).padding(.vertical, item.subtitle == nil ? 0 : 4)
-            .background(hover ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 5))
+            .background(hover ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.row))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -334,13 +318,43 @@ struct InkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.ui(13, primary ? .medium : .regular))
-            .foregroundStyle(primary ? Color(nsColor: .textBackgroundColor) : .primary)
+            .foregroundStyle(primary ? Ink.onPrimary : .primary)
             .padding(.horizontal, 14).frame(height: 32)
-            .background(RoundedRectangle(cornerRadius: 8).fill(primary ? Color.primary.opacity(enabled ? 1 : 0.35) : Color(nsColor: .textBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(primary ? Color.clear : Ink.hairline))
+            .background(RoundedRectangle(cornerRadius: Radius.control).fill(primary ? Color.primary.opacity(enabled ? 1 : 0.35) : Color(nsColor: .textBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(primary ? Color.clear : Ink.hairline))
             .opacity(configuration.isPressed ? 0.8 : 1)
-            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.control))
     }
+}
+
+/// How a toolbar button sits on its bar: a hairline outline, ink-filled for the bar's main action, or on the
+/// soft ground of the segmented control beside it.
+enum ToolbarGround { case outline, filled, panel }
+
+extension View {
+    /// A toolbar's button, 28 points high. A modifier rather than a button style, since `PopMenu` labels wear it too.
+    func toolbarButton(_ ground: ToolbarGround = .outline) -> some View {
+        self.font(.ui(12, ground == .filled ? .medium : .regular))
+            .foregroundStyle(ground == .filled ? Ink.onPrimary : Color.primary)
+            .padding(.horizontal, 10).frame(height: 28)
+            .background(ground == .filled ? Color.primary : (ground == .panel ? Ink.panel : Color.clear), in: RoundedRectangle(cornerRadius: Radius.control))
+            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(ground == .outline ? Ink.hairline : Color.clear))
+            .contentShape(Rectangle())
+    }
+
+    /// What every resize handle shares: a strip wide enough to grab, the resize cursor, a name for VoiceOver.
+    func resizeGrip(vertical: Bool = false) -> some View {
+        frame(width: vertical ? nil : ResizeGrip.thickness, height: vertical ? ResizeGrip.thickness : nil)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside { (vertical ? NSCursor.resizeUpDown : NSCursor.resizeLeftRight).push() } else { NSCursor.pop() }
+            }
+            .accessibilityLabel(L("Resize"))
+    }
+}
+
+enum ResizeGrip {
+    static let thickness: CGFloat = 6
 }
 
 extension ButtonStyle where Self == InkButtonStyle {
@@ -394,16 +408,16 @@ struct FormatBar: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            text("H1", L("Heading 1 (⌥⌘1)")) { bridge.textView?.setHeading(1) }
-            text("H2", L("Heading 2 (⌥⌘2)")) { bridge.textView?.setHeading(2) }
-            text("H3", L("Heading 3 (⌥⌘3)")) { bridge.textView?.setHeading(3) }
+            text("H1", AppCommand.hint("format.h1")) { bridge.textView?.setHeading(1) }
+            text("H2", AppCommand.hint("format.h2")) { bridge.textView?.setHeading(2) }
+            text("H3", AppCommand.hint("format.h3")) { bridge.textView?.setHeading(3) }
             divider
-            icon("bold", L("Bold (⌘B)")) { bridge.textView?.toggleInline("**") }
-            icon("italic", L("Italic (⌘I)")) { bridge.textView?.toggleInline("*") }
+            icon("bold", AppCommand.hint("format.bold")) { bridge.textView?.toggleInline("**") }
+            icon("italic", AppCommand.hint("format.italic")) { bridge.textView?.toggleInline("*") }
             divider
-            icon("text.quote", L("Quotation (⌥⌘')")) { bridge.textView?.toggleQuote() }
-            icon("textformat.superscript", L("Footnote (⌥⌘6)")) { bridge.textView?.insertFootnote() }
-            icon("text.line.first.and.arrowtriangle.forward", L("New scene here (⇧⌘N)")) { bridge.textView?.beginScene() }
+            icon("text.quote", AppCommand.hint("format.quote")) { bridge.textView?.toggleQuote() }
+            icon("textformat.superscript", AppCommand.hint("format.footnote")) { bridge.textView?.insertFootnote() }
+            icon("text.line.first.and.arrowtriangle.forward", AppCommand.hint("write.scene")) { bridge.textView?.beginScene() }
         }
         .padding(.horizontal, 6).frame(height: 30)
         .background(.regularMaterial, in: Capsule())
@@ -453,15 +467,15 @@ struct RevisionBar: View {
             tool("plus", L("Add"), L("Propose text at the caret")) { ask(.add) }
             tool("arrow.left.arrow.right", L("Replace"), L("Propose a replacement for the selection")) { ask(.replace) }
             tool("highlighter", L("Highlight"), L("Highlight the selection")) { bridge.textView?.markHighlight() }
-            tool("text.bubble", L("Comment", ctx: "Commenter"), L("Comment the selection (⇧⌘M)")) { ask(.comment) }
+            tool("text.bubble", L("Comment…").titled, AppCommand.hint(L("Comment the selection"), "revise.comment")) { ask(.comment) }
             Rectangle().fill(Ink.hairline).frame(width: 1, height: 14).padding(.horizontal, 6)
-            icon("chevron.down", L("Next correction (⌥⌘])")) { bridge.textView?.nextRevision() }
-            icon("checkmark", L("Accept the correction at the caret (⌥⌘↩)")) { bridge.textView?.decideRevision(accept: true) }
-            icon("xmark", L("Reject the correction at the caret (⌥⌘⌫)")) { bridge.textView?.decideRevision(accept: false) }
+            icon("chevron.down", AppCommand.hint("revise.next")) { bridge.textView?.nextRevision() }
+            icon("checkmark", AppCommand.hint(L("Accept the correction at the caret"), "revise.accept")) { bridge.textView?.decideRevision(accept: true) }
+            icon("xmark", AppCommand.hint(L("Reject the correction at the caret"), "revise.reject")) { bridge.textView?.decideRevision(accept: false) }
         }
         .padding(.horizontal, 6).frame(height: 32)
         .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color(red: 0.76, green: 0.22, blue: 0.18).opacity(0.35)))
+        .overlay(Capsule().strokeBorder(Ink.revision.opacity(0.35)))
         .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
         .onReceive(NotificationCenter.default.publisher(for: .mussetAskComment)) { _ in ask(.comment) }
         .popover(item: $asking, arrowEdge: .bottom) { t in
@@ -523,9 +537,9 @@ enum Appearance: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .system: L("Follow macOS appearance")
-        case .light: L("Light mode")
-        case .dark: L("Dark mode")
+        case .system: L("Follow macOS Appearance")
+        case .light: L("Light Mode")
+        case .dark: L("Dark Mode")
         }
     }
     var icon: String {
@@ -548,5 +562,21 @@ enum Appearance: String, CaseIterable {
         case .light: NSApp.appearance = NSAppearance(named: .aqua)
         case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
         }
+    }
+}
+
+/// Runs `action` once the open chapter's text has stopped changing for a moment. The text is watched from this view
+/// alone, so the panel that uses it (in a `.background`) is not evaluated again at every letter.
+struct WhenTypingPauses: View {
+    let session: BookSession
+    var after: Duration = .milliseconds(500)
+    let action: () -> Void
+
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            .task(id: session.text) {
+                try? await Task.sleep(for: after)
+                if !Task.isCancelled { action() }
+            }
     }
 }

@@ -3,28 +3,30 @@ import Observation
 
 /// What the AI is asked to do; each task has its own model, set in Settings › AI.
 enum AITask: String, CaseIterable, Identifiable {
-    case chat, annotate, proof, plot, words, tenses
+    case chat, annotate, proof, plot, words, tenses, bible
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .chat: L("Partner")
+        case .chat: L("AI reader")
         case .annotate: L("Annotations")
-        case .proof: L("Proofreading", ctx: "Correction")
+        case .proof: L("Proofreading")
         case .plot: L("Grid and scenes")
         case .words: L("Vocabulary")
         case .tenses: L("Tense agreement")
+        case .bible: L("The Bible")
         }
     }
 
     var hint: String {
         switch self {
         case .chat: L("The conversation about the book.")
-        case .annotate: L("Margin notes from a reading pass.")
+        case .annotate: L("Margin notes from an AI reading.")
         case .proof: L("Typos and mistakes, paragraph by paragraph.")
         case .plot: L("The book’s index, splitting into scenes.")
         case .words: L("Synonyms, homonyms and alliterations, from the right-click menu.")
         case .tenses: L("Verb tenses brought into agreement, as corrections.")
+        case .bible: L("What the book says about each character and place, kept up to date.")
         }
     }
 }
@@ -51,8 +53,8 @@ enum TaskModels {
         case (.chat, .codex), (.annotate, .codex): return d.string(forKey: "codexModel") ?? ""
         case (.proof, .claude): return d.string(forKey: "proofModel") ?? "haiku"
         case (.plot, .claude), (.tenses, .claude): return "opus"
-        case (.words, .claude): return "sonnet"
-        case (.proof, .codex), (.plot, .codex), (.words, .codex), (.tenses, .codex): return ""
+        case (.words, .claude), (.bible, .claude): return "sonnet"
+        case (.proof, .codex), (.plot, .codex), (.words, .codex), (.tenses, .codex), (.bible, .codex): return ""
         }
     }
 

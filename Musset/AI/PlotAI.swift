@@ -115,7 +115,7 @@ final class PlotAnalyst {
             "## CHAPTER \(i): \(ch.title)\n\n" + BookStore.stripHTMLComments(session.editorText(of: ch.id))
         }.joined(separator: "\n\n")
         let mine = session.plot.tags.filter { $0.by == "me" }
-            .map { "- \($0.column): \($0.name)\($0.aliases.isEmpty ? "" : " (also: \($0.aliases.joined(separator: ", ")))")" }.joined(separator: "\n")
+            .map { "- \($0.column): \($0.name)\($0.allAliases.isEmpty ? "" : " (also: \($0.allAliases.joined(separator: ", ")))")" }.joined(separator: "\n")
         return """
         You are building the index of the book « \(session.title) », whose full text follows, chapter by chapter. \
         It will tag every scene of the book, so names must be consistent and easy to spot. Write in the language of the book.
@@ -148,7 +148,7 @@ final class PlotAnalyst {
                 let name = e.name.trimmingCharacters(in: .whitespaces)
                 guard !name.isEmpty else { continue }
                 let aliases = (e.aliases ?? []).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty && $0 != name }
-                if let i = tags.firstIndex(where: { $0.column == column && PlotGrid.fold($0.name) == PlotGrid.fold(name) }) {
+                if let i = tags.firstIndex(where: { $0.column == column && Fold.name($0.name) == Fold.name(name) }) {
                     tags[i].aliases = Array(Set(tags[i].aliases + aliases)).sorted()
                     if tags[i].note.isEmpty { tags[i].note = e.note ?? "" }
                 } else {
@@ -159,6 +159,7 @@ final class PlotAnalyst {
         add(index.characters, column: "characters")
         add(index.motifs, column: "motifs")
         session.plot.index = tags
+        session.bindPlot()
         if let t = index.threads { session.plot.threads = t.map { .init(name: $0.name, kind: $0.kind ?? "sub", note: $0.note ?? "") } }
         if let s = index.synopsis { session.plot.synopsis = s }
         session.savePlot()
@@ -173,7 +174,7 @@ final class PlotAnalyst {
         let chapterTitle = session.manifest.chapters.first { $0.id == chapter }?.title ?? chapter
         let cols = columns.map { c -> String in
             guard c.isTagged else { return "- \(c.id) « \(c.title) »: a few words to two short sentences." }
-            let names = grid.tags(in: c.id).map { $0.aliases.isEmpty ? $0.name : "\($0.name) (= \($0.aliases.joined(separator: ", ")))" }
+            let names = grid.tags(in: c.id).map { $0.allAliases.isEmpty ? $0.name : "\($0.name) (= \($0.allAliases.joined(separator: ", ")))" }
             let open = c.id == "characters" ? " A character who is not in the list but acts in the scene may be added under the name the text gives them." : ""
             return "- \(c.id) « \(c.title) »: a JSON array of names, each written EXACTLY as in this list, never an alias.\(open)\n  " + names.joined(separator: "; ")
         }.joined(separator: "\n")
@@ -222,7 +223,8 @@ final class PlotAnalyst {
             var tag = session.plot.canonical(name, column: column)
             if tag == nil, column == "characters" {
                 session.plot.index = session.plot.tags + [.init(name: name, column: column, by: engine.rawValue)]
-                tag = name
+                session.bindPlot()
+                tag = session.plot.canonical(name, column: column) ?? name
             }
             if let tag, !out.contains(tag) { out.append(tag) }
         }

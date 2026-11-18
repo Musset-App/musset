@@ -1,20 +1,24 @@
 import SwiftUI
 
-/// The book's history as a writer sees it: the manuscript as a line of sessions, tracks leaving it and
-/// coming back, milestones as flags. Pick a session to see what changed, compare, or start from there.
+/// The book's history as a writer sees it: the manuscript as a line of sittings, tracks leaving it and
+/// coming back, milestones as flags. Pick a sitting to see what changed, compare, or start from there.
+/// A tab like the others (the History tab's wide view): it opens beside a chapter, and it is where one
+/// goes from the manuscript to a track and back.
 struct StoryView: View {
     let app: AppState
     let session: BookSession
-    @Environment(\.dismiss) private var dismiss
     @AppStorage("fontName") private var fontName = Typefaces.manuscript
     @State private var points: [GitService.Point] = []
     @State private var lanes: [Lane] = []
     @State private var selection: Selection?
+    /// History points shown at once.
+    @State private var shownPoints = 200
     @State private var newPiste: TrackStart?
     @State private var newJalon: TrackStart?
     @State private var compare: CompareItem?
     @State private var renaming: Piste?
     @State private var newName = ""
+    private static let wide: CGFloat = 1040
 
     enum Selection: Hashable { case point(String), jalon(String) }
 
@@ -29,31 +33,39 @@ struct StoryView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            sidebar.frame(width: 250)
-            Divider()
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(L("The book’s history")).font(.custom("EB Garamond", size: 28))
-                    Text(L("Each dot is a writing session, saved on its own."))
-                        .font(.ui(12)).foregroundStyle(.secondary)
-                    Spacer()
-                    Button(L("Close")) { dismiss() }.buttonStyle(.inkSecondary).keyboardShortcut(.cancelAction)
+        // The pane's own width, whatever the content would like: under `wide`, what the selection holds goes below.
+        GeometryReader { geo in
+            let width = geo.size.width
+            if width >= Self.wide {
+                HStack(spacing: 0) {
+                    sidebar.frame(width: 250)
+                    Divider()
+                    middle
+                    Divider()
+                    detail.frame(width: 340)
                 }
-                Frieze(points: points, lanes: lanes, jalons: session.jalons, selection: $selection)
-                    .frame(height: 70 + CGFloat(max(1, lanes.count)) * 34)
-                    .padding(16)
-                    .background(Ink.panel.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-                sessions
+            } else {
+                // A narrow pane (beside a chapter): the places on the left, the selection under the sittings.
+                let side = min(220, max(160, width * 0.34))
+                HStack(spacing: 0) {
+                    sidebar.frame(width: side)
+                    Divider()
+                    // Held to the room there is: the frieze and the rows are cut rather than pushing the pane wider.
+                    VStack(spacing: 0) {
+                        middle
+                        Divider()
+                        detail.frame(height: 300)
+                    }
+                    .frame(width: max(120, width - side - 1), alignment: .leading)
+                    .clipped()
+                }
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color(nsColor: .textBackgroundColor))
-            Divider()
-            detail.frame(width: 340)
         }
-        .frame(minWidth: 1180, idealWidth: 1320, minHeight: 720, idealHeight: 820)
         .onAppear(perform: reload)
+        // A track started, put away or entered elsewhere (the History tab, the command bar), a milestone set.
+        .onChange(of: session.pistes.count) { _, _ in reload() }
+        .onChange(of: session.jalons.count) { _, _ in reload() }
+        .onChange(of: session.piste?.id) { _, _ in reload() }
         .sheet(item: $newPiste, onDismiss: reload) { NewPisteSheet(session: session, start: $0) }
         .sheet(item: $newJalon, onDismiss: reload) { JalonSheet(session: session, start: $0) }
         .sheet(item: $compare) { CompareView(item: $0) }
@@ -63,6 +75,26 @@ struct StoryView: View {
             Button(L("Cancel"), role: .cancel) { renaming = nil }
         }
     }
+
+    private var middle: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) { title; hint; Spacer(minLength: 0) }
+                VStack(alignment: .leading, spacing: 2) { title; hint }
+            }
+            Frieze(points: points, lanes: lanes, jalons: session.jalons, selection: $selection)
+                .frame(height: 70 + CGFloat(max(1, lanes.count)) * 34)
+                .padding(16)
+                .background(Ink.panel.opacity(0.5), in: RoundedRectangle(cornerRadius: Radius.card))
+            sessions
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var title: some View { Text(L("The Book’s History")).font(.custom("EB Garamond", size: 28)).lineLimit(1) }
+    private var hint: some View { Text(L("Each dot is a sitting, saved on its own.")).font(.ui(12)).foregroundStyle(.secondary).lineLimit(1) }
 
     private func reload() {
         session.flushSave()
@@ -86,23 +118,30 @@ struct StoryView: View {
             VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 4) {
                     heading(L("Where I write"))
-                    place(L("The manuscript"), detail: "\(session.bookWordCount.ui) " + L("words"), tint: .primary, on: session.piste == nil) { session.enter(nil); dismiss() }
+                    place(L("The manuscript"), detail: session.bookCounts.label, tint: .primary, on: session.piste == nil) { session.enter(nil) }
                     ForEach(session.openPistes) { p in
-                        place(p.name, detail: session.isTakenBack(p) ? L("taken back") : L("from ") + p.from, tint: Ink.piste, on: session.piste?.id == p.id) {
-                            session.enter(p); dismiss()
+                        place(p.name, detail: session.isTakenBack(p) ? L("brought into the manuscript") : L("from \(p.from)"), tint: Ink.piste, on: session.piste?.id == p.id) {
+                            session.enter(p)
                         }
                         .contextMenu {
-                            Button(L("Write in It")) { session.enter(p); dismiss() }
-                            Button(L("Take Back…")) { dismiss(); app.takingBack = p }
+                            Button(L("Write in It")) { session.enter(p) }
+                            Button(L("Bring into the Manuscript…")) { app.takingBack = p }
                             Button(L("Rename…")) { newName = p.name; renaming = p }
                             Divider()
                             Button(L("Put Away")) { session.shelve(p); reload() }
                         }
                     }
+                    // On a track: the manuscript read beside it (the title bar's menu held this).
+                    if session.piste != nil, session.reference == nil {
+                        Button { session.showBeside(""); app.showChapter() } label: {
+                            Text(L("Show the manuscript beside")).font(.ui(12)).foregroundStyle(Ink.piste).padding(.horizontal, 10).padding(.top, 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Button { newPiste = TrackStart() } label: {
-                        Text(L("+ Try something else…")).font(.ui(12)).foregroundStyle(.secondary)
+                        Text("+ " + L("New Track…")).font(.ui(12)).foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity).frame(height: 32)
-                            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Ink.hairline, style: StrokeStyle(lineWidth: 1, dash: [3])))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline, style: StrokeStyle(lineWidth: 1, dash: [3])))
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain).padding(.top, 4)
@@ -130,13 +169,13 @@ struct StoryView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(selection == .jalon(j.id) ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 7))
+                            .background(selection == .jalon(j.id) ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
                     Button { newJalon = TrackStart() } label: {
-                        Text(L("+ Set a milestone…")).font(.ui(12)).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.top, 4)
+                        Text("+ " + L("Set a Milestone…")).font(.ui(12)).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.top, 4)
                     }
                     .buttonStyle(.plain)
                 }
@@ -147,7 +186,7 @@ struct StoryView: View {
     }
 
     private func heading(_ s: String) -> some View {
-        Text(s).font(.ui(11, .semibold)).foregroundStyle(.secondary).textCase(.uppercase).padding(.horizontal, 10).padding(.bottom, 4)
+        SectionLabel(s).padding(.horizontal, 10).padding(.bottom, 4)
     }
 
     private func place(_ title: String, detail: String, tint: Color, on: Bool, action: @escaping () -> Void) -> some View {
@@ -161,7 +200,7 @@ struct StoryView: View {
                 Spacer()
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(on ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 7))
+            .background(on ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -171,13 +210,14 @@ struct StoryView: View {
 
     private var sessions: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(L("In the manuscript")).font(.ui(11, .semibold)).foregroundStyle(.secondary).textCase(.uppercase)
+            SectionLabel(L("In the manuscript"))
             if points.isEmpty {
                 Text(L("No history in the last three months.")).font(.ui(12)).foregroundStyle(.tertiary)
             }
             ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(points) { p in
+                // Eager and bounded, like the history's list (a LazyVStack spun forever in SwiftUI's prefetch).
+                VStack(spacing: 2) {
+                    ForEach(points.prefix(shownPoints)) { p in
                         Button { selection = .point(p.id) } label: {
                             HStack(alignment: .firstTextBaseline, spacing: 14) {
                                 Text(p.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute().locale(UILang.locale)))
@@ -190,10 +230,13 @@ struct StoryView: View {
                                 }
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(selection == .point(p.id) ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: 7))
+                            .background(selection == .point(p.id) ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                    }
+                    if points.count > shownPoints {
+                        Button(L("Show older")) { shownPoints += 200 }.buttonStyle(.link).font(.ui(12)).padding(12)
                     }
                 }
             }
@@ -207,7 +250,7 @@ struct StoryView: View {
             let id = String(body.dropFirst(5))
             return session.manifest.chapters.first { $0.id == id }?.title ?? (id.isEmpty ? L("Writing") : id)
         }
-        if body == "snapshot" { return L("Snapshot") }
+        if body == "snapshot" { return L("Saved by hand") }
         return body
     }
 
@@ -220,10 +263,8 @@ struct StoryView: View {
                 case .point(let id): if let p = points.first(where: { $0.id == id }) { PointDetail(point: p, session: session, fontName: fontName, compare: $compare, newPiste: $newPiste, newJalon: $newJalon) }
                 case .jalon(let id): if let j = session.jalons.first(where: { $0.id == id }) {
                     JalonDetail(jalon: j, session: session, newPiste: $newPiste, selection: $selection, reload: reload) {
-                        // Sheets don't stack: the history closes, then the export opens on the milestone.
                         app.exportAt = j
-                        dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { app.showExport = true }
+                        app.showExport = true
                     }
                 }
                 case nil: EmptyView()
@@ -311,7 +352,7 @@ private struct PointDetail: View {
         let deltas = touched.map { ch -> (ChapterEntry, Int, Int) in
             let before = parent.flatMap { session.git.show($0, path: ch.file) } ?? ""
             let after = session.git.show(point.id, path: ch.file) ?? ""
-            let s = WordDiff.stats(GitService.wordDiff(before, after))
+            let s = WordDiff.stats(Diff.words(before, after))
             return (ch, s.added, s.removed)
         }
         VStack(alignment: .leading, spacing: 16) {
@@ -320,18 +361,18 @@ private struct PointDetail: View {
                 Text(StoryView.describe(point.subject, session: session)).font(.custom("EB Garamond", size: 22))
                 let added = deltas.reduce(0) { $0 + $1.1 }, removed = deltas.reduce(0) { $0 + $1.2 }
                 if !deltas.isEmpty {
-                    Text("+\(added.ui) / −\(removed.ui) " + L("words") + " · \(deltas.count) " + (deltas.count == 1 ? L("chapter") : L("chapters")))
+                    Text("+\(added.ui) / −\(removed.ui) " + L("words") + " · " + session.words.count(deltas.count, .piece))
                         .font(.ui(12)).foregroundStyle(.secondary)
                 }
             }
             if let (ch, _, _) = deltas.first {
                 let before = parent.flatMap { session.git.show($0, path: ch.file) } ?? ""
                 let after = session.git.show(point.id, path: ch.file) ?? ""
-                Text(WordDiff.attributed(Self.excerpt(GitService.wordDiff(before, after))))
+                Text(WordDiff.attributed(Self.excerpt(Diff.words(before, after))))
                     .font(.custom(fontName, size: 13)).lineSpacing(4)
                     .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ink.hairline))
+                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.control))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline))
                     .textSelection(.enabled)
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -344,7 +385,7 @@ private struct PointDetail: View {
                     .buttonStyle(.inkSecondary)
                 }
                 Button(L("Start a Track from Here…")) {
-                    newPiste = TrackStart(rev: point.id, label: L("the session of ") + point.date.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(UILang.locale)))
+                    newPiste = TrackStart(rev: point.id, label: L("the sitting of \(point.date.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(UILang.locale)))"))
                 }
                 .buttonStyle(.inkSecondary)
                 Button(L("Set a Milestone Here…")) { newJalon = TrackStart(rev: point.id) }
@@ -375,7 +416,7 @@ private struct JalonDetail: View {
     var body: some View {
         let rows = session.manifest.chapters.compactMap { ch -> (ChapterEntry, Int, Int)? in
             let before = session.git.show(jalon.commit, path: ch.file) ?? ""
-            let s = WordDiff.stats(GitService.wordDiff(before, session.store.read(ch)))
+            let s = WordDiff.stats(Diff.words(before, session.store.read(ch)))
             return s.added + s.removed == 0 ? nil : (ch, s.added, s.removed)
         }
         let added = rows.reduce(0) { $0 + $1.1 }, removed = rows.reduce(0) { $0 + $1.2 }
@@ -385,11 +426,11 @@ private struct JalonDetail: View {
                 Text(jalon.title).font(.custom("EB Garamond", size: 22))
                 if !jalon.note.isEmpty { Text(jalon.note).font(.ui(12)).foregroundStyle(.secondary) }
             }
-            Text(L("Since then, in the manuscript")).font(.ui(11, .semibold)).foregroundStyle(.secondary).textCase(.uppercase)
+            SectionLabel(L("Since then, in the manuscript"))
             HStack(spacing: 10) {
-                stat("+\(added.ui)", L("words written"), .green)
-                stat("−\(removed.ui)", L("words cut"), .red)
-                stat("\(rows.count)", L("chapters"), .primary)
+                stat("+\(added.ui)", L("words written"), Ink.added)
+                stat("−\(removed.ui)", L("words cut"), Ink.removed)
+                stat("\(rows.count)", session.words.usual(.piece) ? L("chapters") : session.words.plural(.piece).lowercased(), .primary)
             }
             VStack(spacing: 2) {
                 ForEach(rows, id: \.0.id) { ch, a, r in
@@ -403,7 +444,7 @@ private struct JalonDetail: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 Button(L("Start a Track from This Milestone…")) {
-                    newPiste = TrackStart(rev: jalon.commit, label: "« \(jalon.title) »")
+                    newPiste = TrackStart(rev: jalon.commit, label: inQuotes(jalon.title))
                 }
                 .buttonStyle(.inkSecondary)
                 Button(L("Export the Book as It Was…"), action: export).buttonStyle(.inkSecondary)
@@ -423,6 +464,6 @@ private struct JalonDetail: View {
             Text(label).font(.ui(11)).foregroundStyle(.secondary)
         }
         .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-        .background(Ink.panel, in: RoundedRectangle(cornerRadius: 8))
+        .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.control))
     }
 }

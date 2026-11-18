@@ -89,6 +89,33 @@ final class CriticTableTests: XCTestCase {
         XCTAssertTrue(calls()[1].prompt.contains("Déjà dit."))
     }
 
+    /// Each first view ends with its stars; the line is shown as stars, not as text.
+    func testFirstViewsGiveStars() {
+        let r = CriticTableRecord.rating(in: "Ça tient.\n\n★ 4/5\n")
+        XCTAssertEqual(r.stars, 4)
+        XCTAssertEqual(r.text, "Ça tient.")
+        XCTAssertEqual(CriticTableRecord.rating(in: "Note : 2/5").stars, 2)
+        XCTAssertNil(CriticTableRecord.rating(in: "Le chapitre 3/5 du livre tient, sans plus.").stars)
+        XCTAssertNil(CriticTableRecord.rating(in: "Rien.").stars)
+        var rec = record(.debate, [a, b])
+        rec.turns = [.init(critic: "a", text: "Oui.\n★ 5/5", opening: true), .init(critic: "b", text: "Non.\n★ 2/5", opening: true),
+                     .init(critic: "a", text: "Je maintiens. ★ 1/5")]
+        XCTAssertEqual(rec.stars(of: "a"), 5, "only the first view counts")
+        XCTAssertEqual(rec.meanStars, 3.5)
+        XCTAssertTrue(rec.prompt(for: a, opening: true).contains("★ 3/5"))
+    }
+
+    /// A draft is judged as one: the voices are told so, once, with the text.
+    func testTheStageReachesTheVoices() {
+        var rec = record(.debate, [a, b])
+        XCTAssertFalse(rec.prompt(for: a, opening: true).contains("first draft"))
+        rec.stage = .draft
+        XCTAssertTrue(rec.prompt(for: a, opening: true).contains("first draft"))
+        rec.sessions["a"] = "s"
+        XCTAssertFalse(rec.prompt(for: a).contains("first draft"), "said once, with the text")
+        XCTAssertNil(CriticTableRecord.Stage.finished.instruction)
+    }
+
     func testTheRewriteRuleHoldsAtEveryTable() {
         for kind in [CriticTableRecord.Kind.reader, .debate] {
             XCTAssertTrue(record(kind, [a, b]).system(for: a).contains(WritingPartner.noRewrites))
