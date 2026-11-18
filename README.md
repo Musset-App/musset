@@ -2,6 +2,8 @@
 
 **A Mac writing app for people who finish books.**
 
+**[musset.app](https://musset.app)** · **[Download for Mac](https://musset.app/download)** (DMG, macOS 14 or later, Apple silicon)
+
 Musset is as calm as a blank page, as structured as a manuscript, and as fast on the keyboard as WordStar. It has an
 editor inside who reads, questions and annotates, and who never writes a word for you. Your book stays a folder of
 plain text files with its whole history, in English, French, German, Spanish, Italian or Portuguese, typeset in
@@ -265,7 +267,8 @@ My Book/
 
 ## Install
 
-Download the DMG from the releases, open it and drag Musset to Applications. It is signed and notarized by Apple.
+[Download the DMG](https://musset.app/download) from [musset.app](https://musset.app), open it and drag Musset to
+Applications. It is signed and notarized by Apple, and updates itself from then on.
 
 Requires **macOS 14 Sonoma or later on Apple silicon**.
 
@@ -273,7 +276,7 @@ Requires **macOS 14 Sonoma or later on Apple silicon**.
 
 ```sh
 brew install xcodegen
-git clone <this repository> musset && cd musset
+git clone https://github.com/Musset-App/musset.git musset && cd musset
 scripts/build-typeset.sh     # the typesetter (Rust, on the Typst library): needs https://rustup.rs
 xcodegen generate
 open Musset.xcodeproj        # or: xcodebuild -scheme Musset build
