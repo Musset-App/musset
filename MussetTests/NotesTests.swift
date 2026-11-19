@@ -292,6 +292,8 @@ final class NotesEditorTests: XCTestCase {
     func testHeavyTypingDoesNotHang() throws {
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("fixtures/conatus/03_nice.md")
+        // The author's books are not in the public repository: without them, nothing to check here.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: fixture.path), "no fixtures/conatus")
         let (session, bridge, window) = try makeBook(try String(contentsOf: fixture, encoding: .utf8))
         let tv = try XCTUnwrap(bridge.textView)
         tv.showRepetitions = true

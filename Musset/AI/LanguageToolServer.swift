@@ -16,7 +16,13 @@ actor LanguageToolServer {
     static let idleLimit: TimeInterval = 15 * 60
 
     static let home: URL? = Bundle.main.resourceURL?.appendingPathComponent("LanguageTool")
-    static let java: URL? = home?.appendingPathComponent("jre/bin/java")
+    /// One Java runtime per architecture (a runtime can't be universal): `jre` for Apple silicon, `jre-x86_64` for Intel.
+    #if arch(x86_64)
+    private static let runtime = "jre-x86_64"
+    #else
+    private static let runtime = "jre"
+    #endif
+    static let java: URL? = home?.appendingPathComponent("\(runtime)/bin/java")
     /// Checked once: the editor asks for every paragraph it draws, and a disk check each time slowed every redraw.
     static let isBundled: Bool = java.map { FileManager.default.isExecutableFile(atPath: $0.path) } ?? false
 
@@ -120,7 +126,7 @@ actor LanguageToolServer {
     private static func killLeftover() {
         guard let text = try? String(contentsOf: pidFile, encoding: .utf8), let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
         var buffer = [CChar](repeating: 0, count: 4096)
-        if proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0, String(cString: buffer).hasSuffix("LanguageTool/jre/bin/java") {
+        if proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0, String(cString: buffer).hasSuffix("LanguageTool/\(runtime)/bin/java") {
             kill(pid, SIGTERM)
         }
         try? FileManager.default.removeItem(at: pidFile)

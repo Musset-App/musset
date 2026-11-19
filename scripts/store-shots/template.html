@@ -1,0 +1,112 @@
+<!doctype html>
+<!-- One composed screenshot for directories and stores, 2880 × 1800: a headline, the app's window, a few callouts.
+     Rendered by scripts/store-shots.sh with headless Chrome: template.html?lang=en&slide=1
+     The captures are the raw ones of scripts/site-shots.sh (build/site-shots/<lang>/, 2880 × 1800); texts in slides.js. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:"EB Garamond";src:url("../../Musset/Resources/Fonts/EBGaramond-Regular.otf")}
+@font-face{font-family:"EB Garamond";font-style:italic;src:url("../../Musset/Resources/Fonts/EBGaramond-Italic.otf")}
+@font-face{font-family:"Inter";font-weight:100 900;src:url("../../Musset/Resources/Fonts/Inter.ttf")}
+*{box-sizing:border-box}
+html,body{margin:0;width:2880px;height:1800px;overflow:hidden}
+body{--paper:#F6F3EC;--ink:#1A1A18;--soft:#4A4740;--blue:#2E4AC7;--orange:#FF6A3D;--label:#FFFFFF;--label-ink:#1A1A18;--edge:rgba(40,32,16,.16);
+  background:var(--paper);color:var(--ink);font-family:Inter,sans-serif;position:relative;-webkit-font-smoothing:antialiased}
+body.dark{--paper:#131210;--ink:#F6F3EC;--soft:#B9B3A6;--blue:#8FA2FF;--label:#F6F3EC;--label-ink:#1A1A18;--edge:rgba(255,255,255,.14)}
+/* Two soft lights behind the window: the site's blue and orange, barely there. */
+.glow{position:absolute;inset:0;background:
+  radial-gradient(1500px 1000px at 78% 62%, rgba(255,106,61,.20), transparent 70%),
+  radial-gradient(1500px 1100px at 20% 78%, rgba(46,74,199,.17), transparent 70%)}
+body.dark .glow{background:
+  radial-gradient(1500px 1000px at 78% 62%, rgba(255,106,61,.16), transparent 70%),
+  radial-gradient(1500px 1100px at 20% 78%, rgba(86,110,255,.20), transparent 70%)}
+.text{position:absolute;z-index:3}
+.eyebrow{font-size:34px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin:0 0 36px}
+h1{font-family:"EB Garamond",serif;font-weight:400;font-size:176px;line-height:1.0;letter-spacing:-.012em;margin:0}
+h1 em{font-style:italic}
+.sub{font-size:52px;line-height:1.42;color:var(--soft);margin:44px 0 0}
+.brand{position:absolute;z-index:3;font-family:"EB Garamond",serif;font-size:60px;letter-spacing:.01em;color:var(--ink)}
+.win{position:absolute;z-index:2;border-radius:26px;box-shadow:0 0 0 1.5px var(--edge),0 90px 180px -50px rgba(30,22,8,.55),0 30px 60px -30px rgba(30,22,8,.35)}
+body.dark .win{box-shadow:0 0 0 1.5px var(--edge),0 90px 200px -40px rgba(0,0,0,.9)}
+.win img{display:block;width:100%;border-radius:26px}
+.lights{position:absolute;display:flex}
+.lights i{display:block;border-radius:50%;background:#FF5F57;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.lights i:nth-child(2){background:#FEBC2E}.lights i:nth-child(3){background:#28C840}
+svg.lines{position:absolute;left:0;top:0;width:2880px;height:1800px;z-index:4;pointer-events:none}
+.call{position:absolute;z-index:5;background:var(--label);color:var(--label-ink);font-size:38px;font-weight:500;line-height:1.25;padding:20px 30px;border-radius:20px;
+  box-shadow:0 0 0 1.5px rgba(40,32,16,.10),0 24px 50px -18px rgba(30,22,8,.45);white-space:nowrap}
+.call small{display:block;font-size:30px;font-weight:400;color:#6B665C;margin-top:4px}
+
+/* top: the headline centred above the window, which runs off the bottom */
+body.top .text{left:0;right:0;top:120px;text-align:center}
+body.top .sub{max-width:2000px;margin-left:auto;margin-right:auto}
+/* left / right: the headline on one side, the window running off the other */
+body.left .text{left:160px;width:900px;top:50%;transform:translateY(-50%)}
+body.right .text{right:160px;width:900px;top:50%;transform:translateY(-50%)}
+body.left h1,body.right h1{font-size:150px}
+body.left .sub,body.right .sub{font-size:46px}
+/* The side the window runs off dissolves into the page, so no word is cut by the frame. */
+body.right .fade,body.left .fade{position:absolute;top:0;bottom:0;width:520px;z-index:3}
+body.right .fade{left:0;background:linear-gradient(90deg,var(--paper) 12%,transparent)}
+body.left .fade{right:0;background:linear-gradient(270deg,var(--paper) 12%,transparent)}
+/* full: the capture is the whole picture (Ultra Focus): its text above, the headline in the empty half below,
+   a warm light behind the sentence being written and a caret at its end. */
+body.full .win{left:0;top:0;width:2880px;border-radius:0;box-shadow:none}
+body.full .win img{border-radius:0}
+body.full .glow{display:none}
+body.full .shade{position:absolute;inset:0;z-index:2;mix-blend-mode:screen;background:
+  radial-gradient(1500px 420px at 46% 52%, rgba(255,120,60,.26), transparent 70%),
+  radial-gradient(1700px 900px at 50% 100%, rgba(70,90,220,.22), transparent 70%)}
+body.full .top{position:absolute;left:0;right:0;top:0;height:420px;z-index:2;background:linear-gradient(180deg,#0B0B0A 8%,transparent)}
+body.full .caret{position:absolute;z-index:3;width:7px;border-radius:4px;background:#FF6A3D;box-shadow:0 0 34px 6px rgba(255,106,61,.65)}
+body.full .text{left:0;right:0;top:1150px;text-align:center}
+body.full h1{font-size:250px}
+body.full .sub{max-width:2000px;margin:36px auto 0}
+</style>
+<script src="slides.js"></script>
+</head>
+<body>
+<div class="glow"></div>
+<script>
+const q = new URLSearchParams(location.search), lang = q.get("lang") || "en", n = +(q.get("slide") || 1);
+const s = SLIDES[n - 1], t = (TEXT[lang] || TEXT.en)[s.id], body = document.body;
+const raw = q.get("raw") || `../../build/site-shots/${lang}/`;
+body.classList.add(s.layout); if (s.dark) body.classList.add("dark");
+// The window's place on the canvas, per layout; k = canvas pixels per point of the 1440 × 900 window.
+const place = { top: { w: 2160, x: 360, y: 650 }, left: { w: 2560, x: 1150, y: 170 }, right: { w: 2560, x: -830, y: 170 }, full: { w: 2880, x: 0, y: 0 } }[s.layout];
+Object.assign(place, s.place || {});
+const k = place.w / 1440, el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const win = el("div", "win"); win.style.cssText = `left:${place.x}px;top:${place.y}px;width:${place.w}px`;
+const img = el("img"); img.src = raw + s.shot; win.append(img);
+if (s.lights !== false && s.layout !== "full") {
+  const l = el("div", "lights", "<i></i><i></i><i></i>"); l.style.cssText = `left:${13 * k}px;top:${9.5 * k}px;gap:${8 * k}px`;
+  l.querySelectorAll("i").forEach(i => i.style.cssText = `width:${12 * k}px;height:${12 * k}px`); win.append(l);
+}
+body.append(win);
+if (s.layout === "full") {
+  body.append(el("div", "shade"), el("div", "top"));
+  if (s.caret) { const c = el("div", "caret"); c.style.cssText = `left:${s.caret[0] * k}px;top:${s.caret[1] * k}px;height:${s.caret[2] * k}px`; body.append(c); }
+}
+if (s.layout === "left" || s.layout === "right") body.append(el("div", "fade"));
+const text = el("div", "text");
+text.append(el("p", "eyebrow", t.eyebrow), el("h1", "", t.title), el("p", "sub", t.sub)); body.append(text);
+// Callouts: a dot on the thing (window points), a label elsewhere (canvas pixels), a line between.
+const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"); svg.setAttribute("class", "lines"); body.append(svg);
+(s.calls || []).forEach((c, i) => {
+  const tx = place.x + c.at[0] * k, ty = place.y + c.at[1] * k, words = t.calls[i];
+  const label = el("div", "call", Array.isArray(words) && words[1] ? `${words[0]}<small>${words[1]}</small>` : [].concat(words)[0]); body.append(label);
+  const [lx, ly] = c.label, w = label.offsetWidth, h = label.offsetHeight;
+  const left = c.anchor === "right" ? lx - w : c.anchor === "center" ? lx - w / 2 : lx; label.style.left = left + "px"; label.style.top = ly + "px";
+  // The line leaves the label from the side nearest the dot.
+  const cx = Math.max(left, Math.min(tx, left + w)), cy = ty < ly ? ly : ty > ly + h ? ly + h : ly + h / 2;
+  const sx = tx < left ? left : tx > left + w ? left + w : cx, sy = (tx < left || tx > left + w) ? ly + h / 2 : cy;
+  const line = document.createElementNS(NS, "path"); line.setAttribute("d", `M${sx},${sy} L${tx},${ty}`);
+  line.setAttribute("stroke", "#FF6A3D"); line.setAttribute("stroke-width", "4"); line.setAttribute("fill", "none"); svg.append(line);
+  for (const [r, fill, op] of [[26, "#FF6A3D", .22], [11, "#FF6A3D", 1], [4.5, "#FFFFFF", 1]]) {
+    const dot = document.createElementNS(NS, "circle"); dot.setAttribute("cx", tx); dot.setAttribute("cy", ty); dot.setAttribute("r", r); dot.setAttribute("fill", fill); dot.setAttribute("opacity", op); svg.append(dot);
+  }
+});
+</script>
+</body>
+</html>

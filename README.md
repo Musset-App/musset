@@ -1,26 +1,42 @@
-# Musset
+<p align="center"><img src="screenshots/icon.png" width="128" height="128" alt="Musset’s icon"></p>
 
-**A Mac writing app for people who finish books.**
+<h1 align="center">Musset</h1>
 
-**[musset.app](https://musset.app)** · **[Download for Mac](https://musset.app/download)** (DMG, macOS 14 or later, Apple silicon)
+<p align="center"><strong>A Mac writing app for people who finish books.</strong></p>
+
+<p align="center">
+<a href="https://musset.app"><strong>musset.app</strong></a> ·
+<a href="https://musset.app/download"><strong>Download for Mac</strong></a> ·
+<a href="https://musset.app/compare/">Compared with Scrivener, Ulysses, iA Writer and Manuskript</a>
+</p>
+
+<p align="center">
+<a href="https://github.com/Musset-App/musset/actions/workflows/ci.yml"><img src="https://github.com/Musset-App/musset/actions/workflows/ci.yml/badge.svg" alt="Build and tests"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL--3.0-blue" alt="Licence: GPL 3.0"></a>
+<img src="https://img.shields.io/badge/macOS-14%2B-lightgrey" alt="macOS 14 or later">
+</p>
+
+Free while it is a beta, then US$9.90 once from version 1.0, and open source either way. macOS 14 or later, Apple silicon.
 
 Musset is as calm as a blank page, as structured as a manuscript, and as fast on the keyboard as WordStar. It has an
 editor inside who reads, questions and annotates, and who never writes a word for you. Your book stays a folder of
 plain text files with its whole history, in English, French, German, Spanish, Italian or Portuguese, typeset in
 EB Garamond when it is time to print.
 
-![Musset’s editor: the chapters and scenes on the left, a chapter in the middle, notes as coloured dots in the margin](screenshots/write-light.jpg)
+![Musset’s editor: the chapters and scenes on the left, a chapter in the middle, notes as coloured dots in the margin](screenshots/editor.jpg)
 
 - [Why Musset](#why-musset)
 - [Writing](#writing)
 - [Keyboard](#keyboard)
 - [Structure: chapters, scenes, Bible](#structure-chapters-scenes-bible)
+- [Boards, panes and windows](#boards-panes-and-windows)
 - [Versions, under control](#versions-under-control)
 - [Revising with an editor](#revising-with-an-editor)
 - [The editor inside](#the-editor-inside)
 - [Six languages](#six-languages)
 - [From draft to publisher](#from-draft-to-publisher)
-- [Musset Sync](#musset-sync)
+- [Bringing a book in](#bringing-a-book-in)
+- [Price, and Musset Sync](#price-and-musset-sync)
 - [Your book on disk](#your-book-on-disk)
 - [Shortcuts](#shortcuts)
 - [Privacy](#privacy)
@@ -63,6 +79,8 @@ you. Musset is the first two, and refuses the third.
   count or a time is reached. What you wrote lands at the end of the chapter, in a new scene, or in the drafts.
 - **Light and dark**, following macOS or chosen from the command bar.
 
+![Ultra Focus: the whole screen, the chapter so far dimmed, and the sentence being written](screenshots/focus.jpg)
+
 ![Musset in dark mode](screenshots/write-dark.jpg)
 
 ## Keyboard
@@ -91,7 +109,32 @@ the text, change the appearance, export.
 - **The Bible**: a visible `bible/` folder in your book for sheets (characters, places, timeline), documents and cuts.
   It is yours — readable in the Finder, tracked in the history. A passage of some length you cut from a chapter goes to
   the Cuts on its own, with where it came from.
+- **Scene cards.** A chapter’s scenes side by side, each card holding its scene’s whole text. Pick a card up by its
+  header and put it down elsewhere: the text follows. Split a scene between two paragraphs, merge it with the next,
+  rename it in place.
+- **The book at a glance.** The overview shows every chapter with how it opens and how it closes; step into a part,
+  where scenes move from one chapter to another, then into a chapter.
+- **The cast, kept for you.** Musset reads the chapters as they come and keeps who appears, how often and under which
+  names. A sheet has two parts: your notes, and what the chapters actually state, each with the chapter it comes from.
+- **Renamed everywhere.** A character changes name in every chapter, note and sheet; you see each line before it
+  changes, and one undo takes it all back.
 - **Notes and todos** anchored to passages, quick capture from anywhere, and a plan of the chapter (⌘6).
+
+![A chapter as scene cards, each card holding its scene’s whole text](screenshots/scenes.jpg)
+
+## Boards, panes and windows
+
+- **Cork boards inside the book.** Pin a character, a place and its map, a scrap of dialogue, and draw the line between
+  them. Drop a sheet from the Bible and it becomes a card; arrows catch the side of a card and stay with it; a pen and
+  a highlighter for the rest. Beside a chapter, the cards of the people and places in the paragraph you are writing
+  light up.
+- **An open format.** A board is a [JSON Canvas](https://jsoncanvas.org) file in your book’s folder, readable without
+  Musset.
+- **Panes.** Drag a chapter or a sheet onto the side of a pane and it opens there: two chapters, both live, each with
+  its own undo. Keep a layout under a name and call it back from the keyboard.
+- **Windows.** Pull a tab out and it becomes a window of its own; park the board and the Bible on a second screen.
+
+![A planning board in dark mode: character and place cards, notes, columns and arrows](screenshots/board.jpg)
 
 ## Versions, under control
 
@@ -107,7 +150,9 @@ copy, never rename a file, and nothing you delete is ever really gone.
 
 Behind it is git, the system the software world relies on to keep track of its work. You never have to see it.
 
-![Two versions of the same chapter side by side, with what differs highlighted](screenshots/versions-light.jpg)
+![Two versions of the same chapter side by side, with what differs highlighted](screenshots/versions.jpg)
+
+![The book’s history: every sitting, with milestones and a parallel draft](screenshots/history.jpg)
 
 ## Revising with an editor
 
@@ -122,7 +167,7 @@ Corrections are stored as [CriticMarkup](https://criticmarkup.com) in the chapte
 anywhere: `{++added++}`, `{--deleted--}`, `{~~old~>new~~}`, `{==highlighted==}{>>comment<<}`, followed by `{@Name}` for
 who made it.
 
-![The corrections panel: accept or refuse each correction](screenshots/corrections.jpg)
+![Revision: corrections in the text, and the panel to accept or refuse each one](screenshots/revise.jpg)
 
 ## The editor inside
 
@@ -144,6 +189,8 @@ your book.
 The AI runs through **your own account** with the provider, signed in from Musset: Claude through the official Claude
 Code command-line tool, ChatGPT through the official Codex command-line tool. Musset holds no AI provider keys and
 takes no margin.
+
+![The editor inside: a chat about the chapter, its notes left in the margin, critiques one click away](screenshots/reader.jpg)
 
 | Notes | Chat |
 |---|---|
@@ -168,7 +215,7 @@ anywhere. Brazilian and European Portuguese each have their own interface.
 
 **Reading mode** typesets the chapter or the whole book next to the text, as it will print.
 
-![Reading mode: the manuscript beside the typeset page](screenshots/read-light.jpg)
+![Reading mode: the manuscript beside the typeset page](screenshots/book.jpg)
 
 **PDFs are typeset like a book**, with [Typst](https://typst.app) and EB Garamond:
 
@@ -200,9 +247,21 @@ Entering a literary prize? Send the manuscript under a pseudonym, without your n
 |---|---|
 | ![A standard US manuscript page](screenshots/manuscript-shunn.jpg) | ![A German Normseite](screenshots/manuscript-normseite.jpg) |
 
-## Musset Sync
+## Bringing a book in
 
-The app is free. **Musset Sync** (€4.99 a month) is the optional service behind it:
+The welcome screen opens a book that already exists, and leaves the original untouched:
+
+- **A folder** of Markdown files: they become the chapters, as they are.
+- **Word**: a `.docx`, cut into chapters and scenes at its headings.
+- **Scrivener**: a `.scriv` project.
+- **Ulysses**: sheets exported as Markdown.
+
+## Price, and Musset Sync
+
+Musset is free while it is a beta. From version 1.0 it will cost **US$9.90, once**. It stays open source under the
+GPL: you may always build it yourself from this repository.
+
+**Musset Sync** (€4.99 a month) is the optional service behind it:
 
 - your books in the cloud, with their whole history;
 - the same book on all your Macs, offline first;
@@ -263,23 +322,32 @@ My Book/
   writing. The key stays in your Keychain.
 - **Sent to Musset Sync, only if you subscribe:** your book’s files and history.
 - **Sent to languagetool.org, only if you choose it** instead of the LanguageTool inside Musset.
-- No analytics, no tracking.
+- **Sent to Apple Maps, Open Library or Crossref, only when you look something up:** a place you search for on a
+  board, or the ISBN or DOI of a source you add.
+- **The update check.** Once a day Musset asks musset.app whether there is a newer version. The server adds one to a
+  counter, by day, version and country, and does the same for downloads. No address and no identifier is kept; the
+  code is in [`website/stats`](website/stats).
+- No analytics, no tracking, no account needed to write.
 
 ## Install
 
 [Download the DMG](https://musset.app/download) from [musset.app](https://musset.app), open it and drag Musset to
 Applications. It is signed and notarized by Apple, and updates itself from then on.
 
-Requires **macOS 14 Sonoma or later on Apple silicon**.
+Requires **macOS 14 Sonoma or later on Apple silicon**. A build for Intel Macs is being tested:
+see [issue 1](https://github.com/Musset-App/musset/issues/1).
 
 ## Build from source
+
+You need Xcode 26.5 (older versions may not compile it), [Rust](https://rustup.rs) and
+[XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
 brew install xcodegen
 git clone https://github.com/Musset-App/musset.git musset && cd musset
-scripts/build-typeset.sh     # the typesetter (Rust, on the Typst library): needs https://rustup.rs
+scripts/build-typeset.sh --mac-only   # the typesetter (Rust, on the Typst library); adds the Rust targets it needs
 xcodegen generate
-open Musset.xcodeproj        # or: xcodebuild -scheme Musset build
+open Musset.xcodeproj                 # or: xcodebuild -scheme Musset build
 ```
 
 The first build downloads and checks, each against a pinned SHA-256, into `~/Library/Caches/Musset-build`:
@@ -288,7 +356,7 @@ The first build downloads and checks, each against a pinned SHA-256, into `~/Lib
 - **LanguageTool** 6.6 trimmed to the six languages, with a small Java runtime made with `jlink` from Eclipse Temurin
   21 (`scripts/fetch-languagetool.sh`).
 
-The Typst binary is copied from your Homebrew installation.
+Typst is not a separate program: it is built into Musset as a library, by `scripts/build-typeset.sh`.
 
 **A signed, notarized DMG** (needs a Developer ID and notary credentials stored with
 `xcrun notarytool store-credentials AC_NOTARY`):
@@ -297,6 +365,9 @@ The Typst binary is copied from your Homebrew installation.
 MUSSET_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" zsh scripts/package.sh
 zsh scripts/package.sh --sign-only     # sign, no notarization
 ```
+
+By default the app is built for Apple silicon. `MUSSET_ARCHS="arm64 x86_64"` builds one app for both chips,
+`MUSSET_ARCHS=x86_64` one for Intel alone.
 
 `package.sh` signs the bundled tools, the Java runtime and the native libraries inside LanguageTool’s jars, notarizes
 the app and the DMG, staples both, and checks the result with Gatekeeper.
@@ -313,6 +384,8 @@ To run the tests while using Musset, give them their own build folder and bundle
 xcodebuild test -project Musset.xcodeproj -scheme Musset -derivedDataPath /tmp/musset-tests \
   PRODUCT_BUNDLE_IDENTIFIER=dev.scratch.musset.tests
 ```
+
+Tests that read the author’s own books skip themselves here: those books are not in this repository.
 
 Some tests run only on request, because they call an AI, need a real book or render screenshots. They are skipped
 unless their environment variable is set (prefixed with `TEST_RUNNER_` when passed to `xcodebuild`):
@@ -341,7 +414,11 @@ Musset/
 ├── Views/          the interface
 └── Resources/      fonts, Typst templates, rubric, translations
 MussetTests/        unit, integration and opt-in live tests
-scripts/            fetching pandoc and LanguageTool, packaging, the public tree, localization tools
+MussetReader/       Musset Reader for iPhone and iPad
+musset-typeset/     the typesetter: Rust, on the Typst library
+Packages/           MussetPage, the Swift package around the typesetter
+scripts/            fetching pandoc and LanguageTool, packaging, screenshots, localization tools
+website/            musset.app: the pages, the download and update functions, the counters
 screenshots/        the pictures in this README
 ```
 

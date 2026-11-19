@@ -20,6 +20,8 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 .six{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .navlinks{display:flex;gap:28px;align-items:center}
+.navlinks a{white-space:nowrap}
+@media (max-width:1100px){.navlinks a.hide{display:none}}
 .phones{display:flex;gap:24px;justify-content:center;align-items:flex-start}
 .phones .lower{margin-top:56px}
 @media (max-width:900px){
@@ -108,6 +110,7 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 <a class="hide" href="#publish" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t005}}</a>
 <a class="hide" href="#reader" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t006}}</a>
 <a class="hide" href="#pricing" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t007}}</a>
+<a class="hide" href="https://github.com/Musset-App/musset" rel="noopener" style="font-size: 15px; color: #4A4740; text-decoration: none">GitHub</a>
 <a href="/download" style="font-size: 15px; font-weight: 500; color: #FFFFFF; background: #1A1A18; text-decoration: none; padding: 12px 20px; border-radius: 999px">{{t008}}</a>
 </div>
 </nav>
@@ -685,6 +688,9 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 <footer style="border-top: 1px solid #E4DED2; padding: 32px 0">
 <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-size: 13px; color: #6B665C">{{t193}}</div>
 {{switcher}}
+{{compare}}
+<p class="wrap" style="margin: 12px auto 0; font-size: 13px"><a href="https://github.com/Musset-App/musset" rel="noopener" style="color: #6B665C">Source code on GitHub</a></p>
+<div class="wrap" style="margin-top: 24px"><a href="https://macappindex.com/apps/musset?ref=badge" target="_blank" rel="noopener" title="Musset on Mac App Index"><img src="https://macappindex.com/apps/musset/badge.svg?theme=light&amp;height=56" alt="Musset on Mac App Index" width="224" height="56" loading="lazy" style="display: block"></a></div>
 </footer>
 
 </div>

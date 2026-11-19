@@ -17,6 +17,8 @@ final class ParagraphCodecTests: XCTestCase {
     /// Every Markdown file of the three books comes back byte for byte.
     func testRoundTripOnAllBooks() throws {
         let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures")
+        // The author's books are not in the public repository: without them, nothing to check here.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: fixtures.path), "no fixtures")
         guard let walker = FileManager.default.enumerator(at: fixtures, includingPropertiesForKeys: nil) else { throw XCTSkip("no fixtures") }
         var checked = 0
         for case let url as URL in walker where url.pathExtension == "md" && !url.path.contains("/.git/") && !url.path.contains("/.musset/") {

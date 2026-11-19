@@ -11,13 +11,15 @@ concurrency:
 
 jobs:
   test:
-    runs-on: macos-15
+    # The Xcode Musset is developed with, pinned: the newest "stable" on an older runner image lagged behind and
+    # no longer compiled the app.
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.5'
       - name: Tools
         run: brew install xcodegen typst
       - name: Rust
@@ -33,5 +35,17 @@ jobs:
         run: |
           xcodegen generate
           set -o pipefail
+          # The whole log goes to a file; the page shows what matters: the compiler's errors, failed tests, the end.
+          mkdir -p build
+          status=0
           xcodebuild test -project Musset.xcodeproj -scheme Musset -destination 'platform=macOS,arch=arm64' \
-            -derivedDataPath build/ci CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= | tail -40
+            -derivedDataPath build/ci CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= > build/xcodebuild.log 2>&1 || status=$?
+          grep -E "error:|' failed|Executed [0-9]+ tests" build/xcodebuild.log | sort -u | head -80 || true
+          tail -20 build/xcodebuild.log
+          exit $status
+      - name: Keep the full log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log

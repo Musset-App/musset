@@ -1,11 +1,12 @@
-// /download/Musset-X.Y.Z.dmg: a release, from the R2 bucket. Answers byte ranges, so a stopped download resumes.
+// /download/Musset-X.Y.Z.dmg: a release (or Musset-X.Y.Z-<name>.dmg, a build for testers), from the R2 bucket. Answers byte ranges, so a stopped download resumes.
 // Each download is counted once, at its first byte: as an update when the app's updater asks, else as a download.
 import { count, sparkle } from "../../stats/count.js";
 
 export async function onRequest(context) {
   const { env, params, request } = context;
   const name = String(params.file);
-  if (!/^Musset-\d+\.\d+\.\d+\.dmg$/.test(name)) return new Response("Not found.", { status: 404 });
+  // A release, or a named build beside it (Musset-0.4.0-intel-test.dmg), counted under its own name.
+  if (!/^Musset-\d+\.\d+\.\d+(-[a-z0-9]+)*\.dmg$/.test(name)) return new Response("Not found.", { status: 404 });
   const head = await env.DOWNLOADS.head(name);
   if (!head) return new Response("Not found.", { status: 404 });
 

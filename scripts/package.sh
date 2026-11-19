@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Builds Musset for distribution outside the App Store: Release, Developer ID, hardened runtime,
-# Apple silicon only.
+# for Apple silicon, or for Intel too with MUSSET_ARCHS="arm64 x86_64",
 # notarized and stapled, in a DMG. Result: build/dist/Musset-<version>.dmg
 # Needs the notary credentials once: xcrun notarytool store-credentials AC_NOTARY (or, in CI, an App Store Connect API
 # key: MUSSET_NOTARY_KEY (path of the .p8), MUSSET_NOTARY_KEY_ID, MUSSET_NOTARY_ISSUER).
@@ -17,13 +17,15 @@ if [ -n "${MUSSET_NOTARY_KEY:-}" ]; then
 else
   NOTARY="--keychain-profile AC_NOTARY"
 fi
+# Apple silicon unless MUSSET_ARCHS says otherwise: "arm64 x86_64" makes one app for both, Intel Macs included.
+ARCHS="${MUSSET_ARCHS:-arm64}"
 DIST="build/dist"
 DERIVED="build/release"
 
 xcodegen generate >/dev/null
 xcodebuild -project Musset.xcodeproj -scheme Musset -configuration Release \
-  -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DERIVED" \
-  ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COPY_PHASE_STRIP=YES \
+  -destination 'generic/platform=macOS' -derivedDataPath "$DERIVED" \
+  ARCHS="$ARCHS" ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO COPY_PHASE_STRIP=YES \
   ${MUSSET_VERSION:+MARKETING_VERSION=$MUSSET_VERSION} ${MUSSET_BUILD:+CURRENT_PROJECT_VERSION=$MUSSET_BUILD} build | grep -E "error:|\*\* BUILD" || true
 
 BUILT="$DERIVED/Build/Products/Release/Musset.app"
@@ -48,7 +50,7 @@ if [ -d "$LT" ]; then
     done
   done
   rm -rf "$WORK"
-  find "$LT/jre" -type f | while read -r f; do
+  find "$LT"/jre*(N) -type f | while read -r f; do
     file -b "$f" | grep -q "Mach-O" || continue
     codesign --force --options runtime --timestamp --entitlements scripts/LanguageTool.entitlements --sign "$IDENTITY" "$f"
   done

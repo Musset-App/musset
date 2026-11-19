@@ -47,7 +47,7 @@ chmod +x "$PUB/.git/hooks/pre-commit" "$PUB/.git/hooks/pre-push"
 STAGE=$(mktemp -d)
 git ls-files --cached --others --exclude-standard -z \
   | grep -zvE '^(server/|reports/|research_notes/|docs/|fixtures/|Musset\.xcodeproj/|build/|\.claude/|\.public/|todos\.md$)' \
-  | xargs -0 -I{} rsync -R "{}" "$STAGE/"
+  | while IFS= read -r -d '' f; do [ -e "$f" ] && rsync -R "$f" "$STAGE/"; done   # a file deleted here but not yet committed is skipped
 rsync -a --delete --exclude .git "$STAGE/" "$PUB/"
 rm -rf "$STAGE"
 

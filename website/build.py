@@ -63,6 +63,75 @@ def switcher(current, label):
             'document.cookie="lang="+a.dataset.lang+";path=/;max-age=31536000;samesite=lax"})})</script>')
 
 
+def compare_pages(dist):
+    """The comparison pages, in English: /compare/ and /compare/<slug>/, from compare.html and compare/pages.json.
+
+    The texts in pages.json are plain text; they are escaped here. Returns the pages as (path, link text)."""
+    data = json.loads((HERE / "compare/pages.json").read_text(encoding="utf-8"))
+    template = (HERE / "compare.html").read_text(encoding="utf-8")
+    e = lambda t: html.escape(t, quote=False)
+    paras = lambda ps: "".join(f"<p>{e(t)}</p>" for t in ps)
+    items = lambda xs: "<ul>" + "".join(f"<li><span>{e(x)}</span></li>" for x in xs) + "</ul>"
+    pages = [(f"/compare/{p['slug']}/", f"Musset vs {p['name']}") for p in data["pages"]]
+
+    def write(where, title, description, body, current=None):
+        links = " · ".join(f'<a href="{href}">{e(text)}</a>' for href, text in pages if href != current)
+        page = template
+        for key, value in {"title": html.escape(title), "description": html.escape(description, quote=True),
+                           "canonical": SITE + where, "body": body, "footer_links": links}.items():
+            page = page.replace("{{" + key + "}}", value)
+        left = re.search(r"\{\{\w+\}\}", page)
+        if left:
+            raise SystemExit(f"compare{where}: no value for {left.group(0)}")
+        out = dist / where.strip("/") / "index.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(images(page, "en"), encoding="utf-8")
+
+    for p in data["pages"]:
+        name, where = p["name"], f"/compare/{p['slug']}/"
+        rows = "".join(f'<tr><th scope="row">{e(r["label"])}</th><td class="us">{e(r["musset"])}</td>'
+                       f'<td>{e(p["values"][r["key"]])}</td></tr>' for r in data["rows"])
+        sections = "".join(f'<section><div class="wrap narrow"><h2>{e(s["h"])}</h2>{paras(s["p"])}</div></section>'
+                           for s in p["sections"])
+        sources = " · ".join(f'<a href="{html.escape(u, quote=True)}" rel="nofollow noopener">{e(t)}</a>' for t, u in p["sources"])
+        body = f"""<div class="wrap hero">
+<p class="eyebrow">{e(p["eyebrow"])}</p>
+<h1>{e(p["h1"])}</h1>
+<p class="lede">{e(p["lede"])}</p>
+<div><a class="cta" href="/download">Download Musset — free</a></div>
+</div>
+<div class="wrap"><img class="shot" src="/assets/en/{p["picture"]}.jpg" alt="{html.escape(p["picture_alt"], quote=True)}" width="1920" height="1200"></div>
+<section><div class="wrap narrow"><h2>{e(p["intro_h"])}</h2>{paras(p["intro"])}</div></section>
+<section><div class="wrap">
+<h2>Musset and {e(name)}, side by side</h2>
+<div class="scroll"><table>
+<thead><tr><th scope="col"></th><th scope="col">Musset</th><th scope="col">{e(name)}</th></tr></thead>
+<tbody>{rows}</tbody>
+</table></div>
+<p class="note" style="margin-top: 16px">{e(name)}’s details were read on its maker’s own site on {e(p.get("checked", data["checked"]))}: {sources}. Tell us if something is out of date: hello@musset.app.</p>
+</div></section>
+<section><div class="wrap">
+<h2>Which one is for you</h2>
+<div class="pick">
+<div><h3>Choose Musset if</h3>{items(p["musset_if"])}</div>
+<div class="other"><h3>Stay with {e(name)} if</h3>{items(p["other_if"])}</div>
+</div>
+</div></section>
+{sections}"""
+        write(where, p["title"], p["description"], body, current=where)
+
+    cards = "".join(f'<div><h3><a href="/compare/{p["slug"]}/">Musset vs {e(p["name"])}</a></h3><p>{e(p["card"])}</p></div>'
+                    for p in data["pages"])
+    body = f"""<div class="wrap hero">
+<p class="eyebrow">Compare</p>
+<h1>{e(data["index"]["h1"])}</h1>
+<p class="lede">{e(data["index"]["lede"])}</p>
+</div>
+<section><div class="wrap"><div class="pick" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">{cards}</div></div></section>"""
+    write("/compare/", data["index"]["title"], data["index"]["description"], body)
+    return [("/compare/", "Compare")] + pages
+
+
 def main():
     template = (HERE / "template.html").read_text(encoding="utf-8")
     english = json.loads((HERE / "strings/en.json").read_text(encoding="utf-8"))
@@ -76,7 +145,9 @@ def main():
         file = HERE / f"strings/{code}.json"
         strings = {**english, **(json.loads(file.read_text(encoding="utf-8")) if file.exists() else {})}
         values = {**strings, "lang": tag, "alternates": alternates + f'\n<link rel="canonical" href="{SITE}{path(code)}">',
-                  "switcher": switcher(code, strings.get("languages", "Language"))}
+                  "switcher": switcher(code, strings.get("languages", "Language")),
+                  # The comparison pages are in English only, so only the English page links to them.
+                  "compare": '<p class="wrap" style="margin: 20px auto 0; font-size: 13px"><a href="/compare/" style="color: #6B665C">Musset compared with Scrivener, Ulysses, iA Writer and Manuskript</a></p>' if code == "en" else ""}
 
         def fill(m, quoted):
             v = values.get(m.group(1))
@@ -96,7 +167,9 @@ def main():
         print(f"{code}: {out.relative_to(HERE)}" + (f" ({len(missing)} strings in English)" if code != "en" and missing else ""))
     (dist / "_headers").write_text("/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     (dist / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
-    urls = "".join(f"<url><loc>{SITE}{path(c)}</loc></url>" for c, _, _ in LANGS)
+    compared = compare_pages(dist)
+    print("en: " + ", ".join(where for where, _ in compared))
+    urls = "".join(f"<url><loc>{SITE}{where}</loc></url>" for where in [path(c) for c, _, _ in LANGS] + [w for w, _ in compared])
     (dist / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
 
 

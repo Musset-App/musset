@@ -45,6 +45,8 @@ final class ReturnKeyTests: XCTestCase {
     /// The author's case: Inconsolata, the real chapter, Return at the very end (no final newline) and mid-paragraph.
     func testReturnAtEndOfRealChapter() throws {
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus/23_rue_hautefeuille.md")
+        // The author's books are not in the public repository: without them, nothing to check here.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: fixture.path), "no fixtures/conatus")
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-ret2-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try FileManager.default.copyItem(at: fixture, to: root.appendingPathComponent("23.md"))
@@ -122,6 +124,8 @@ final class ReturnKeyTests: XCTestCase {
     /// The author's report: the last paragraph of the chapter laid out nowhere (not drawn, not scrollable).
     func testWholeChapterIsLaidOut() throws {
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("fixtures/conatus/23_rue_hautefeuille.md")
+        // The author's books are not in the public repository: without them, nothing to check here.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: fixture.path), "no fixtures/conatus")
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-lay-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         if let live = ProcessInfo.processInfo.environment["MUSSET_LIVE_TEXT"] {

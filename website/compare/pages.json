@@ -1,0 +1,379 @@
+{
+ "checked": "18 November 2026",
+ "index": {
+  "title": "Musset compared with Scrivener, Ulysses, iA Writer and Manuskript",
+  "description": "How Musset, an open-source Mac writing app for books, compares with Scrivener, Ulysses, iA Writer and Manuskript: price, files, structure, versions, export and AI.",
+  "h1": "Musset, compared.",
+  "lede": "Four good writing apps came before Musset. Here is what each does, what Musset does differently, and where the other one is the better choice."
+ },
+ "rows": [
+  {
+   "key": "price",
+   "label": "Price",
+   "musset": "Free during the beta. US$9.90 once from version 1.0."
+  },
+  {
+   "key": "platforms",
+   "label": "Runs on",
+   "musset": "Mac only: macOS 14 or later, Apple silicon."
+  },
+  {
+   "key": "files",
+   "label": "Your book on disk",
+   "musset": "A folder of plain Markdown files, one per chapter. Any editor can open them."
+  },
+  {
+   "key": "structure",
+   "label": "Structure",
+   "musset": "Parts, chapters and scenes, scene cards, a Bible for characters and places, cork boards."
+  },
+  {
+   "key": "versions",
+   "label": "Versions",
+   "musset": "The whole history is kept in git. Two versions of a chapter side by side, and parallel drafts of the whole book."
+  },
+  {
+   "key": "export",
+   "label": "From draft to publisher",
+   "musset": "A typeset book as PDF, each language’s manuscript format, EPUB and Word."
+  },
+  {
+   "key": "grammar",
+   "label": "Grammar and spelling",
+   "musset": "LanguageTool, running on your Mac, in six languages. Nothing is sent anywhere."
+  },
+  {
+   "key": "ai",
+   "label": "AI",
+   "musset": "Optional, through your own Claude or ChatGPT account. It reads, questions and annotates. It never writes or rewrites your text."
+  },
+  {
+   "key": "keyboard",
+   "label": "Keyboard and focus",
+   "musset": "Four keyboard modes: Mac, WordStar, vi and Emacs. Focus mode, typewriter scrolling, Ultra Focus."
+  },
+  {
+   "key": "review",
+   "label": "Working with an editor",
+   "musset": "A round trip through Word with tracked changes. Optional Musset Sync (€4.99 a month) for invited readers and editors."
+  },
+  {
+   "key": "source",
+   "label": "Source code",
+   "musset": "Open source under the GPL v3."
+  }
+ ],
+ "pages": [
+  {
+   "slug": "scrivener-alternative",
+   "name": "Scrivener",
+   "card": "The classic manuscript organiser. Musset keeps the structure and drops the project file.",
+   "title": "A Scrivener alternative for Mac: plain files, open source | Musset",
+   "description": "Musset is an open-source Scrivener alternative for the Mac: chapters and scenes, a Bible for characters, versions side by side, and a book that stays plain Markdown files.",
+   "eyebrow": "Scrivener alternative",
+   "h1": "An alternative to Scrivener that keeps your book in plain files.",
+   "lede": "Scrivener showed a generation of writers that a book is a structure, not one long document. Musset keeps that idea, with a calmer page and a book that stays a folder of ordinary text files.",
+   "picture": "editor",
+   "picture_alt": "Musset’s editor: chapters and scenes on the left, a chapter in the middle, notes in the margin",
+   "intro_h": "What you will recognise",
+   "intro": [
+    "If you write in Scrivener, the shape of Musset is familiar. The binder becomes a sidebar of parts, chapters and scenes. The corkboard becomes scene cards, with each scene’s whole text on its card. Character and location sketches become the Bible, with a sheet for each person and place, and cork boards to pin them on.",
+    "Snapshots become versions. Musset keeps every state of every chapter without being asked, shows two of them side by side, and lets you try a bold change on the whole book in a parallel draft while the real manuscript does not move."
+   ],
+   "values": {
+    "price": "US$59.99 once for Mac, as stated by its maker. Windows and iOS are separate purchases, and major upgrades are paid.",
+    "platforms": "Mac (macOS 11 or later), Windows, and iPhone and iPad.",
+    "files": "A .scriv project. The text can be exported or synced to an external folder for other apps.",
+    "structure": "Binder, corkboard with index cards, outliner, character and location templates, writing targets.",
+    "versions": "Snapshots of a document, taken by hand, with a comparison of changes.",
+    "export": "Compile to Word, RTF, PDF, EPUB, Kindle and Final Draft, with fine control over formatting.",
+    "grammar": "Not described on the pages we read.",
+    "ai": "None. Its maker states that Scrivener contains no AI.",
+    "keyboard": "Shortcuts and a full-screen composition mode.",
+    "review": "No simultaneous editing. Projects sync through Dropbox.",
+    "source": "Closed source."
+   },
+   "musset_if": [
+    "You want your book to stay plain text files that any app can open, now and in twenty years.",
+    "You want every version kept for you, and to read two of them side by side.",
+    "You want a typeset book and your country’s manuscript format without learning a compiler.",
+    "You write from the keyboard, perhaps in vi, Emacs or WordStar.",
+    "You want an editor’s notes from an AI that never writes for you, or no AI at all."
+   ],
+   "other_if": [
+    "You write on Windows, or on an iPad or iPhone.",
+    "You write screenplays and need Final Draft export.",
+    "You keep research inside the project: PDFs, pictures, web pages.",
+    "You need the fine control of Compile for unusual formats.",
+    "You want software with many years behind it. Musset is a beta."
+   ],
+   "sections": [
+    {
+     "h": "What Musset does not do",
+     "p": [
+      "Better to read it here than to find out in chapter twelve. Musset runs on the Mac only, and only on Apple silicon. It has no screenplay mode, it does not store research files inside the book, and it has nothing as deep as Compile.",
+      "Musset is also young. It is at version 0.4, free while it is a beta, and it changes every few weeks."
+     ]
+    },
+    {
+     "h": "Moving a book from Scrivener",
+     "p": [
+      "Musset opens Scrivener projects. On the welcome screen, choose Scrivener and pick your .scriv project. Your chapters become Markdown files in a folder you choose, and the first version of each is recorded from that moment.",
+      "Your Scrivener project is not touched. Start with a copy, and keep both until you are sure."
+     ]
+    }
+   ],
+   "sources": [
+    [
+     "Scrivener features",
+     "https://www.literatureandlatte.com/scrivener/features"
+    ],
+    [
+     "overview",
+     "https://www.literatureandlatte.com/scrivener/overview"
+    ],
+    [
+     "pricing note",
+     "https://www.literatureandlatte.com/why-cant-you-pay-once-for-everything"
+    ],
+    [
+     "AI statement",
+     "https://www.literatureandlatte.com/blog/scrivener-and-ai-why-do-i-see-ai-prompts-in-my-scrivener-projects-on-mac"
+    ]
+   ]
+  },
+  {
+   "slug": "ulysses-alternative",
+   "name": "Ulysses",
+   "card": "The polished subscription editor. Musset is a one-time price, with files you own.",
+   "title": "A Ulysses alternative without a subscription | Musset",
+   "description": "Musset is an open-source Ulysses alternative for the Mac with no subscription: a calm Markdown editor built for books, with scenes, versions, typesetting and plain files on disk.",
+   "eyebrow": "Ulysses alternative",
+   "h1": "An alternative to Ulysses, without the subscription.",
+   "lede": "Ulysses made Markdown writing beautiful. Musset shares its calm, and adds what a book needs: scenes, a Bible, versions side by side and a typeset manuscript. You pay once, and your text never leaves your folder.",
+   "picture": "versions",
+   "picture_alt": "Two versions of a chapter side by side in Musset",
+   "intro_h": "What you will recognise",
+   "intro": [
+    "Musset is a one-column Markdown editor, like Ulysses. The markers fold away and the text reads as it will print. Groups and sheets become parts, chapters and scenes. Focus mode and a quiet full screen are both there.",
+    "The difference is where your words live. In Ulysses they are in its library. In Musset every chapter is a Markdown file in a folder you chose, and the history of the book is ordinary git."
+   ],
+   "values": {
+    "price": "Subscription: US$39.99 a year or US$5.99 a month in the United States, for Mac, iPad and iPhone.",
+    "platforms": "Mac, iPad and iPhone.",
+    "files": "A library managed by the app. External folders of Markdown files are possible, with fewer features.",
+    "structure": "Groups, sheets, filters, keywords and goals.",
+    "versions": "Automatic backups, hourly to monthly, that can be browsed and restored.",
+    "export": "PDF, Word, ebooks, a Word manuscript, and publishing to WordPress, Ghost, Medium and Micro.blog.",
+    "grammar": "LanguageTool in more than 20 languages, as an online service: the text is sent to a server to be checked.",
+    "ai": "Apple’s Writing Tools and ChatGPT are available in the editor, and can rewrite or compose text.",
+    "keyboard": "Shortcuts, full screen and a hidden interface.",
+    "review": "Comments and annotations. Sync between your devices is part of the subscription.",
+    "source": "Closed source."
+   },
+   "musset_if": [
+    "You would rather pay once than every year.",
+    "You want each chapter as a plain file on disk, with nothing locked in a library.",
+    "You are writing a book and want scenes, a cast of characters and versions side by side.",
+    "You want grammar checking that stays on your Mac.",
+    "You want an AI that annotates and never rewrites, or none."
+   ],
+   "other_if": [
+    "You write on an iPad or iPhone as much as on the Mac.",
+    "You publish to a blog straight from the editor.",
+    "You write in a language Musset does not check yet. Ulysses covers more than twenty.",
+    "You already have it through Setapp.",
+    "You want a finished, polished product. Musset is a beta."
+   ],
+   "sections": [
+    {
+     "h": "What Musset does not do",
+     "p": [
+      "Musset is a Mac app. It has no iPhone or iPad editor, and it does not publish to blogs. Its interface and its checks cover six languages: English, French, German, Spanish, Italian and Portuguese. It requires Apple silicon.",
+      "It is at version 0.4, free while it is a beta. From version 1.0 it will cost US$9.90, once."
+     ]
+    },
+    {
+     "h": "Moving a book from Ulysses",
+     "p": [
+      "Export your sheets from Ulysses as Markdown into a folder. On Musset’s welcome screen, choose Ulysses and pick that folder. Your chapters become the book’s files, and Musset starts keeping their history."
+     ]
+    }
+   ],
+   "sources": [
+    [
+     "Ulysses pricing",
+     "https://ulysses.app/pricing/"
+    ],
+    [
+     "home page",
+     "https://ulysses.app/"
+    ],
+    [
+     "Writing Tools",
+     "https://help.ulysses.app/en_US/dive-into-editing/writing-tools"
+    ],
+    [
+     "grammar check",
+     "https://help.ulysses.app/en_US/the-dashboard/grammar-and-style-check"
+    ]
+   ]
+  },
+  {
+   "slug": "ia-writer-alternative",
+   "name": "iA Writer",
+   "card": "The purest plain-text editor. Musset is as calm, and built for a whole book.",
+   "title": "An iA Writer alternative built for books | Musset",
+   "description": "Musset is an open-source iA Writer alternative for the Mac: the same plain Markdown files and calm page, with chapters, scenes, versions and a typeset manuscript.",
+   "eyebrow": "iA Writer alternative",
+   "h1": "An alternative to iA Writer, built for a whole book.",
+   "lede": "iA Writer is the calmest page there is, and it leaves your words in plain files. Musset agrees on both, then adds what three hundred pages need: structure, versions and the road to a publisher.",
+   "picture": "editor",
+   "picture_alt": "Musset’s editor: chapters and scenes on the left, a chapter in the middle, notes in the margin",
+   "intro_h": "What you will recognise",
+   "intro": [
+    "Musset and iA Writer start from the same belief: you write in plain text with Markdown, in files that belong to you, on a page with nothing on it. Focus mode dims everything but the paragraph you are in. Nothing in either app writes for you.",
+    "iA Writer stops at the document. Musset goes on to the book: a sidebar of parts, chapters and scenes, a Bible for the people and places in it, every version kept, and a typeset book at the end."
+   ],
+   "values": {
+    "price": "US$49.99 once for Mac. Windows and iPhone and iPad are separate purchases.",
+    "platforms": "Mac (macOS 10.15 or later), Windows, and iPhone and iPad.",
+    "files": "Plain Markdown files in your own folders or cloud. Any editor can open them.",
+    "structure": "A document outline, content blocks and links between files.",
+    "versions": "Not described on the pages we read.",
+    "export": "Word, PDF and HTML, with custom templates.",
+    "grammar": "The system’s spelling and grammar, plus a style check on the device in four languages.",
+    "ai": "Generates nothing. Authorship marks what you typed and what you pasted.",
+    "keyboard": "Shortcuts, a command palette, and Focus Mode by sentence or paragraph.",
+    "review": "No sync service of its own; it uses your cloud.",
+    "source": "Closed source."
+   },
+   "musset_if": [
+    "You are writing a book, not articles, and need chapters, scenes and a cast.",
+    "You want every version kept, and two of them side by side.",
+    "You want a typeset book, EPUB and your country’s manuscript format.",
+    "You want grammar checking in six languages that stays on your Mac.",
+    "You want to send the book to an editor and take their corrections back."
+   ],
+   "other_if": [
+    "You write on Windows, or on an iPad or iPhone.",
+    "You write short pieces and want nothing but the page.",
+    "You want Authorship, to mark pasted and AI text apart from your own.",
+    "You publish to Ghost, Medium or WordPress from the editor.",
+    "You want a mature product. Musset is a beta."
+   ],
+   "sections": [
+    {
+     "h": "What Musset does not do",
+     "p": [
+      "Musset runs on the Mac only, on Apple silicon. It has no Windows, iPhone or iPad editor. It does not publish to blogs, and it has no equivalent of Authorship.",
+      "It is at version 0.4, free while it is a beta. From version 1.0 it will cost US$9.90, once."
+     ]
+    },
+    {
+     "h": "Moving a book from iA Writer",
+     "p": [
+      "There is almost nothing to move. Your chapters are already Markdown files. Put them in one folder and, on Musset’s welcome screen, choose “A folder”. iA Writer can still open the same files."
+     ]
+    }
+   ],
+   "sources": [
+    [
+     "iA Writer pricing",
+     "https://ia.net/writer/pricing"
+    ],
+    [
+     "features",
+     "https://ia.net/writer/support/basics/features"
+    ],
+    [
+     "iA Writer",
+     "https://ia.net/writer"
+    ]
+   ]
+  },
+  {
+   "slug": "manuskript-alternative",
+   "name": "Manuskript",
+   "checked": "19 November 2026",
+   "card": "The open-source planner’s tool, on Linux and Windows first. Musset is made for the Mac, with everything in the box.",
+   "title": "A Manuskript alternative for Mac: native, open source | Musset",
+   "description": "Musset is an open-source Manuskript alternative made for the Mac: chapters and scenes, a Bible for characters, versions side by side, grammar checking and a typeset book, with nothing else to install.",
+   "eyebrow": "Manuskript alternative",
+   "h1": "An alternative to Manuskript, made for the Mac.",
+   "lede": "Manuskript has been the open-source answer to Scrivener since 2015, and it is a planner’s tool at heart. Musset shares its licence and its trust in plain text, and is built for one system only: the Mac.",
+   "picture": "scenes",
+   "picture_alt": "A chapter in Musset shown as scene cards, each card holding its scene’s whole text",
+   "intro_h": "What you will recognise",
+   "intro": [
+    "If you write in Manuskript, much of Musset is familiar. The outline becomes a sidebar of parts, chapters and scenes. Index cards become scene cards, each holding its scene’s whole text. Characters and the world become the Bible, with a sheet for each person and place, and cork boards to pin them on.",
+    "The two also agree on what matters most. Both are free software under the GPL v3, both write Markdown, and both keep your book in files you can read without them."
+   ],
+   "values": {
+    "price": "Free.",
+    "platforms": "Linux and Windows, with a package for each. On the Mac, the last release with a download is 0.16.1, from December 2023; the current 0.17.0 has to be run from its Python source.",
+    "files": "Your choice: one zipped project file, or a folder of small plain-text files. Texts and characters are plain text; plots and the world are XML.",
+    "structure": "An outliner and index cards, characters, plots, a world, a story line, and the snowflake method to grow one idea into a plan.",
+    "versions": "None of its own. The folder format is made so that you can add a version control system yourself.",
+    "export": "Plain text, Markdown and HTML on its own. EPUB, Word, OpenDocument and PDF once pandoc is installed, and LaTeX for PDF.",
+    "grammar": "A spell checker. Grammar checking once you install a LanguageTool package and Java.",
+    "ai": "None described.",
+    "keyboard": "A distraction-free mode, with a word or time goal to reach before you can leave it.",
+    "review": "Not described. A synced folder can be shared, with a warning that two people editing the same file overwrite each other.",
+    "source": "Open source under the GPL v3, since 2015."
+   },
+   "musset_if": [
+    "You write on a Mac and want an app made for it: signed, notarized by Apple, and updated on its own.",
+    "You want everything in the box. Grammar checking, Word and EPUB export and the typeset PDF work without installing pandoc, LaTeX or Java.",
+    "You want every version kept for you, and to read two of them side by side.",
+    "You want a typeset book and your country’s manuscript format.",
+    "You want an editor’s notes from an AI that never writes for you, or no AI at all."
+   ],
+   "other_if": [
+    "You write on Linux or Windows. Musset runs on the Mac only.",
+    "You plan before you write and want a method to do it: Manuskript walks you through the snowflake method.",
+    "You want plots as things of their own, linked to your characters.",
+    "You want a writing goal that keeps you in the chair. Musset has no goals.",
+    "You want software that costs nothing, for good. Musset will cost US$9.90 once from version 1.0."
+   ],
+   "sections": [
+    {
+     "h": "What Musset does not do",
+     "p": [
+      "Better to read it here than to find out in chapter twelve. Musset runs on the Mac only, and only on Apple silicon. It has no snowflake method and no step-by-step planning assistant, plots are not objects of their own, and there are no writing goals.",
+      "Musset is also young. It is at version 0.4, free while it is a beta, and it changes every few weeks. Manuskript has eleven years and a community of translators behind it."
+     ]
+    },
+    {
+     "h": "Moving a book from Manuskript",
+     "p": [
+      "In Manuskript, compile your book to Word (File, then Compile; this needs pandoc), keeping your chapter titles as headings. On Musset’s welcome screen, choose Word and pick that file. Musset finds the chapters from the document’s headings; check the chapter list before you go on.",
+      "Characters, plots and world notes do not come across. Copy what you need into the Bible. Your Manuskript project is not touched, so keep both until you are sure."
+     ]
+    }
+   ],
+   "sources": [
+    [
+     "Manuskript",
+     "https://www.theologeek.ch/manuskript/"
+    ],
+    [
+     "download page",
+     "https://www.theologeek.ch/manuskript/download/"
+    ],
+    [
+     "file format",
+     "https://www.theologeek.ch/manuskript/2016/03/31/open-plain-text-file-format/"
+    ],
+    [
+     "import and export",
+     "https://github.com/olivierkes/manuskript/wiki/Import-and-Export-capabilities"
+    ],
+    [
+     "source and releases",
+     "https://github.com/olivierkes/manuskript"
+    ]
+   ]
+  }
+ ]
+}

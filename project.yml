@@ -76,7 +76,7 @@ targets:
         script: |
           # Spelling and grammar in Musset's six languages, on this Mac: LanguageTool trimmed to them, with a small
           # Java runtime, both checked against their SHA-256 (scripts/fetch-languagetool.sh).
-          if B="$("$SRCROOT/scripts/fetch-languagetool.sh")"; then
+          if B="$("$SRCROOT/scripts/fetch-languagetool.sh" $ARCHS)"; then
             D="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/LanguageTool"
             mkdir -p "$D"
             rsync -a --delete "$B/" "$D/"
