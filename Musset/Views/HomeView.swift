@@ -402,12 +402,11 @@ struct HomeView: View {
         }
     }
 
-    /// Putting a book online is done from the book: it opens on its sharing page, which sends it.
+    /// Putting a book online is done from the book: it opens on its Readers page, which sends it.
     private func putOnline(_ card: BookCard) {
         open(card)
         guard app.current != nil else { return }
-        app.bookSettingsSection = .sharing
-        app.showBookSettings = true
+        app.showReaders()
     }
 
     private func download(_ r: Collab.Repo) {

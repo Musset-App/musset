@@ -17,7 +17,8 @@ final class AppState {
     var namingLayout = false
     /// The command bar opened by ⇧⌘O: only what can be opened, and it opens in the next pane.
     var openBeside = false
-    var showBookSettings = false
+    /// Asked from elsewhere (the toolbar, the command bar): the Readers page opens its invitation.
+    var inviteRequested = false
     var showNewBook = false
     /// Musset Sync, offered; with the book to put online once paid.
     var showSyncOffer = false
@@ -63,6 +64,18 @@ final class AppState {
     var activeTab: PaneTab? { workspace?.activeTab }
     /// Opens one of the book's pages in the pane one is in.
     func open(_ tab: PaneTab) { workspace?.open(tab) }
+
+    /// The book's settings, a page of its home; on one of their sections when asked.
+    func showSettings(_ section: BookSettingsView.Section? = nil) {
+        bookSettingsSection = section
+        open(OverviewTab.settings.tab)
+    }
+
+    /// Who reads the book, a page of its home; `inviting` goes straight to the invitation when the book can be shared.
+    func showReaders(inviting: Bool = false) {
+        inviteRequested = inviting
+        open(OverviewTab.readers.tab)
+    }
 
     /// A book is open and in front (not under Home): what the book's menu commands need.
     var hasBook: Bool { current != nil && !showHome }

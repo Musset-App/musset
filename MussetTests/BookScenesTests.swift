@@ -54,7 +54,7 @@ final class BookScenesTests: XCTestCase {
     /// The scenes were a page of Overview for a day: they are the board of its first page now, and a layout kept
     /// on that page, or anything still holding its name, opens the first page.
     func testALayoutKeptOnTheScenesPageOpensOverview() throws {
-        XCTAssertEqual(OverviewTab.allCases, [.summary, .synopsis, .grid])
+        XCTAssertEqual(OverviewTab.planning, [.summary, .synopsis, .grid], "the planning pages; Readers and Settings follow them")
         XCTAssertEqual(OverviewTab.summary.tab, .overview("summary"), "the first page keeps the name saved layouts know")
         XCTAssertEqual(PaneTab.overview("scenes").overview, .summary)
         let pane = Pane(tabs: [.chapter("01"), .overview("scenes")], active: 1)

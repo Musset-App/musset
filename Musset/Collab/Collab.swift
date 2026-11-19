@@ -296,9 +296,31 @@ final class Collab {
         guard let creds = credentials, let user = username else { throw failure(L("Sign in first.")) }
         try await Task.detached { try GitService.clone(repo.clone_url, to: folder, credentials: creds) }.value
         let git = GitService(root: folder)
-        if try await refreshRole(git) == .editor {
-            try await Task.detached { try git.switchBranch(Self.reviewBranch(user), at: "origin/main") }.value
+        let role = try await refreshRole(git)
+        // A reader or an editor reads the milestone the author gave them; with none given, the text as it was sent.
+        let start = await readingStart(git, remote: "origin")
+        if role == .editor || (role == .reader && start.tag != nil) {
+            try await Task.detached { try git.switchBranch(Self.reviewBranch(user), at: start.ref) }.value
         }
+        setAdopted(start.tag, for: git)
+    }
+
+    /// Where a reader's copy starts from: the milestone they were given (once it has arrived here), else the
+    /// author's text as it is.
+    func readingStart(_ git: GitService, remote: String) async -> (ref: String, tag: String?) {
+        guard let me = username, let tag = await reading(of: git)[me]?.tag, git.resolve("refs/tags/\(tag)") != nil else { return ("\(remote)/main", nil) }
+        return ("refs/tags/\(tag)", tag)
+    }
+
+    /// The milestone this copy of someone's book was last set on, kept on this Mac: what tells a newer one has come.
+    func adopted(for git: GitService) -> String? {
+        (UserDefaults.standard.dictionary(forKey: "collabAdopted") as? [String: String])?[git.root.standardizedFileURL.path]
+    }
+
+    func setAdopted(_ tag: String?, for git: GitService) {
+        var all = UserDefaults.standard.dictionary(forKey: "collabAdopted") as? [String: String] ?? [:]
+        all[git.root.standardizedFileURL.path] = tag
+        UserDefaults.standard.set(all, forKey: "collabAdopted")
     }
 
     /// An editor who became a collaborator leaves their branch for the main text. Their review should have been sent first.
@@ -331,14 +353,15 @@ final class Collab {
                                           body: ["head": branch, "base": "main", "title": L("Review by \(user)"), "body": message])
     }
 
-    /// The reader starts over from the author's latest version (after their review was read).
+    /// The reader starts over from what the author gave them to read: their milestone, or with none the author's
+    /// latest text (after their review was read).
     func refreshReview(_ session: BookSession) async throws {
         guard let creds = credentials, let user = username, let l = link(session.git) else { return }
         let git = session.git
-        try await Task.detached {
-            try git.fetch(l.remote, credentials: creds)
-            try git.switchBranch(Self.reviewBranch(user), at: "\(l.remote)/main")
-        }.value
+        try await Task.detached { try git.fetch(l.remote, credentials: creds) }.value
+        let start = await readingStart(git, remote: l.remote)
+        try await Task.detached { try git.switchBranch(Self.reviewBranch(user), at: start.ref) }.value
+        setAdopted(start.tag, for: git)
     }
 
     func reviews(of session: BookSession) async throws -> [Review] {

@@ -103,9 +103,13 @@ struct JalonSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var note = ""
-    /// The people the book is shared with, and whether to tell them.
+    /// The people who read the book, and those this milestone is given to: nobody unless the author ticks them.
     @State private var readers: [(user: String, role: Collab.Role)] = []
     @State private var tell: Set<String> = []
+    /// What each of them reads today.
+    @State private var reading: [String: Collab.Reading] = [:]
+    /// What was written and cut since the latest milestone.
+    @State private var since: (added: Int, removed: Int, chapters: [String])?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -115,9 +119,26 @@ struct JalonSheet: View {
             }
             Text((start.rev == "HEAD" ? L("A milestone marks a state of the book you’ll want to come back to: a submission, a review, the end of a draft. It keeps every chapter as it is today.") : L("A milestone marks a state of the book you’ll want to come back to: a submission, a review, the end of a draft. It keeps every chapter as it was then.")))
                 .font(.ui(13)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            if start.rev == "HEAD" {
+                HStack(spacing: 22) {
+                    Text(session.bookCounts.label).font(.ui(14, .semibold))
+                    if let latest = session.milestones.first, let since {
+                        Text(since.added + since.removed == 0 ? L("nothing changed since « \(latest.title) »")
+                                                              : L("\(since.added.ui) written and \(since.removed.ui) cut since « \(latest.title) »"))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(12).background(Ink.side, in: RoundedRectangle(cornerRadius: Radius.row))
+            }
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Name")).font(.ui(12, .medium))
                 TextField(L("Sent to the publisher"), text: $title).textFieldStyle(.roundedBorder).font(.ui(14))
+                HStack(spacing: 6) {
+                    ForEach(suggestions, id: \.self) { name in
+                        Button(name) { title = name }.buttonStyle(.inkSecondary).controlSize(.small)
+                    }
+                }
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("A note for later (optional)")).font(.ui(12, .medium))
@@ -126,14 +147,14 @@ struct JalonSheet: View {
             }
             if !readers.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(L("Tell the people reading this book")).font(.ui(13, .semibold))
+                    Text(L("Share it with")).font(.ui(13, .semibold))
                     ForEach(readers, id: \.user) { r in
                         Toggle(isOn: Binding(get: { tell.contains(r.user) }, set: { if $0 { tell.insert(r.user) } else { tell.remove(r.user) } })) {
-                            Text(name(r.user)) + Text(" · " + r.role.label).foregroundColor(.secondary)
+                            Text(name(r.user)) + Text(" · " + r.role.label + reads(r.user)).foregroundColor(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
-                    Text(L("By e-mail, in their Musset and on their phone. They read this version; their notes follow onto the next."))
+                    Text(L("Nobody is ticked unless you tick them. Those you tick are told by e-mail and in their Musset, and read this milestone from now on; their notes follow. The others keep reading what they have."))
                         .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -143,10 +164,15 @@ struct JalonSheet: View {
                 Button(tell.isEmpty ? L("Set the Milestone") : L("Mark it and tell \(tell.count) people")) {
                     let name = title.trimmingCharacters(in: .whitespaces)
                     let words = note.trimmingCharacters(in: .whitespacesAndNewlines)
-                    session.addJalon(title: name, note: words, at: start.rev)
+                    let tag = session.addJalon(title: name, note: words, at: start.rev)
                     let people = Array(tell)
                     let s = session
-                    Task { await Collab.shared.notify(.milestone, in: s, recipients: people, tag: name, message: words) }
+                    // The note is the author's own: readers are told the milestone's name, and given it to read.
+                    Task {
+                        guard let tag, !people.isEmpty else { return }
+                        for user in people { try? await Collab.shared.give(tag, to: user, in: s) }
+                        await Collab.shared.notify(.milestone, in: s, recipients: people, tag: name, message: nil)
+                    }
                     dismiss()
                 }
                 .buttonStyle(.ink).disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -156,10 +182,29 @@ struct JalonSheet: View {
         .task {
             let collab = Collab.shared
             guard collab.isOwner(session.git) else { return }
-            readers = (try? await collab.people(of: session)) ?? []
-            tell = Set(readers.map(\.user))
+            // A co-writer works in the text itself: only readers and editors are given milestones.
+            readers = ((try? await collab.people(of: session)) ?? []).filter { $0.role != .collaborator }
+            reading = await collab.reading(of: session.git)
             if collab.circle.isEmpty { await collab.refreshCircle() }
         }
+        .task {
+            guard start.rev == "HEAD", let latest = session.milestones.first else { return }
+            let s = session
+            since = await Task.detached { await s.changeSince(latest) }.value
+        }
+    }
+
+    /// Names that often fit, the ones not taken yet.
+    private var suggestions: [String] {
+        let taken = Set(session.jalons.map(\.title))
+        let drafts = [L("First draft"), L("Second draft"), L("Third draft"), L("Fourth draft")]
+        return ([drafts.first { !taken.contains($0) }].compactMap { $0 } + [L("Before the rewrite"), L("Submitted")]).filter { !taken.contains($0) }
+    }
+
+    /// « · reads « Second draft » », when they were given one.
+    private func reads(_ user: String) -> String {
+        guard let tag = reading[user]?.tag, let m = session.jalons.first(where: { $0.id == tag }) else { return "" }
+        return " · " + L("reads « \(m.title) »")
     }
 
     private func name(_ user: String) -> String {

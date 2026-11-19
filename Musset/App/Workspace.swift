@@ -38,9 +38,9 @@ enum PaneTab: Hashable {
     }
 }
 
-/// Kept in the book's saved layouts. The Synopsis and the plot grid were tabs of their own, the debate, the book's
-/// settings and the scenes were pages of Overview: layouts kept then still open, each on the place that took it over
-/// (the scenes are on Overview's first page).
+/// Kept in the book's saved layouts. The Synopsis and the plot grid were tabs of their own, the debate and the scenes
+/// were pages of Overview: layouts kept then still open, each on the place that took it over (the scenes are on
+/// Overview's first page). The book's settings left Overview for a window, then came back as its Settings page.
 extension PaneTab: Codable {
     private enum Stored: Codable {
         case chapter(String), sheet(String), folder(String), synopsis, sources, overview(String), plotGrid, special(String), story, debate

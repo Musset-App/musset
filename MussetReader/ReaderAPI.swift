@@ -113,6 +113,17 @@ final class ReaderAPI {
         return ((try? await request("GET", api("repos/\(book.full_name)/branches?limit=100")) as [B]?) ?? []).map(\.name)
     }
 
+    /// The milestone the author gave me to read in this book (its tag), if any: readers read a milestone the author
+    /// chose, never the text as it is being written.
+    func givenMilestone(_ book: RemoteBook) async -> String? {
+        struct Reading: Decodable { let tag: String }
+        struct Out: Decodable { let reading: [String: Reading] }
+        guard let me = username else { return nil }
+        let repo = book.full_name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? book.full_name
+        let out: Out? = try? await request("GET", URL(string: mussetAPI("reading").absoluteString + "?repo=" + repo)!)
+        return out?.reading[me]?.tag
+    }
+
     /// Milestones (`jalon/…` tags), newest first.
     func milestones(_ book: RemoteBook) async -> [Milestone] {
         let tags: [Milestone] = (try? await request("GET", api("repos/\(book.full_name)/tags?limit=50"))) ?? []

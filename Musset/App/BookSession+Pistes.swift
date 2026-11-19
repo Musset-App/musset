@@ -250,16 +250,34 @@ extension BookSession {
 
     // MARK: Milestones
 
-    /// Marks the manuscript as it is now (or at `rev`) with a milestone: an annotated git tag.
-    func addJalon(title: String, note: String, at rev: String = "HEAD") {
-        guard git.isRepo else { return }
+    /// Marks the manuscript as it is now (or at `rev`) with a milestone: an annotated git tag. Returns the tag's name.
+    @discardableResult
+    func addJalon(title: String, note: String, at rev: String = "HEAD") -> String? {
+        guard git.isRepo else { return nil }
         settle()
         let taken = Set(jalons.map { String($0.id.dropFirst(6)) })
         let name = "jalon/" + Pistes.slug(title, taken: taken)
         let message = title.trimmingCharacters(in: .whitespaces) + (note.isEmpty ? "" : "\n\n" + note)
-        do { try git.createTag(name, message: message, at: rev) } catch { lastError = error.localizedDescription }
+        do { try git.createTag(name, message: message, at: rev) } catch { lastError = error.localizedDescription; return nil }
         refreshTracks()
         Collab.shared.sync(self)
+        return name
+    }
+
+    /// Milestones, the newest first.
+    var milestones: [GitService.Tag] { jalons.sorted { $0.date > $1.date } }
+
+    /// What was written and cut between a milestone and the manuscript today, and in which chapters.
+    func changeSince(_ milestone: GitService.Tag) -> (added: Int, removed: Int, chapters: [String]) {
+        var added = 0, removed = 0, touched: [String] = []
+        for ch in manifest.chapters {
+            let before = git.show(milestone.commit, path: ch.file) ?? ""
+            let now = store.read(ch)
+            guard before != now else { continue }
+            let s = WordDiff.stats(Diff.words(before, now))
+            if s.added + s.removed > 0 { added += s.added; removed += s.removed; touched.append(ch.title) }
+        }
+        return (added, removed, touched)
     }
 
     func removeJalon(_ tag: GitService.Tag) {

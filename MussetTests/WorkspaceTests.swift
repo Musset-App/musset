@@ -193,7 +193,8 @@ final class WorkspaceTests: XCTestCase {
         let saved = try JSONDecoder().decode(Workspace.Saved.self, from: Data(old.utf8))
         XCTAssertEqual(saved.root.panes.map(\.tabs), [
             [.chapter("01"), .overview("grid"), .overview("synopsis"), .sources],
-            [.overview("synopsis"), .debate, .overview("summary"), .special("cover")],
+            // The book's settings are a page of Overview again: a layout kept on them opens them.
+            [.overview("synopsis"), .debate, .overview("settings"), .special("cover")],
         ])
         // Overview is one tab in a pane: the page that was shown stays, else the first.
         let w = Workspace(saved: saved, keep: { _ in true })

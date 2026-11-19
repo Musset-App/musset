@@ -30,7 +30,7 @@ struct ChapterDoneCard: View {
                 action(L("Share it with a first reader"),
                        collab.canSync ? L("They read and annotate in their own Musset; their notes come back into your margin. They don’t pay.")
                                       : L("Musset Sync: they read and annotate in their own Musset, and don’t pay."), icon: "person.badge.plus", sync: !collab.canSync) {
-                    if collab.canSync { app.bookSettingsSection = .sharing; app.showBookSettings = true }
+                    if collab.canSync { app.showReaders(inviting: true) }
                     else { later { app.offerSync(for: session) } }
                 }
             }

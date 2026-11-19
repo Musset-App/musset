@@ -94,9 +94,6 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $app.showWordReview) { WordReviewSheet(app: app, session: session, bridge: bridge) }
                 .sheet(isPresented: $planner.showing) { ScenePlanSheet(planner: planner, session: session, bridge: bridge) }
-                .sheet(isPresented: $app.showBookSettings, onDismiss: { app.bookSettingsSection = nil }) {
-                    BookSettingsView(app: app, session: session, startSection: app.bookSettingsSection)
-                }
                 // A shared book opened by its reader: revision mode, so every change is a correction.
                 .onAppear { if Collab.shared.isReviewer(session.git) { bridge.trackChanges = true } }
                 .onChange(of: session.root) { _, _ in if Collab.shared.isReviewer(session.git) { bridge.trackChanges = true } }
@@ -166,13 +163,13 @@ extension ContentView {
             case "grid": app.open(OverviewTab.grid.tab)
             case "special": app.open(SpecialPage.cover.tab)
             case "export": app.showExport = true
-            case "settings": app.showBookSettings = true
+            case "settings": app.showSettings()
             case "palette": app.showQuickOpen = true
             case "notes": app.inspectorTab = .edits; app.showInspector = true
             case "partner": app.inspectorTab = .chat; app.showInspector = true
             case "home": app.showHome = true
             case "account": app.showAccount()
-            case "sharing": app.bookSettingsSection = .sharing; app.showBookSettings = true
+            case "sharing": app.showReaders()
             case "blame": bridge.blameOn = true
             case "find": bridge.setSearchQuery("elle"); bridge.openFind(replace: true)
             case "overview": app.open(OverviewTab.summary.tab)
@@ -386,6 +383,20 @@ struct TitleBar: View {
                                          set: { mode in app.reviewMode = mode == 2; bridge.trackChanges = mode == 1 }))
                 .frame(width: 204)
                 .help(L("Write · Revise: changes become corrections (\(AppCommand.glyphs("revise.mode"))) · Read: as printed (\(AppCommand.glyphs("view.reading")))"))
+            // Sharing is one click from anywhere in the book: the Readers page, on its invitation when it can send one.
+            Button { app.showReaders(inviting: true) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.badge.plus").font(.ui(12))
+                    if !compact { Text(L("Share")).font(.ui(12, .medium)) }
+                }
+                .padding(.horizontal, compact ? 8 : 11).frame(height: 28)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Ink.hairline))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("Invite Someone to This Book…").titled)
+            .accessibilityLabel(L("Share"))
             Button { app.showQuickOpen = true } label: {
                 HStack(spacing: 10) {
                     if !compact { Text(L("Search or command")).font(.ui(12)).foregroundStyle(.secondary) }
@@ -693,7 +704,7 @@ struct StatusBar: View {
             }
             if let word = Collab.shared.sync.word {
                 separator
-                Button { app.bookSettingsSection = .sharing; app.showBookSettings = true } label: { Text(word) }
+                Button { app.showReaders() } label: { Text(word) }
                     .buttonStyle(.plain).foregroundStyle(Collab.shared.sync.isProblem ? Ink.warning : .secondary)
                     .help(Collab.shared.sync.help)
             } else if !Collab.shared.canSync, !Collab.shared.isLocalOnly(session), !session.repoStatus.linked {

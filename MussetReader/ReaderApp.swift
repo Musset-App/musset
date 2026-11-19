@@ -203,6 +203,9 @@ struct BookReaderView: View {
     @State private var entries: [TalkEntry] = []
     @State private var ref = "main"
     @State private var milestones: [Milestone] = []
+    /// The milestone the author gave me, asked once when the book opens: it is what I read.
+    @State private var given: String?
+    @State private var askedGiven = false
     @State private var openThread: UUID?
     @State private var reader: ReaderModel?
     @State private var error: String?
@@ -252,7 +255,8 @@ struct BookReaderView: View {
                             }
                         }
                     }
-                    if !milestones.isEmpty {
+                    // The author chooses among every version; a reader given a milestone reads that one.
+                    if !milestones.isEmpty, given == nil {
                         Section(L("Version")) {
                             Button(L("Latest")) { ref = "main"; Task { await reload() } }
                             ForEach(milestones) { m in Button(m.title) { ref = m.name; Task { await reload() } } }
@@ -282,6 +286,10 @@ struct BookReaderView: View {
 
     private func load() async {
         do {
+            if !askedGiven {
+                askedGiven = true
+                if book.owner.login != me, let tag = await api.givenMilestone(book) { given = tag; ref = tag }
+            }
             milestones = await api.milestones(book)
             let m = try await api.manifest(book, at: ref)
             manifest = m

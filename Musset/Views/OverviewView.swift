@@ -3,14 +3,21 @@ import SwiftUI
 /// The pages of Overview, the one place the book is planned: the book in numbers over its scenes, its synopsis
 /// chapter by chapter, its grid scene by scene. The first keeps the raw value it had as the Summary: saved layouts
 /// and the sidebar's row land on it, and so does a layout kept on the Scenes page it took in.
+/// Then the two that are about the book rather than its plan: who reads it, and its settings.
 enum OverviewTab: String, CaseIterable, Identifiable {
-    case summary, synopsis, grid
+    case summary, synopsis, grid, milestones, readers, settings
+    /// The planning pages come first in the bar, then the debate, then these.
+    static let planning: [OverviewTab] = [.summary, .synopsis, .grid]
+    static let about: [OverviewTab] = [.milestones, .readers, .settings]
     var id: String { rawValue }
     var label: String {
         switch self {
         case .summary: L("Overview")
         case .synopsis: L("Synopsis")
         case .grid: L("Grid")
+        case .milestones: L("Milestones")
+        case .readers: L("Readers")
+        case .settings: L("Settings")
         }
     }
     var tab: PaneTab { .overview(rawValue) }
@@ -35,17 +42,7 @@ struct OverviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 2) {
-                ForEach(OverviewTab.allCases) { tab in
-                    Button { show(tab) } label: {
-                        Text(tab.label).font(.ui(13, shown == tab ? .medium : .regular))
-                            .foregroundStyle(shown == tab ? .primary : .secondary)
-                            .padding(.horizontal, 11).frame(height: 28)
-                            .background(shown == tab ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(shown == tab ? [.isButton, .isSelected] : .isButton)
-                }
+                ForEach(OverviewTab.planning) { pageButton($0) }
                 // The debate has a tab of its own; the book's home leads to it, as its other pages do.
                 if AIHome.shown {
                     Button { app.open(.debate) } label: {
@@ -54,6 +51,7 @@ struct OverviewView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                ForEach(OverviewTab.about) { pageButton($0) }
                 Spacer()
             }
             .padding(.horizontal, 20).frame(height: 44)
@@ -62,9 +60,24 @@ struct OverviewView: View {
             case .summary: BookOverviewPage(app: app, session: session, workspace: workspace, paneID: paneID, fontName: fontName)
             case .synopsis: SynopsisView(app: app, session: session)
             case .grid: PlotGridView(app: app, session: session, bridge: bridge, analyst: analyst, planner: planner)
+            case .milestones: MilestonesPage(app: app, session: session)
+            case .readers: ReadersPage(app: app, session: session)
+            case .settings: BookSettingsView(app: app, session: session)
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private func pageButton(_ tab: OverviewTab) -> some View {
+        Button { show(tab) } label: {
+            Text(tab.label).font(.ui(13, shown == tab ? .medium : .regular))
+                .foregroundStyle(shown == tab ? .primary : .secondary)
+                .padding(.horizontal, 11).frame(height: 28)
+                .background(shown == tab ? Ink.selected : .clear, in: RoundedRectangle(cornerRadius: Radius.control))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(shown == tab ? [.isButton, .isSelected] : .isButton)
     }
 }
 

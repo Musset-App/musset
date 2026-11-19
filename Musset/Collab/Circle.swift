@@ -57,19 +57,45 @@ extension Collab {
     }
 
     /// Someone new, by e-mail, straight into a book: the server shares it at once if they're on Musset, or invites them.
-    func invite(email: String, as role: Role, to session: BookSession, relation: Relation, message: String) async throws {
+    /// `milestone` is what they are given to read (a milestone's tag); none for a co-writer, who works in the text itself.
+    func invite(email: String, as role: Role, to session: BookSession, relation: Relation, message: String, milestone: String? = nil) async throws {
         guard let l = link(session.git) else { return }
-        let _: EmptyReply = try await request("POST", apiCall("invite"), body: [
+        var body: [String: Any] = [
             "email": email, "repo": "\(l.owner)/\(l.repo)", "role": role.serverName, "relation": relation.rawValue,
-            "message": message, "lang": session.manifest.lang, "book": session.title])
+            "message": message, "lang": session.manifest.lang, "book": session.title]
+        if let milestone { body["tag"] = milestone }
+        let _: EmptyReply = try await request("POST", apiCall("invite"), body: body)
         await refreshCircle()
     }
 
-    /// Someone already on Musset was given the book: both circles, their activity and an e-mail, through the server.
-    func announceShare(to user: String, in session: BookSession, as role: Role) async {
+    // MARK: Milestones given to readers
+
+    /// The milestone a reader was given, and when.
+    struct Reading: Decodable, Equatable { let tag: String; let at: Int }
+
+    /// Who reads which milestone of this book: everyone for its author, oneself for a reader. Empty when unknown.
+    func reading(of git: GitService) async -> [String: Reading] {
+        struct Out: Decodable { let reading: [String: Reading] }
+        guard let l = link(git) else { return [:] }
+        let repo = "\(l.owner)/\(l.repo)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let out: Out? = try? await request("GET", URL(string: apiCall("reading").absoluteString + "?repo=" + repo)!)
+        return out?.reading ?? [:]
+    }
+
+    /// The author gives a reader a milestone to read (its tag), or takes it back with none.
+    func give(_ milestone: String?, to user: String, in session: BookSession) async throws {
         guard let l = link(session.git) else { return }
-        let _: EmptyReply? = try? await request("POST", apiCall("invite"), body: [
-            "username": user, "repo": "\(l.owner)/\(l.repo)", "role": role.serverName, "lang": session.manifest.lang, "book": session.title])
+        var body: [String: Any] = ["repo": "\(l.owner)/\(l.repo)", "username": user]
+        if let milestone { body["tag"] = milestone }
+        let _: EmptyReply = try await request("POST", apiCall("reading"), body: body)
+    }
+
+    /// Someone already on Musset was given the book: both circles, their activity and an e-mail, through the server.
+    func announceShare(to user: String, in session: BookSession, as role: Role, milestone: String? = nil) async {
+        guard let l = link(session.git) else { return }
+        var body: [String: Any] = ["username": user, "repo": "\(l.owner)/\(l.repo)", "role": role.serverName, "lang": session.manifest.lang, "book": session.title]
+        if let milestone { body["tag"] = milestone }
+        let _: EmptyReply? = try? await request("POST", apiCall("invite"), body: body)
         await refreshCircle()
     }
 

@@ -288,13 +288,12 @@ struct AppCommand: Identifiable {
 
     private static let book: [AppCommand] = [
         AppCommand("book.search", .book, L("Search the Book…"), Shortcut("f", [.command, .shift]), icon: "magnifyingglass", gate: .book) { $0.app.openSearch() },
-        AppCommand("book.settings", .book, L("Book Settings…"), Shortcut(",", [.command, .option]), icon: "gearshape", gate: .session) { $0.app.showBookSettings = true },
+        AppCommand("book.settings", .book, L("Book Settings…"), Shortcut(",", [.command, .option]), icon: "gearshape", gate: .session) { $0.app.showSettings() },
         AppCommand("book.special", .book, L("Cover & Special Pages"), icon: "rectangle.portrait", gate: .session) { $0.app.open(SpecialPage.cover.tab) },
         AppCommand("book.export", .book, L("Export…"), Shortcut("e"), icon: "square.and.arrow.up", gate: .session) { $0.app.showExport = true },
         AppCommand("book.wordReview", .book, L("Bring In a Corrected Word File…"), icon: "doc.badge.arrow.up", gate: .session) { $0.app.showWordReview = true },
-        AppCommand("book.share", .book, L("Share This Book…"), icon: "person.2", gate: .session) { c in
-            c.app.bookSettingsSection = .sharing; c.app.showBookSettings = true
-        },
+        AppCommand("book.share", .book, L("Share This Book…"), icon: "person.2", gate: .session) { $0.app.showReaders() },
+        AppCommand("book.invite", .book, L("Invite Someone to This Book…"), icon: "person.badge.plus", gate: .session) { $0.app.showReaders(inviting: true) },
         AppCommand("book.rubric", .book, L("Rubric…"), icon: "list.bullet.clipboard", gate: .ai) { $0.app.showRubric = true },
         AppCommand("book.newVersion", .book, L("New Version of This Chapter…"), icon: "square.on.square", gate: .book,
                    bookName: { $0.newVersion }) { $0.app.showTryVersion = true },

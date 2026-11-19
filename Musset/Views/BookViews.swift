@@ -6,25 +6,25 @@ import SwiftUI
 /// What is the book's own: its identity, what its AI reader reads it against, who it is shared with, its folder.
 /// Its special pages are in the sidebar (and « Cover & Special Pages »); what an export takes, down to what goes
 /// between two scenes, is chosen in the export sheet; what holds for every book is in the app's Settings.
+/// The book's settings, a page of its home (Overview ▸ Settings). Who reads the book is its neighbour, Readers.
 struct BookSettingsView: View {
     let app: AppState
     @Bindable var session: BookSession
-    @Environment(\.dismiss) private var dismiss
     @State private var section = Section.general
+    /// The section to open on, for a caller that builds the page itself; the app asks through `bookSettingsSection`.
     var startSection: Section? = nil
     @State private var showRubric = false
     @State private var showCheckers = false
     @State private var showTics = false
 
     enum Section: String, CaseIterable, Identifiable {
-        case general, structure, critic, sharing, folder
+        case general, structure, critic, folder
         var id: String { rawValue }
         var label: String {
             switch self {
             case .general: L("General")
             case .structure: L("Structure")
             case .critic: L("AI reader")
-            case .sharing: L("Sharing")
             case .folder: L("Folder & history")
             }
         }
@@ -33,7 +33,6 @@ struct BookSettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(L("Book Settings…").titled).font(.ui(13, .semibold)).padding(.horizontal, 10).padding(.bottom, 10)
                 ForEach(Section.allCases) { s in
                     Button { section = s } label: {
                         Text(s.label).frame(maxWidth: .infinity, alignment: .leading)
@@ -45,10 +44,9 @@ struct BookSettingsView: View {
                     .buttonStyle(.plain)
                 }
                 Spacer()
-                Button(L("Done", ctx: "Terminé")) { session.saveManifest(); dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.ink).padding(10)
             }
             .padding(12)
-            .frame(width: 210)
+            .frame(width: 190)
             .background(Ink.side)
             Divider()
             if section == .structure {
@@ -66,12 +64,15 @@ struct BookSettingsView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(width: section == .structure ? 1260 : 860, height: section == .structure ? 760 : 600)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showRubric) { BaremeSheet(session: session) }
         .sheet(isPresented: $showCheckers) { CheckersSheet(session: session) }
         .sheet(isPresented: $showTics) { TicsSheet(session: session) }
+        // No button to confirm: what changes is kept when the page is left, and as each field is submitted.
         .onDisappear { session.saveManifest() }
-        .onAppear { if let startSection { section = startSection } }
+        .onChange(of: section) { session.saveManifest() }
+        .onAppear { if let asked = app.bookSettingsSection ?? startSection { section = asked; app.bookSettingsSection = nil } }
+        .onChange(of: app.bookSettingsSection) { _, asked in if let asked { section = asked; app.bookSettingsSection = nil } }
     }
 
     private var header: some View {
@@ -120,8 +121,6 @@ struct BookSettingsView: View {
                 criticCard(L("Checkers…").titled, L("Your own writing rules, checked on a chapter. Shared by all your books."),
                            L("Edit checkers")) { showCheckers = true }
             }
-        case .sharing:
-            SharingSection(session: session, app: app)
         case .folder:
             SettingsCard(filled: true) {
                 SettingsRow(title: L("Folder"), style: .form) {
@@ -137,7 +136,7 @@ struct BookSettingsView: View {
             }
             HStack {
                 Button(L("Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([session.root]) }
-                Button(L("History")) { dismiss(); app.inspectorTab = .history; app.showInspector = true }
+                Button(L("History")) { app.inspectorTab = .history; app.showInspector = true }
             }
         }
     }
@@ -499,206 +498,5 @@ extension AppState {
         if !git.isRepo { try git.initRepo() }
         _ = try git.commit(paths: chapters.map(\.file) + [".musset"], message: "musset: new book")
         openBook(root)
-    }
-}
-
-
-// MARK: Sharing
-
-/// Sharing a book, in the author's words: an account, share, invite a reader, read their reviews;
-/// and for a reader, send the review.
-struct SharingSection: View {
-    let session: BookSession
-    var app: AppState? = nil
-    @State private var collab = Collab.shared
-    @State private var invitee = ""
-    @State private var inviteRole = Collab.Role.reader
-    @State private var inviteRelation = Relation.betaReader
-    @State private var inviteMessage = ""
-    @State private var people: [(user: String, role: Collab.Role)] = []
-    @State private var reviews: [Collab.Review] = []
-    @State private var message = ""
-    @State private var status: String?
-    @State private var working = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if !collab.signedIn {
-                AccountForm { await refresh() }
-            } else if collab.link(session.git) == nil {
-                Text(L("Send this book to your account to find it on your other Macs and invite people. It stays private: only those you invite can open it."))
-                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                if collab.canSync {
-                    Button(L("Send to my account")) { run { collab.setLocalOnly(session, false); try await collab.share(session); status = L("On your account."); await refresh() } }
-                        .buttonStyle(.ink)
-                } else {
-                    Button(L("Musset Sync, \(SyncPrice.perMonth)…")) { app?.offerSync(for: session) }.buttonStyle(.ink)
-                    Text(L("A free account reads the books shared with it. Putting your own online, and sharing them, is Musset Sync."))
-                        .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                }
-            } else if collab.isOwner(session.git) {
-                owner
-            } else {
-                reader
-            }
-            if working { ProgressView().controlSize(.small) }
-            if let status { Text(status).font(.ui(12)).foregroundStyle(.secondary) }
-            if let e = collab.lastError { Text(e).font(.ui(12)).foregroundStyle(Ink.error).fixedSize(horizontal: false, vertical: true) }
-            if collab.signedIn {
-                HStack {
-                    Text(collab.username.map { L("Signed in as \($0)") } ?? "").font(.ui(12)).foregroundStyle(.secondary)
-                    Button(L("Sign out")) { collab.signOut() }.buttonStyle(.link).font(.ui(12))
-                    if collab.link(session.git) == nil {
-                        Toggle(L("Keep this book on this Mac only"), isOn: Binding(get: { collab.isLocalOnly(session) }, set: { collab.setLocalOnly(session, $0) }))
-                            .toggleStyle(.checkbox).font(.ui(12))
-                    }
-                }
-            }
-        }
-        .task { await refresh() }
-    }
-
-    private var owner: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L("On your account. What you write goes to your other Macs and your collaborators as you go.")).foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("Shared with"))
-                ForEach(people, id: \.user) { person in
-                    HStack {
-                        Text(person.user)
-                        Spacer()
-                        Picker("", selection: Binding(get: { person.role }, set: { new in run { try await collab.setRole(new, of: person.user, in: session); await refresh() } })) {
-                            ForEach(Collab.Role.allCases) { Text($0.label).tag($0) }
-                        }
-                        .labelsHidden().fixedSize()
-                        Button { run { try await collab.remove(person.user, from: session); await refresh() } } label: { Image(systemName: "xmark").font(.ui(11)) }
-                            .buttonStyle(.plain).foregroundStyle(.secondary).help(L("Stop sharing with \(person.user)"))
-                    }
-                    .frame(width: 420)
-                }
-                let shared = Set(people.map(\.user))
-                let others = collab.circle.filter { $0.username.map { !shared.contains($0) && $0 != collab.username } ?? false }
-                if !others.isEmpty {
-                    SectionLabel(L("From your circle")).padding(.top, 6)
-                    ForEach(others) { p in
-                        HStack {
-                            Text(p.name)
-                            Text(Relation(rawValue: p.relation)?.label ?? "").font(.ui(12)).foregroundStyle(.secondary)
-                            Spacer()
-                            Menu(L("Share as…")) {
-                                ForEach(Collab.Role.allCases) { role in
-                                    Button(role.label) {
-                                        run { try await collab.invite(p.username ?? "", as: role, to: session); await notifyShared(p.username ?? ""); await refresh() }
-                                    }
-                                }
-                            }
-                            .fixedSize()
-                        }
-                        .frame(width: 420)
-                    }
-                }
-                SectionLabel(L("Someone new")).padding(.top, 6)
-                HStack {
-                    TextField(L("Their e-mail"), text: $invitee).textFieldStyle(.roundedBorder).frame(width: 190)
-                    Segmented(options: Collab.Role.allCases.map { ($0, $0.label) }, selection: $inviteRole).frame(width: 260)
-                }
-                HStack {
-                    Picker(L("They are your"), selection: $inviteRelation) { ForEach(Relation.allCases) { Text($0.label).tag($0) } }.fixedSize()
-                    TextField(L("A word for them (optional)"), text: $inviteMessage).textFieldStyle(.roundedBorder).frame(width: 240)
-                    Button(L("Invite")) {
-                        let who = invitee.trimmingCharacters(in: .whitespaces)
-                        run {
-                            if who.contains("@") {
-                                try await collab.invite(email: who, as: inviteRole, to: session, relation: inviteRelation, message: inviteMessage)
-                                status = L("Invitation sent to \(who).")
-                            } else {
-                                try await collab.invite(who, as: inviteRole, to: session)
-                            }
-                            invitee = ""; inviteMessage = ""
-                            await refresh()
-                        }
-                    }
-                    .buttonStyle(.inkSecondary).disabled(invitee.isEmpty)
-                }
-                Text(inviteRole.help).font(.ui(12)).foregroundStyle(.secondary)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                SectionLabel(L("Reviews to read"))
-                if reviews.isEmpty { Text(L("No review waiting.")).foregroundStyle(.secondary) }
-                ForEach(reviews) { r in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(r.title).fontWeight(.medium)
-                            Text(r.user.login).font(.ui(12)).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button(L("Bring into my text")) {
-                            run {
-                                let out = try await collab.importReview(r, into: session)
-                                status = L("\(out.placed) corrections placed in the chapters")
-                                    + (out.unplaced > 0 ? L(", \(out.unplaced) as comments (passages you rewrote).") : ".")
-                                await refresh()
-                            }
-                        }
-                        .buttonStyle(.ink)
-                    }
-                }
-                Text(L("A review becomes corrections in your text: accept or reject each one (Format menu)."))
-                    .font(.ui(12)).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var reader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            let owner = collab.link(session.git)?.owner ?? ""
-            if collab.role(session.git) == .collaborator {
-                Text(L("You are a collaborator on \(owner)'s book: you write in the text together, and what each of you writes is sent as you go."))
-                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                if session.git.currentBranch?.hasPrefix("relecture/") == true {
-                    Button(L("Write in the main text")) { run { try await collab.joinMainText(session); status = L("You are in the main text.") } }
-                        .buttonStyle(.ink).help(L("Send your review first: what isn't sent stays behind."))
-                }
-            } else {
-            Text(L("You are reading \(owner)'s book. Revision mode is on: your changes are kept as corrections."))
-                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            TextField(L("A word for the author (optional)"), text: $message, axis: .vertical)
-                .textFieldStyle(.roundedBorder).frame(width: 420)
-            HStack {
-                Button(L("Send my review")) {
-                    run { try await collab.sendReview(session, message: message); message = ""; status = L("Sent. The author will see it in their reviews.") }
-                }
-                .buttonStyle(.ink)
-                Button(L("Get the latest version")) {
-                    run { try await collab.refreshReview(session); session.open(session.selectedChapterID ?? ""); status = L("Up to date.") }
-                }
-                .buttonStyle(.inkSecondary)
-                .help(L("Starts again from the author's latest text: send your review first."))
-            }
-            }
-        }
-    }
-
-    private func refresh() async {
-        guard collab.signedIn else { return }
-        guard collab.isOwner(session.git) else { try? await collab.refreshRole(session.git); return }
-        people = (try? await collab.people(of: session)) ?? []
-        reviews = (try? await collab.reviews(of: session)) ?? []
-        await collab.refreshCircle()
-    }
-
-    /// Someone already on Musset was given the book: they hear of it, in their activity and by e-mail.
-    private func notifyShared(_ user: String) async {
-        await collab.announceShare(to: user, in: session, as: people.first { $0.user == user }?.role ?? .reader)
-    }
-
-    private func run(_ work: @escaping () async throws -> Void) {
-        working = true
-        collab.lastError = nil
-        status = nil
-        Task {
-            do { try await work() } catch { collab.lastError = error.localizedDescription }
-            working = false
-        }
     }
 }

@@ -616,7 +616,7 @@ struct BookSwitcher: View {
             Button(L("Open Book Folder…")) { app.addBookViaPanel() }
             if app.current != nil {
                 Divider()
-                Button(L("Book Settings…")) { app.showBookSettings = true }
+                Button(L("Book Settings…")) { app.showSettings() }
                 Button(L("Cover & Special Pages")) { app.open(SpecialPage.cover.tab) }
             }
             if let cur = app.current {
