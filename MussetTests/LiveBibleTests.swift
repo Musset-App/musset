@@ -1,4 +1,5 @@
 import XCTest
+import NaturalLanguage
 @testable import Musset
 
 /// The live Bible: names found in the text, tiers, new names spotted as the author writes.
@@ -106,7 +107,10 @@ final class LiveBibleTests: XCTestCase {
         XCTAssertTrue(found.contains { $0.name == "London" && $0.kind == .place })
     }
 
-    func testRecognisesFrenchNames() {
+    func testRecognisesFrenchNames() throws {
+        // macOS recognises names with a model per language, and not every Mac has the French one (a fresh CI
+        // machine has English only): without it there is nothing to recognise with, and nothing to check.
+        try XCTSkipUnless(NLTagger.availableTagSchemes(for: .word, language: .french).contains(.nameType), "no French name model on this Mac")
         let found = NameSpotter.candidates(in: "Hier, Marthe a retrouvé Paul Durand à Marseille, devant la gare.", lang: "fr")
         XCTAssertTrue(found.contains { $0.kind == .character && ($0.name.contains("Marthe") || $0.name.contains("Paul")) }, "\(found)")
         XCTAssertTrue(found.contains { $0.name == "Marseille" && $0.kind == .place }, "\(found)")
