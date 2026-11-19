@@ -19,6 +19,8 @@ struct ReadersPage: View {
     @State private var since: (added: Int, removed: Int, chapters: [String])?
     @State private var inviting = false
     @State private var leaving: String?
+    /// The reader whose part of the book is being changed.
+    @State private var parting: String?
     @State private var message = ""
     @State private var status: String?
     @State private var working = false
@@ -58,6 +60,17 @@ struct ReadersPage: View {
         .task { await refresh(); openInvitationIfAsked() }
         .onChange(of: app.inviteRequested) { openInvitationIfAsked() }
         .onReceive(NotificationCenter.default.publisher(for: Collab.becameWriter)) { _ in Task { await refresh() } }
+        .sheet(isPresented: Binding(get: { parting != nil }, set: { if !$0 { parting = nil } })) {
+            if let user = parting, let r = reading[user] {
+                PartSheet(session: session, name: name(of: user), milestone: r.tag, current: r.scope) { scope in
+                    run {
+                        try await collab.give(r.tag, to: user, in: session, part: .set(scope))
+                        status = L("Saved.")
+                        await refresh()
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $inviting) {
             InviteSheet(session: session, suggestions: others) { sent in
                 if let sent { status = sent }
@@ -327,8 +340,13 @@ struct ReadersPage: View {
                             if m.id == given?.id { Label(m.title, systemImage: "checkmark") } else { Text(m.title) }
                         }
                     }
+                    if given != nil {
+                        Divider()
+                        Button(L("Which Part of the Book…")) { parting = person.user }
+                    }
                 } label: {
-                    Label(given.map { L("Reads « \($0.title) »") } ?? L("No milestone yet"), systemImage: "flag")
+                    let part = reading[person.user]?.scope.map { " · " + $0.label { session.manifest.count($0, .piece) } } ?? ""
+                    Label((given.map { L("Reads « \($0.title) »") } ?? L("No milestone yet")) + part, systemImage: "flag")
                 }
                 .fixedSize().disabled(session.jalons.isEmpty)
                 if let latest = session.milestones.first, given?.id != latest.id {
@@ -462,7 +480,12 @@ struct ReadersPage: View {
         await collab.refreshAccount()
         guard collab.link(session.git) != nil else { return }
         reading = await collab.reading(of: session.git)
-        guard collab.isOwner(session.git) else { _ = try? await collab.refreshRole(session.git); return }
+        guard collab.isOwner(session.git) else {
+            _ = try? await collab.refreshRole(session.git)
+            // What I was given of it may have changed since this copy was made.
+            if let me = collab.username, collab.isReviewer(session.git), let mine = reading[me] { collab.setPart(mine.scope, for: session.git) }
+            return
+        }
         if let latest = session.milestones.first {
             let s = session
             since = await Task.detached { await s.changeSince(latest) }.value
@@ -502,6 +525,10 @@ struct InviteSheet: View {
     @State private var message = ""
     /// The milestone they are given to read: the latest unless the author picks another.
     @State private var milestone = ""
+    /// The part of it they are given: the whole book unless the author narrows it.
+    @State private var partMode = ChapterScopeMode.book
+    @State private var partStatuses: Set<ChapterStatus> = [.edited, .final]
+    @State private var partPicked: Set<String> = []
     @State private var sending = false
     @State private var error: String?
     @FocusState private var onWho: Bool
@@ -569,6 +596,11 @@ struct InviteSheet: View {
                         .labelsHidden().fixedSize()
                         Text(L("A milestone, never your desk. Give them a newer one whenever you like.")).font(.ui(11)).foregroundStyle(.secondary)
                     }
+                    if role != .collaborator {
+                        PartPicker(session: session, milestone: session.jalons.contains { $0.id == milestone } ? milestone : nil,
+                                   mode: $partMode, statuses: $partStatuses, picked: $partPicked)
+                            .padding(.top, 4)
+                    }
                 }
                 if known == nil {
                     HStack(alignment: .top, spacing: 16) {
@@ -614,16 +646,18 @@ struct InviteSheet: View {
         // Readers and editors are given a milestone; with none yet, the book as it is now becomes the first.
         let given: String? = role == .collaborator ? nil
             : (session.jalons.contains { $0.id == milestone } ? milestone : session.addJalon(title: L("First reading"), note: ""))
+        let part = role == .collaborator ? nil
+            : PartPicker.scope(partMode, partStatuses, partPicked, chapters: PartPicker.chapters(of: session, in: given))
         Task {
             do {
                 if target.contains("@") {
-                    try await collab.invite(email: target, as: role, to: session, relation: relation, message: message, milestone: given)
+                    try await collab.invite(email: target, as: role, to: session, relation: relation, message: message, milestone: given, scope: part)
                     if let l = collab.link(session.git) { collab.remember(invited: target, to: "\(l.owner)/\(l.repo)") }
                     done(L("Invitation sent to \(target)."))
                 } else {
                     let user = known?.username ?? target
                     try await collab.invite(user, as: role, to: session)
-                    await collab.announceShare(to: user, in: session, as: role, milestone: given)
+                    await collab.announceShare(to: user, in: session, as: role, milestone: given, scope: part)
                     done(L("Shared with \(known?.name ?? user)."))
                 }
                 dismiss()

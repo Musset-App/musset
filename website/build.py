@@ -53,11 +53,9 @@ def path(code):
 def switcher(current, label):
     links = []
     for code, name, tag in LANGS:
-        attrs = ' aria-current="page" style="color: #1A1A18; font-weight: 600; text-decoration: none"' if code == current \
-            else ' style="color: #6B665C; text-decoration: none"'
+        attrs = ' aria-current="page"' if code == current else ""
         links.append(f'<a href="{path(code)}" hreflang="{tag}" lang="{tag}" data-lang="{code}"{attrs}>{name}</a>')
-    return (f'<nav class="wrap" aria-label="{html.escape(label)}" style="display: flex; flex-wrap: wrap; gap: 18px; '
-            f'padding-top: 20px; font-size: 13px">{"".join(links)}</nav>\n'
+    return (f'<nav class="langs" aria-label="{html.escape(label)}">{"".join(links)}</nav>\n'
             # The choice outlives the visit: / then opens in it, whatever the browser says.
             '<script>document.querySelectorAll("a[data-lang]").forEach(function(a){a.addEventListener("click",function(){'
             'document.cookie="lang="+a.dataset.lang+";path=/;max-age=31536000;samesite=lax"})})</script>')
@@ -129,7 +127,18 @@ def compare_pages(dist):
 </div>
 <section><div class="wrap"><div class="pick" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">{cards}</div></div></section>"""
     write("/compare/", data["index"]["title"], data["index"]["description"], body)
-    return [("/compare/", "Compare")] + pages
+
+    # Privacy and Support: plain pages on the same template (compare/site-pages.json), asked for by the App Store.
+    plain = json.loads((HERE / "compare/site-pages.json").read_text(encoding="utf-8"))["pages"]
+    for p in plain:
+        sections = "".join(f'<section><div class="wrap narrow"><h2>{e(s["h"])}</h2>{paras(s["p"])}</div></section>' for s in p["sections"])
+        write(f"/{p['slug']}/", p["title"], p["description"], f"""<div class="wrap hero">
+<p class="eyebrow">{e(p["eyebrow"])}</p>
+<h1>{e(p["h1"])}</h1>
+<p class="lede">{e(p["lede"])}</p>
+</div>
+{sections}""")
+    return [("/compare/", "Compare")] + pages + [(f"/{p['slug']}/", p["link"]) for p in plain]
 
 
 def main():
@@ -147,7 +156,7 @@ def main():
         values = {**strings, "lang": tag, "alternates": alternates + f'\n<link rel="canonical" href="{SITE}{path(code)}">',
                   "switcher": switcher(code, strings.get("languages", "Language")),
                   # The comparison pages are in English only, so only the English page links to them.
-                  "compare": '<p class="wrap" style="margin: 20px auto 0; font-size: 13px"><a href="/compare/" style="color: #6B665C">Musset compared with Scrivener, Ulysses, iA Writer and Manuskript</a></p>' if code == "en" else ""}
+                  "compare": '<p><a href="/compare/">Musset compared with Scrivener, Ulysses, iA Writer and Manuskript</a></p>' if code == "en" else ""}
 
         def fill(m, quoted):
             v = values.get(m.group(1))

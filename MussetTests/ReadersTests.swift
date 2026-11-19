@@ -117,6 +117,60 @@ final class ReadersTests: XCTestCase {
     }
 
     /// Pictures of the page's faces and of the invitation, on request: MUSSET_SNAPSHOT=<folder>.
+    func testAReaderIsGivenAPartOfTheBook() {
+        let chapters = [ChapterEntry(id: "01", file: "01.md", title: "One", status: .final), ChapterEntry(id: "02", file: "02.md", title: "Two", status: .edited),
+                        ChapterEntry(id: "03", file: "03.md", title: "Three", status: .done), ChapterEntry(id: "04", file: "04.md", title: "Four")]
+        func given(_ scope: ReadingScope?) -> [String] { chapters.filter { scope.allows($0) }.map(\.id) }
+        // The whole book is no scope at all.
+        XCTAssertNil(PartPicker.scope(.book, [.final], ["02"], chapters: chapters))
+        XCTAssertEqual(given(nil), ["01", "02", "03", "04"])
+        // By status: a chapter without one is a draft.
+        let byStatus = PartPicker.scope(.status, [.final, .edited], [], chapters: chapters)
+        XCTAssertEqual(byStatus?.statuses, ["edited", "final"], "in the order of the statuses")
+        XCTAssertEqual(given(byStatus), ["01", "02"])
+        XCTAssertEqual(given(.statuses([.draft])), ["04"])
+        // Chosen one by one, kept in the book's order; a chapter that is gone is dropped.
+        let chosen = PartPicker.scope(.pick, [], ["03", "01", "99"], chapters: chapters)
+        XCTAssertEqual(chosen?.chapters, ["01", "03"])
+        XCTAssertEqual(given(chosen), ["01", "03"])
+        XCTAssertEqual(given(.chapters([])), [], "nothing chosen is nothing to read, not the whole book")
+        // What the server is sent, and what the sheet shows when it opens again.
+        XCTAssertEqual(byStatus?.body["statuses"] as? [String], ["edited", "final"])
+        XCTAssertEqual(chosen?.body["chapters"] as? [String], ["01", "03"])
+        XCTAssertEqual(PartPicker.values(of: chosen).mode, .pick)
+        XCTAssertEqual(PartPicker.values(of: chosen).picked, ["01", "03"])
+        XCTAssertEqual(PartPicker.values(of: byStatus).statuses, [.edited, .final])
+        XCTAssertEqual(PartPicker.values(of: nil).mode, .book)
+        // As the server answers.
+        let decoded = try? JSONDecoder().decode(Collab.Reading.self, from: Data(#"{"tag":"jalon/a","at":1,"scope":{"statuses":["final"]}}"#.utf8))
+        XCTAssertEqual(decoded?.scope, .statuses([.final]))
+        XCTAssertNil((try? JSONDecoder().decode(Collab.Reading.self, from: Data(#"{"tag":"jalon/a","at":1,"scope":null}"#.utf8)))?.scope)
+        XCTAssertNil((try? JSONDecoder().decode(Collab.Reading.self, from: Data(#"{"tag":"jalon/a","at":1}"#.utf8)))?.scope, "an older server")
+    }
+
+    func testStatusesAreThoseOfTheMilestoneGiven() throws {
+        let s = try bookWithHistory()
+        defer { try? FileManager.default.removeItem(at: s.root) }
+        s.saveManifest()
+        s.commitNow("musset: new book")
+        let tag = try XCTUnwrap(s.addJalon(title: "First draft", note: ""))
+        // Marked final after the milestone: the reader's app reads the milestone, where it was still a draft.
+        s.setStatus("01", .final)
+        s.commitNow("musset: status")
+        XCTAssertEqual(PartPicker.chapters(of: s, in: tag).map { $0.status ?? .draft }, [.draft])
+        XCTAssertEqual(PartPicker.chapters(of: s, in: nil).map { $0.status ?? .draft }, [.final], "with no milestone yet, the book as it is")
+    }
+
+    func testAReadersCopyKeepsThePartItWasGiven() throws {
+        let s = try bookWithHistory()
+        defer { try? FileManager.default.removeItem(at: s.root); Collab.shared.setPart(nil, for: s.git) }
+        XCTAssertNil(Collab.shared.part(for: s.git))
+        Collab.shared.setPart(.chapters(["01"]), for: s.git)
+        XCTAssertEqual(Collab.shared.part(for: s.git), .chapters(["01"]))
+        Collab.shared.setPart(nil, for: s.git)
+        XCTAssertNil(Collab.shared.part(for: s.git), "the whole book again")
+    }
+
     func testPictures() throws {
         guard let dir = ProcessInfo.processInfo.environment["MUSSET_SNAPSHOT"] else { throw XCTSkip("set MUSSET_SNAPSHOT to a folder") }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("musset-readers-\(UUID().uuidString)")
@@ -156,6 +210,18 @@ final class ReadersTests: XCTestCase {
             try png(JalonSheet(session: h, start: TrackStart()), NSSize(width: 520, height: 520), "readers-7-set-milestone")
             try png(InviteSheet(session: h, suggestions: []) { _ in }, NSSize(width: 600, height: 640), "readers-8-invite-milestone")
             try? FileManager.default.removeItem(at: h.root)
+            // A book of several chapters at different statuses, to choose a part of.
+            let many = try bookWithHistory()
+            let titles = ["The Ferry", "The Salt Works", "Inventory", "Low Water", "The Blue Boat"]
+            many.manifest.chapters = titles.enumerated().map { i, t in
+                ChapterEntry(id: "0\(i + 1)", file: "0\(i + 1).md", title: t, status: [.final, .final, .edited, .done, nil][i])
+            }
+            many.saveManifest()
+            many.commitNow("musset: chapters")
+            let draft = many.addJalon(title: "Second draft", note: "") ?? ""
+            try png(PartSheet(session: many, name: "Claire Morel", milestone: draft, current: .statuses([.edited, .final])) { _ in }, NSSize(width: 520, height: 300), "readers-9-part-status")
+            try png(PartSheet(session: many, name: "Claire Morel", milestone: draft, current: .chapters(["01", "02"])) { _ in }, NSSize(width: 520, height: 420), "readers-10-part-chosen")
+            try? FileManager.default.removeItem(at: many.root)
         }
     }
 }

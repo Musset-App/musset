@@ -5,85 +5,270 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <meta name="description" content="{{description}}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:image" content="https://musset.app/assets/LANG/editor.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#F6F3EC">
 {{alternates}}
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&amp;family=Inter:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..600;1,400..600&amp;family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&amp;display=swap">
 <style>
-body{margin:0;background:#F6F3EC}
-a{color:#2E4AC7}a:hover{color:#1F348F}
-.wrap{max-width:1180px;margin:0 auto;padding:0 32px;box-sizing:border-box}
-.two{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:72px;align-items:center}
-.two.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
-.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.six{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
-.prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
-.navlinks{display:flex;gap:28px;align-items:center}
-.navlinks a{white-space:nowrap}
-@media (max-width:1100px){.navlinks a.hide{display:none}}
-.phones{display:flex;gap:24px;justify-content:center;align-items:flex-start}
-.phones .lower{margin-top:56px}
-@media (max-width:900px){
-.two,.two.flip,.prices{grid-template-columns:minmax(0,1fr);gap:40px}
-.three,.four{grid-template-columns:minmax(0,1fr)}
-.six{grid-template-columns:repeat(3,minmax(0,1fr))}
-.navlinks a.hide{display:none}
-[data-human]{grid-template-columns:minmax(0,1fr) !important;gap:32px !important}
-.hero-title{font-size:56px !important}
-.phones{flex-wrap:wrap}
-.phones .lower{margin-top:0}
-.section-title{font-size:40px !important}
+/* The page is set like the book Musset makes: EB Garamond for what is finished, IBM Plex Mono for what is still
+   being worked on (keys, notes, labels), and the editor's red pen for everything that needs deciding. No sans. */
+:root{
+--paper:#F6F3EC;--deep:#EDE8DC;--sheet:#FFFEFA;
+--ink:#1A1814;--ink-2:#4A463E;--ink-3:#6B665C;
+--rule:#DCD5C6;--rule-2:#C4BCAB;
+--red:#C8321E;--red-d:#97220F;--green:#2F7D4F;--blue:#2E4AC7;--orange:#B8590A;--purple:#8A3FB8;
+--part:#1B1815;--night:#141210;--night-2:#1F1C18;--night-rule:#37322B;--on-night:#F3EFE5;--on-night-2:#B5AEA0;--red-n:#FF7657;
+--serif:'EB Garamond',Garamond,'Adobe Garamond Pro',Georgia,serif;
+--mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+--ease:cubic-bezier(.16,1,.3,1);
+--pad:clamp(20px,4vw,48px);
 }
-/* 0.3: the desk — panes, boards, the Bible, windows */
-.eyebrow{margin:0;font-size:14px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#2E4AC7}
-.display{margin:0;font-family:'EB Garamond',serif;font-weight:400;font-size:clamp(40px,5.4vw,68px);line-height:1.02;letter-spacing:-.01em}
-.lede{margin:0;font-size:clamp(17px,1.5vw,19px);line-height:1.65;color:#4A4740;max-width:34em}
-.shot{display:block;width:100%;height:auto;border-radius:14px;border:1px solid #DDD6C8;box-shadow:0 40px 80px -40px rgba(40,32,16,.38);background:#FFFFFF}
-.rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px}
-.rules>div{border-top:1px solid #1A1A18;padding-top:20px;display:flex;flex-direction:column;gap:10px}
-.rules h3{margin:0;font-family:'EB Garamond',serif;font-weight:400;font-size:26px;line-height:1.12}
-.rules p{margin:0;font-size:15px;line-height:1.6;color:#4A4740}
-.keys{margin:0;display:flex;flex-wrap:wrap;gap:10px 28px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#6B665C}
-.keys kbd{font:inherit;color:#1A1A18;background:#FFFFFF;border:1px solid #DDD6C8;border-bottom-width:2px;border-radius:6px;padding:3px 8px;margin-right:8px}
-.pill{display:inline-flex;gap:10px;align-items:center;font-size:14px;color:#1A1A18;text-decoration:none;background:#FFFFFF;border:1px solid #DDD6C8;border-radius:999px;padding:8px 16px 8px 8px}
-.pill b{font-weight:600;font-size:12px;letter-spacing:.06em;color:#FFFFFF;background:#C2410C;border-radius:999px;padding:4px 10px}
-.pill:hover{border-color:#1A1A18;color:#1A1A18}
-.dots{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px;font-size:16px;line-height:1.55}
-.dots li{display:flex;gap:12px}
-.dots li::before{content:"●";color:#FF6A3D;flex:none}
-.dots strong{font-weight:600}
-/* the wall: the board runs off the page's edge */
-.wall{background:#161412;color:#F6F3EC;overflow:hidden;padding:clamp(88px,10vw,136px) 0}
-.wall .grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:64px;align-items:center}
-.wall .lede,.wall .dots{color:#D6D1C5}
-.wall .dots strong{color:#F6F3EC}
-.wall .eyebrow{color:#FF6A3D}
-.wall .runoff img{display:block;width:142%;max-width:none;height:auto;border-radius:14px;border:1px solid #3A3631;box-shadow:0 60px 120px -40px rgba(0,0,0,.8)}
-.wall small{font-size:14px;line-height:1.6;color:#8F897D}
-/* the Bible: the cast behind, a sheet in front */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:88px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:20px;line-height:1.5;font-variant-numeric:oldstyle-nums;font-feature-settings:"kern","liga";-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:clip}
+@media (min-width:1100px){body{font-size:21px}}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure,blockquote{margin:0;padding:0}
+ul,ol{list-style:none}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit}
+strong,b{font-weight:600}
+::selection{background:var(--red);color:var(--paper)}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:3px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 var(--pad)}
+
+/* type */
+.label{font:500 12px/1.5 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.label.red{color:var(--red)}
+.d2{font-weight:400;font-size:clamp(40px,5.6vw,78px);line-height:1;letter-spacing:-.018em;text-wrap:balance}
+.d3{font-weight:400;font-size:clamp(32px,3.6vw,50px);line-height:1.05;letter-spacing:-.012em;text-wrap:balance}
+.d4{font-weight:400;font-size:clamp(25px,2.2vw,30px);line-height:1.12}
+.lede{font-size:clamp(20px,1.7vw,24px);line-height:1.45;color:var(--ink-2);max-width:31em;text-wrap:pretty}
+.txt{color:var(--ink-2);max-width:34em;text-wrap:pretty}
+.fine{font:400 13px/1.65 var(--mono);color:var(--ink-3);max-width:60em}
+.fine a{text-underline-offset:3px}
+.go{font:500 14px/1.4 var(--mono);text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:1.5px;text-underline-offset:6px}
+.go:hover{color:var(--red)}
+
+/* a button is a key */
+.key{display:inline-flex;align-items:center;gap:.8em;font:500 15px/1 var(--mono);text-decoration:none;white-space:nowrap;color:var(--paper);background:var(--ink);padding:18px 22px;border-radius:9px;box-shadow:0 4px 0 #000,0 16px 26px -14px rgba(26,24,20,.55);transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .2s}
+.key:hover{background:#2C2822}
+.key:active{transform:translateY(3px);box-shadow:0 1px 0 #000,0 6px 12px -8px rgba(26,24,20,.5)}
+.key i{font-style:normal;opacity:.6}
+.key.red{background:var(--red);box-shadow:0 4px 0 var(--red-d),0 16px 26px -14px rgba(151,34,15,.7)}
+.key.red:hover{background:#D53A25}
+.key.red:active{box-shadow:0 1px 0 var(--red-d)}
+.key.line{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),0 4px 0 var(--ink)}
+.key.line:hover{background:var(--sheet)}
+.key.line:active{box-shadow:inset 0 0 0 1px var(--ink),0 1px 0 var(--ink)}
+.key.sm{padding:12px 16px;font-size:13px;border-radius:8px;box-shadow:0 3px 0 #000}
+.key.sm:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+
+/* the top of the page: the app's own mode switch, one segment per part */
+.nav{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--rule)}
+.nav nav{display:flex;align-items:center;justify-content:space-between;gap:20px;height:68px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-size:30px;line-height:1;text-decoration:none;letter-spacing:.005em}
+.brand img{width:36px;height:36px;margin:-4px 0 -4px -4px}
+.modes{display:flex;gap:2px;padding:3px;background:var(--deep);border-radius:10px}
+.modes a{font:500 13px/1 var(--mono);text-decoration:none;color:var(--ink-3);padding:9px 14px;border-radius:7px;white-space:nowrap;transition:color .2s,background .2s}
+.modes a:hover{color:var(--ink)}
+.modes a[aria-current]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 2px rgba(26,24,20,.16)}
+.nav-r{display:flex;align-items:center;gap:24px}
+.nav-r a:not(.key){font:400 13px/1 var(--mono);text-decoration:none;color:var(--ink-2)}
+.nav-r a:not(.key):hover{color:var(--red)}
+.read{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--red);transform:scaleX(0);transform-origin:left}
+@media (max-width:1120px){.modes{display:none}}
+@media (max-width:620px){.nav-r a:not(.key){display:none}}
+
+/* the cover */
+.hero{position:relative;z-index:2;padding-top:clamp(22px,2.6vw,36px);overflow-x:clip}
+.d1{font-weight:400;font-size:clamp(44px,6.1vw,88px);line-height:1;letter-spacing:-.026em;text-wrap:balance}
+.d1 del{position:relative;text-decoration:none;white-space:nowrap;color:var(--ink-3)}
+.d1 del::after{content:"";position:absolute;left:-.06em;right:-.06em;top:.48em;height:.3em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 24' preserveAspectRatio='none'%3E%3Cpath d='M3 15C38 7 74 18 112 10S168 8 197 12' fill='none' stroke='%23C8321E' stroke-width='5' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.d1 ins{display:inline-grid;grid-template-columns:1fr;text-decoration:none;font-style:italic;color:var(--red)}
+.d1 ins>span{min-width:0;overflow:hidden;white-space:nowrap;padding:.14em .07em .2em .14em;margin:-.14em -.07em -.2em -.14em}
+.d1.accepted del{display:none}
+.d1.accepted ins{color:inherit}
+.d1.rejected del{color:inherit}
+.d1.rejected del::after{display:none}
+.d1.rejected ins{display:none}
+.hero-row{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px clamp(28px,5vw,72px);align-items:end;margin-top:clamp(18px,2vw,26px)}
+.hero-copy{display:flex;flex-direction:column;gap:14px}
+.hero-cta{display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px}
+.stage{position:relative;margin-top:clamp(28px,3vw,42px)}
+.stage .screen{width:100%;border-radius:clamp(8px,1.1vw,14px);border:1px solid var(--rule-2);box-shadow:0 50px 100px -40px rgba(26,24,20,.55);background:var(--sheet)}
+@media (max-width:900px){.hero-row{grid-template-columns:minmax(0,1fr)}}
+
+/* notes in the margin, as in the app: a category, who, what */
+.mn{font:400 13px/1.6 var(--mono);color:var(--ink-2);background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px 18px 18px;max-width:340px;display:flex;flex-direction:column;gap:8px;box-shadow:0 18px 30px -24px rgba(26,24,20,.5)}
+.mn-h{display:flex;align-items:center;gap:8px;color:var(--ink-3)}
+.mn-h i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
+.mn-h b{font-weight:500;color:var(--c)}
+.mn-q{color:var(--ink);font-weight:500}
+.mn.q{--c:var(--purple)}.mn.c{--c:var(--orange)}.mn.k{--c:var(--blue)}
+.corr{--c:var(--blue);display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;min-height:34px;margin-top:clamp(12px,1.3vw,18px);font:400 13px/1.5 var(--mono);color:var(--ink-2)}
+.corr-what{color:var(--ink)}
+.corr-what s{color:var(--red);text-decoration-thickness:1.5px}
+.corr-what span{color:var(--rule-2);padding:0 4px}
+.corr-what b{font-weight:500;color:var(--green)}
+.corr-act{display:flex;gap:8px}
+.corr-act button{font:500 12px/1 var(--mono);color:var(--ink);background:var(--paper);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:6px;padding:8px 12px;cursor:pointer}
+.corr-act button:hover{border-color:var(--ink)}
+.corr-act button:active{transform:translateY(1px);border-bottom-width:1px;margin-bottom:1px}
+.corr-res{color:var(--ink)}
+.corr-res button{font:inherit;color:var(--ink-3);background:none;border:0;padding:0;margin-left:6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.corr[data-state] .corr-act,.corr[data-state] .corr-say{display:none}
+.corr:not([data-state]) .corr-res{display:none}
+.no-js .corr-act{display:none}
+
+/* sections */
+.sec{padding:clamp(76px,9.5vw,140px) 0}
+.sheet{background:var(--sheet)}
+.deep{background:var(--deep)}
+.night{background:var(--night);color:var(--on-night)}
+.night .lede,.night .txt{color:var(--on-night-2)}
+.night .label{color:var(--on-night-2)}
+.night .label.red{color:var(--red-n)}
+.night .fine{color:#8F887A}
+.flow{display:flex;flex-direction:column;gap:clamp(40px,5.4vw,76px)}
+.col{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,92px);align-items:center}
+.split.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+.split.end{align-items:end}
+.split.top{align-items:start}
+@media (max-width:900px){.split,.split.flip{grid-template-columns:minmax(0,1fr);gap:36px}}
+.shot{width:100%;border-radius:clamp(8px,1vw,14px);border:1px solid var(--rule);box-shadow:0 40px 80px -40px rgba(40,32,16,.42);background:var(--sheet)}
+.shot.panel{max-width:540px;margin:0 auto}
+.rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(20px,2.6vw,36px)}
+.rules.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rules>div{border-top:1px solid var(--ink);padding-top:18px;display:flex;flex-direction:column;gap:8px}
+.rules h4{font-weight:400;font-size:27px;line-height:1.12}
+.rules p{font-size:18px;line-height:1.5;color:var(--ink-2)}
+.night .rules>div{border-color:var(--night-rule)}
+.night .rules p{color:var(--on-night-2)}
+@media (max-width:900px){.rules,.rules.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.rules,.rules.three{grid-template-columns:minmax(0,1fr)}}
+.keys{display:flex;flex-wrap:wrap;gap:12px 28px;font:400 13px/1.5 var(--mono);color:var(--ink-3)}
+.keys kbd,.kbd{font:inherit;color:var(--ink);background:var(--sheet);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:6px;padding:3px 8px;margin-right:8px}
+.dots{display:flex;flex-direction:column;gap:14px;font-size:19px;line-height:1.45}
+.dots li{display:flex;gap:14px}
+.dots.auto li::before{content:"";flex:none;width:8px;height:8px;margin-top:.55em;border-radius:50%;background:var(--red)}
+.dots [aria-hidden]{font-size:11px;line-height:2.6;flex:none}
+.plain{display:flex;flex-direction:column;font-size:19px;line-height:1.45}
+.plain li{padding:14px 0;border-top:1px solid var(--rule)}
+.plain li:last-child{border-bottom:1px solid var(--rule)}
+
+/* the epigraph and the refusal */
+.manifesto{padding-top:clamp(40px,5vw,72px)}
+.epi{margin-left:auto;max-width:25em;text-align:right;font-style:italic;font-size:clamp(21px,1.9vw,27px);line-height:1.35;color:var(--on-night)}
+.epi figcaption{margin-top:12px;font:400 12px/1.7 var(--mono);letter-spacing:.04em;color:var(--on-night-2)}
+.epi cite{font-style:italic}
+.epi-t{display:block;font-family:var(--serif);font-style:italic;font-size:17px;letter-spacing:0}
+.epi-t:empty{display:none}
+.never{font-weight:400;font-size:clamp(46px,8.4vw,128px);line-height:.94;letter-spacing:-.026em;max-width:9.5em;margin-top:clamp(56px,8vw,120px);text-wrap:balance}
+.never em{font-style:italic;color:var(--red-n)}
+.never-row{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(28px,6vw,96px);align-items:end;margin-top:clamp(36px,5vw,64px)}
+.verbs{display:flex;flex-direction:column;font-style:italic;font-size:clamp(38px,5.4vw,76px);line-height:1.04;letter-spacing:-.015em}
+.verbs s{color:#6F695D;text-decoration-color:var(--red-n);text-decoration-thickness:.055em}
+.human{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:center;margin-top:clamp(72px,9vw,128px);padding-top:clamp(40px,5vw,64px);border-top:1px solid var(--night-rule)}
+.seal{width:176px;height:176px;border-radius:50%;background:var(--paper);color:var(--ink);display:flex;align-items:center;justify-content:center;transform:rotate(-9deg);font-family:var(--mono)}
+.seal>div{width:150px;height:150px;border-radius:50%;border:1px dashed #8A8478;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.ticks{display:flex;flex-wrap:wrap;gap:8px 28px;font:400 13px/1.6 var(--mono);color:var(--on-night)}
+@media (max-width:900px){.never-row,.human{grid-template-columns:minmax(0,1fr)}.seal{width:150px;height:150px}.seal>div{width:128px;height:128px}}
+
+/* contents: what the app stands in for, and the five parts */
+.toc{border-bottom:1px solid var(--ink)}
+.toc a{display:grid;grid-template-columns:minmax(0,5fr) 2.6em minmax(0,7fr);gap:clamp(16px,3vw,48px);align-items:baseline;padding:clamp(18px,2.2vw,28px) 0;border-top:1px solid var(--ink);text-decoration:none}
+.toc .was{font:400 15px/1.5 var(--mono);color:var(--ink-2);text-decoration:line-through;text-decoration-color:rgba(200,50,30,.8);text-decoration-thickness:1px}
+.toc .num{font-size:clamp(28px,3vw,44px);line-height:1;color:var(--red);font-variant-numeric:lining-nums}
+.toc .what{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 24px}
+.toc .what b{font-weight:400;font-style:italic;font-size:clamp(34px,4.2vw,60px);line-height:1;letter-spacing:-.015em;min-width:4.4em;transition:color .25s,transform .5s var(--ease)}
+.toc .num{transition:transform .5s var(--ease)}
+.toc .was{transition:color .25s}
+.toc .what span{flex:1 1 16em;font-size:19px;line-height:1.4;color:var(--ink-2)}
+.toc a:hover b{color:var(--red);transform:translateX(10px)}
+.toc a:hover .num{transform:translateX(4px)}
+.toc a:hover .was{color:var(--ink-3)}
+@media (max-width:760px){.toc a{grid-template-columns:2em minmax(0,1fr)}.toc .was{grid-column:1/-1}}
+
+/* a part opens on an ink page: its numeral behind, the verb, what it promises, a drawing and a note in the margin */
+/* the band is a strip torn out of black paper: the page above and the page below show through its two edges */
+.part{position:relative;overflow:hidden;background:var(--part);color:var(--on-night);padding:calc(clamp(64px,8vw,120px) + var(--tear)) 0;--tear:clamp(20px,2.7vw,38px)}
+.part::before,.part::after{content:"";position:absolute;z-index:2;left:0;right:0;height:var(--tear);pointer-events:none}
+.part::before{top:-1px;background:var(--above,var(--paper));-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 48'%3E%3Cpath d='M0 0 L0 24.0 L8 23.0 L17 26.3 L22 19.6 L32 21.9 L38 29.3 L46 26.1 L54 21.9 L59 20.3 L70 15.7 L80 14.6 L84 14.6 L93 8.3 L97 14.3 L105 13.0 L116 15.0 L128 15.0 L138 19.5 L149 28.6 L154 22.0 L160 32.7 L168 30.4 L174 29.9 L181 28.4 L190 30.7 L201 30.8 L212 31.6 L224 29.2 L230 31.4 L241 33.2 L250 32.6 L256 35.0 L264 30.7 L269 37.8 L281 30.6 L291 33.8 L296 31.9 L306 35.8 L311 31.5 L315 31.1 L322 30.2 L334 21.1 L346 14.6 L350 16.5 L354 11.2 L362 14.7 L367 8.1 L378 11.6 L389 19.8 L397 16.4 L405 19.9 L413 20.3 L422 25.2 L430 19.7 L440 17.0 L447 24.5 L455 18.9 L459 17.1 L468 12.2 L476 19.1 L481 19.4 L489 21.3 L495 23.3 L505 19.0 L510 27.9 L522 27.8 L529 34.3 L536 33.7 L542 35.2 L551 35.3 L558 40.4 L562 37.8 L572 33.1 L578 37.1 L584 28.6 L591 31.9 L596 26.4 L603 30.3 L610 28.9 L616 22.4 L625 27.8 L633 20.5 L637 24.1 L640 24.0 L640 0Z'/%3E%3C/svg%3E") 0 0/auto 100% repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 48'%3E%3Cpath d='M0 0 L0 24.0 L8 23.0 L17 26.3 L22 19.6 L32 21.9 L38 29.3 L46 26.1 L54 21.9 L59 20.3 L70 15.7 L80 14.6 L84 14.6 L93 8.3 L97 14.3 L105 13.0 L116 15.0 L128 15.0 L138 19.5 L149 28.6 L154 22.0 L160 32.7 L168 30.4 L174 29.9 L181 28.4 L190 30.7 L201 30.8 L212 31.6 L224 29.2 L230 31.4 L241 33.2 L250 32.6 L256 35.0 L264 30.7 L269 37.8 L281 30.6 L291 33.8 L296 31.9 L306 35.8 L311 31.5 L315 31.1 L322 30.2 L334 21.1 L346 14.6 L350 16.5 L354 11.2 L362 14.7 L367 8.1 L378 11.6 L389 19.8 L397 16.4 L405 19.9 L413 20.3 L422 25.2 L430 19.7 L440 17.0 L447 24.5 L455 18.9 L459 17.1 L468 12.2 L476 19.1 L481 19.4 L489 21.3 L495 23.3 L505 19.0 L510 27.9 L522 27.8 L529 34.3 L536 33.7 L542 35.2 L551 35.3 L558 40.4 L562 37.8 L572 33.1 L578 37.1 L584 28.6 L591 31.9 L596 26.4 L603 30.3 L610 28.9 L616 22.4 L625 27.8 L633 20.5 L637 24.1 L640 24.0 L640 0Z'/%3E%3C/svg%3E") 0 0/auto 100% repeat-x;filter:drop-shadow(0 3px 0 color-mix(in srgb,var(--above,var(--paper)) 30%,transparent))}
+.part::after{bottom:-1px;background:var(--sheet);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 48'%3E%3Cpath d='M0 48 L0 24.0 L8 17.7 L16 11.9 L25 7.9 L33 13.3 L43 9.4 L50 11.3 L60 21.9 L65 26.8 L76 28.0 L85 25.5 L89 30.7 L94 28.0 L100 27.2 L107 32.2 L118 32.6 L127 31.4 L137 29.5 L143 34.6 L155 31.8 L164 26.1 L170 26.1 L175 31.8 L182 33.7 L189 35.9 L200 26.8 L206 37.2 L213 38.1 L221 27.6 L230 33.6 L236 24.3 L242 31.7 L252 18.4 L258 15.7 L263 21.6 L268 17.0 L276 10.6 L286 7.9 L295 7.1 L302 8.6 L308 17.8 L319 12.6 L330 14.4 L337 23.2 L346 16.6 L358 19.0 L364 25.3 L371 19.9 L375 17.4 L384 18.4 L393 19.2 L401 25.5 L408 21.7 L419 19.0 L425 28.2 L435 24.1 L441 31.4 L452 29.4 L464 40.3 L473 36.7 L477 32.9 L489 34.5 L499 32.7 L509 33.2 L516 26.3 L525 21.8 L531 25.3 L542 23.3 L548 25.7 L554 15.3 L560 19.9 L565 17.0 L572 21.7 L577 19.8 L588 27.4 L597 24.4 L606 18.0 L610 16.2 L621 21.7 L633 11.5 L640 24.0 L640 48Z'/%3E%3C/svg%3E") 40% 0/auto 100% repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 48'%3E%3Cpath d='M0 48 L0 24.0 L8 17.7 L16 11.9 L25 7.9 L33 13.3 L43 9.4 L50 11.3 L60 21.9 L65 26.8 L76 28.0 L85 25.5 L89 30.7 L94 28.0 L100 27.2 L107 32.2 L118 32.6 L127 31.4 L137 29.5 L143 34.6 L155 31.8 L164 26.1 L170 26.1 L175 31.8 L182 33.7 L189 35.9 L200 26.8 L206 37.2 L213 38.1 L221 27.6 L230 33.6 L236 24.3 L242 31.7 L252 18.4 L258 15.7 L263 21.6 L268 17.0 L276 10.6 L286 7.9 L295 7.1 L302 8.6 L308 17.8 L319 12.6 L330 14.4 L337 23.2 L346 16.6 L358 19.0 L364 25.3 L371 19.9 L375 17.4 L384 18.4 L393 19.2 L401 25.5 L408 21.7 L419 19.0 L425 28.2 L435 24.1 L441 31.4 L452 29.4 L464 40.3 L473 36.7 L477 32.9 L489 34.5 L499 32.7 L509 33.2 L516 26.3 L525 21.8 L531 25.3 L542 23.3 L548 25.7 L554 15.3 L560 19.9 L565 17.0 L572 21.7 L577 19.8 L588 27.4 L597 24.4 L606 18.0 L610 16.2 L621 21.7 L633 11.5 L640 24.0 L640 48Z'/%3E%3C/svg%3E") 40% 0/auto 100% repeat-x;filter:drop-shadow(0 -3px 0 color-mix(in srgb,var(--sheet) 30%,transparent))}
+.part .wrap{position:relative}
+.part .wrap>div{position:relative;display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(28px,5vw,80px);align-items:end}
+.part-n{position:absolute;z-index:0;left:-.05em;top:50%;transform:translateY(-54%);font-size:clamp(300px,46vw,660px);line-height:.7;letter-spacing:-.05em;white-space:nowrap;color:#2B2620;font-variant-numeric:lining-nums;pointer-events:none;-webkit-user-select:none;user-select:none}
+.part-h{position:relative;z-index:1;display:flex;flex-direction:column;gap:16px}
+.part-h .label{color:var(--red-n)}
+.part-h h2{font-weight:400;font-style:italic;font-size:clamp(72px,11.5vw,176px);line-height:.84;letter-spacing:-.035em;margin:4px 0 14px -.04em}
+.part-h .txt{color:var(--on-night-2)}
+.part-r{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end}
+.art{width:100%;max-width:460px}
+.art svg{display:block;width:100%;height:auto;overflow:visible}
+.art .bl{animation:blink 1.1s steps(1) infinite}
+.part .mn{margin-top:-28px;position:relative;box-shadow:0 22px 34px -22px rgba(0,0,0,.8)}
+@media (max-width:900px){.part .wrap>div{grid-template-columns:minmax(0,1fr)}.part-r{align-items:flex-start}.art{max-width:300px;align-self:flex-end}.part .mn{margin-top:14px}.part-n{top:0;transform:translateY(6%)}}
+@media (prefers-reduced-motion:reduce){.art .bl{animation:none}}
+
+/* keyboard modes, as a table of keys */
+.kb>div{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,6fr);gap:12px clamp(16px,3vw,48px);align-items:baseline;padding:22px 0;border-top:1px solid var(--rule-2)}
+.kb>div:last-child{border-bottom:1px solid var(--rule-2)}
+.kb .k{font:500 clamp(16px,1.7vw,22px)/1.3 var(--mono);color:var(--ink)}
+.kb h4{font-weight:400;font-size:clamp(30px,3vw,42px);line-height:1;font-style:italic}
+.kb p{color:var(--ink-2);font-size:19px}
+@media (max-width:760px){.kb>div{grid-template-columns:minmax(0,1fr);gap:6px}}
+
+/* Ultra Focus, to try */
+.uf{background:#0B0B0A;border:1px solid var(--night-rule);border-radius:14px;overflow:hidden;font-family:var(--mono);box-shadow:0 50px 90px -40px rgba(26,24,20,.65)}
+.uf .label{color:var(--on-night-2)}
+.uf-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--night-rule)}
+.seg{display:flex;gap:2px;padding:3px;background:var(--night-2);border-radius:9px}
+.seg button{font:500 12px/1 var(--mono);color:var(--on-night-2);background:none;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+.seg button[aria-checked=true]{background:#3A352E;color:var(--on-night)}
+.uf-page{position:relative;height:clamp(300px,36vw,440px);display:flex;flex-direction:column;justify-content:flex-end;padding:0 clamp(20px,7vw,110px) clamp(80px,11vw,150px);overflow:hidden;cursor:text;-webkit-mask-image:linear-gradient(transparent,#000 34%);mask-image:linear-gradient(transparent,#000 34%)}
+.uf-text{font-size:clamp(16px,1.7vw,21px);line-height:2.1;color:#F3EFE5;white-space:pre-wrap;overflow-wrap:break-word}
+.uf-old{color:#6B665C}
+.uf-caret{display:inline-block;width:.55em;height:1.15em;margin-left:1px;vertical-align:-.22em;background:var(--red-n);opacity:0}
+.uf.on .uf-caret{animation:blink 1.1s steps(1) infinite}
+.uf.nope .uf-caret{animation:nope .32s linear}
+.uf textarea{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;resize:none;border:0;cursor:text}
+.uf-hint{position:absolute;left:0;right:0;bottom:clamp(80px,11vw,150px);padding:0 clamp(20px,7vw,110px);font-size:clamp(15px,1.5vw,19px);line-height:2.1;color:#8F887A;pointer-events:none}
+.uf.dirty .uf-hint{display:none}
+.uf-foot{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;border-top:1px solid var(--night-rule);font-size:12px;color:#8F887A}
+.uf-msg{color:var(--red-n);opacity:0;transition:opacity .5s}
+.uf.nope .uf-msg{opacity:1;transition:none}
+@keyframes blink{0%{opacity:1}50%{opacity:0}}
+@keyframes nope{0%,100%{transform:none;opacity:1}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.kiosk{margin-top:clamp(72px,9vw,128px);padding-top:clamp(40px,5vw,64px);border-top:1px solid var(--rule-2)}
+
+/* structure */
 .pair{position:relative;padding-bottom:14%}
 .pair .back{width:68%}
-.pair .front{position:absolute;right:0;bottom:0;width:62%;box-shadow:0 30px 70px -24px rgba(40,32,16,.55)}
-/* two screens */
+.pair .front{position:absolute;right:0;bottom:0;width:62%;box-shadow:0 30px 70px -24px rgba(40,32,16,.6)}
+.wall{overflow:hidden}
+.wall .runoff img{width:142%;max-width:none;border-radius:14px;border:1px solid var(--night-rule);box-shadow:0 60px 120px -40px rgba(0,0,0,.85)}
+.night .dots{color:var(--on-night-2)}
+.night .dots strong{color:var(--on-night)}
 .screens{display:flex;align-items:flex-end;justify-content:center}
 .laptop{flex:0 0 40%;margin-right:-5%;position:relative;z-index:2}
 .monitor{flex:0 0 62%}
-.screens img{display:block;width:100%;height:auto}
-.laptop .glass{background:#1A1A18;padding:1.6% 1.6% 2.2%;border-radius:14px 14px 4px 4px;box-shadow:0 30px 60px -30px rgba(40,32,16,.6)}
+.screens img{width:100%}
+.laptop .glass{background:var(--ink);padding:1.6% 1.6% 2.2%;border-radius:14px 14px 4px 4px;box-shadow:0 30px 60px -30px rgba(40,32,16,.6)}
 .laptop .glass img{border-radius:6px}
 .laptop .base{height:12px;margin:0 -7%;background:linear-gradient(#E9E4DA,#C9C2B4);border-radius:2px 2px 14px 14px;box-shadow:0 18px 30px -16px rgba(40,32,16,.5)}
-.monitor .glass{background:#1A1A18;padding:1.4%;border-radius:16px;box-shadow:0 50px 90px -40px rgba(40,32,16,.6)}
+.monitor .glass{background:var(--ink);padding:1.4%;border-radius:16px;box-shadow:0 50px 90px -40px rgba(40,32,16,.6)}
 .monitor .glass img{border-radius:8px}
 .monitor .neck{width:13%;height:clamp(28px,5vw,64px);margin:0 auto;background:linear-gradient(90deg,#CFC8BB,#E9E4DA 40%,#C9C2B4)}
 .monitor .foot{width:32%;height:10px;margin:0 auto;background:linear-gradient(#E9E4DA,#C9C2B4);border-radius:10px 10px 3px 3px;box-shadow:0 18px 30px -14px rgba(40,32,16,.5)}
-/* arriving on the page */
-.js .rv{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
-.js .rv.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
 @media (max-width:900px){
-.rules{grid-template-columns:repeat(2,minmax(0,1fr))}
-.wall .grid{grid-template-columns:minmax(0,1fr);gap:40px}
 .wall .runoff img{width:118%}
 .pair{padding-bottom:0;display:flex;flex-direction:column;gap:16px}
 .pair .back,.pair .front{position:static;width:100%}
@@ -91,130 +276,560 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 .laptop{flex:none;width:78%;margin:0}
 .monitor{flex:none;width:100%}
 }
-@media (max-width:560px){.rules{grid-template-columns:minmax(0,1fr)}}
+
+/* revise */
+.aside-q{font-style:italic;font-size:clamp(22px,2vw,27px);line-height:1.38;color:var(--ink);max-width:27em;padding-top:22px;border-top:1px solid var(--ink);text-wrap:pretty}
+.tall{max-width:440px;margin:0 auto}
+.cards3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,2.6vw,36px)}
+@media (max-width:900px){.cards3{grid-template-columns:minmax(0,1fr)}}
+
+/* share */
+.phones{display:flex;gap:24px;justify-content:center;align-items:flex-start;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-variant-numeric:normal}
+.phones .lower{margin-top:56px}
+.phone{flex:none;width:280px;height:580px;padding:10px;border-radius:46px;background:var(--ink);box-shadow:0 40px 70px -35px rgba(40,32,16,.6)}
+@media (max-width:900px){.phones{flex-wrap:wrap}.phones .lower{margin-top:0}}
+.ledger>div{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:8px 24px;padding:20px 0;border-top:1px solid var(--rule-2)}
+.ledger>div:first-child{border-top-color:var(--ink)}
+.ledger>div:last-child{border-bottom:1px solid var(--rule-2)}
+.ledger h4{font-weight:400;font-style:italic;font-size:25px;line-height:1.2}
+.ledger p{font-size:19px;color:var(--ink-2)}
+@media (max-width:560px){.ledger>div{grid-template-columns:minmax(0,1fr)}}
+
+/* publish */
+.spread{display:flex;justify-content:center}
+.spread img{width:50%;max-width:430px;min-width:0;background:#fff}
+.spread img:first-child{box-shadow:-18px 24px 40px -28px rgba(40,32,16,.5)}
+.spread img:last-child{box-shadow:18px 24px 40px -28px rgba(40,32,16,.5)}
+.norms{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 28px;font-size:19px;line-height:1.45}
+.norms dt,.norms dd{padding:13px 0;border-top:1px solid var(--rule)}
+.norms dt{font-style:italic;font-size:22px}
+.norms dd{color:var(--ink-2)}
+.sheets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.sheets figure{display:flex;flex-direction:column;gap:10px}
+.sheets img{width:100%;border:1px solid var(--rule);box-shadow:0 20px 40px -28px rgba(40,32,16,.45)}
+.sheets figure:last-child{margin-top:44px}
+.spec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(24px,5vw,80px);border-bottom:1px solid var(--rule-2)}
+.spec>div{display:flex;flex-direction:column;gap:6px;padding:22px 0 26px;border-top:1px solid var(--rule-2)}
+.spec p:last-child{font-size:clamp(28px,3.5vw,50px);line-height:1.1;letter-spacing:-.01em}
+.spec .pm{font-style:normal;color:var(--red)}
+@media (max-width:760px){.spec{grid-template-columns:minmax(0,1fr)}}
+
+/* the price list */
+.prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(32px,6vw,96px)}
+.price{display:flex;flex-direction:column;gap:22px;align-items:flex-start;border-top:4px double var(--ink);padding-top:26px}
+.price .amt{font-size:clamp(64px,8vw,112px);line-height:.9;letter-spacing:-.03em;font-variant-numeric:lining-nums}
+.price .amt span{font:500 14px/1 var(--mono) !important;letter-spacing:0;color:var(--ink-3) !important}
+.price .plain{align-self:stretch;flex:1}
+@media (max-width:760px){.prices{grid-template-columns:minmax(0,1fr)}}
+
+/* the colophon */
+.colophon{text-align:center}
+.colophon .col{align-items:center;gap:30px}
+.colophon h2{font-weight:400;font-size:clamp(48px,8.6vw,132px);line-height:.94;letter-spacing:-.028em}
+.colophon h2 em{font-style:italic;color:var(--red-n)}
+.colophon .txt a{color:var(--on-night);text-underline-offset:4px}
+footer{padding:36px 0 44px;font:400 13px/1.7 var(--mono);color:var(--ink-3)}
+footer .wrap{display:flex;flex-direction:column;gap:16px}
+footer a{color:var(--ink-2);text-underline-offset:3px}
+footer a:hover{color:var(--red)}
+.foot-top{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+.foot-top span:first-child{font-family:var(--serif) !important;font-size:26px !important}
+.langs{display:flex;flex-wrap:wrap;gap:6px 20px}
+.langs a{text-decoration:none}
+.langs a[aria-current]{color:var(--ink);font-weight:500;text-decoration:underline;text-decoration-color:var(--red);text-underline-offset:5px}
+
+/* The hero's demonstration: the app's window drawn in HTML, the demo book in it, in six steps. Sizes are in
+   --u, a hundredth of the stage's width, so the whole window scales with the page; on a phone the window is
+   taller, the sidebar goes and --u grows. A step is a set of s-… classes on .demo, put there by the script. */
+.steps{display:flex;border-top:1px solid var(--night-rule)}
+.step{flex:1 1 0;min-width:0;position:relative;text-align:left;font:500 13px/1.3 var(--mono);color:var(--on-night-2);background:none;border:0;padding:14px 12px 6px 0;cursor:pointer;white-space:nowrap;transition:color .3s}
+.step i{font-style:normal;color:var(--red-n);margin-right:.8em}
+.step:hover,.step[aria-current]{color:var(--on-night)}
+.step::after{content:"";position:absolute;left:0;right:12px;top:-2px;height:3px;background:var(--red-n);transform:scaleX(0);transform-origin:left}
+.step[aria-current]::after{animation:fill var(--d,5s) linear forwards}
+.paused .step[aria-current]::after{animation:none;transform:none}
+.pp{flex:none;align-self:center;width:34px;height:34px;margin-top:8px;border:1px solid var(--night-rule);border-bottom-width:2px;border-radius:7px;background:var(--night-2);color:var(--on-night);font:500 11px/1 var(--mono);cursor:pointer}
+.pp::before{content:"❙❙";letter-spacing:-1px}
+.paused .pp::before{content:"▶";letter-spacing:0}
+.pp:hover{border-color:var(--on-night-2)}
+.cap{font-style:italic;font-size:clamp(20px,1.9vw,25px);line-height:1.3;min-height:2.6em;padding:6px 0 0;color:var(--on-night)}
+.cap span{display:none}
+.cap span.on{display:block;animation:rise .6s var(--ease) both}
+@keyframes fill{to{transform:scaleX(1)}}
+@media (max-width:760px){.step{flex:0 0 auto;padding-right:16px}.step span{display:none}.step[aria-current]{flex:1 1 0}.step[aria-current] span{display:inline}.step i{margin-right:.5em}}
+.no-js .under,.no-js .demo{display:none}
+.shell{position:relative;z-index:1;container-type:inline-size}
+.shell::before{content:"";position:absolute;left:-100vmax;right:-100vmax;top:56%;bottom:0;background:var(--night)}
+.under{padding:clamp(30px,4.2vw,56px) 0 0;background:var(--night);box-shadow:0 0 0 100vmax var(--night);clip-path:inset(0 -100vmax)}
+.demo{--u:1cqw;position:relative;height:calc(58*var(--u));font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-variant-numeric:normal;font-size:calc(1.22*var(--u));line-height:1.4;color:#1A1A18;text-align:left;cursor:default;-webkit-user-select:none;user-select:none}
+.win{position:absolute;inset:0;border-radius:calc(1.1*var(--u));border:1px solid var(--rule-2);background:#fff;overflow:hidden;box-shadow:0 50px 100px -40px rgba(26,24,20,.55)}
+.bar{position:absolute;left:0;right:0;top:0;height:calc(4.6*var(--u));z-index:2;display:flex;align-items:center;gap:calc(1.4*var(--u));padding:0 calc(1.6*var(--u));background:#FBFAF7;border-bottom:1px solid #E7E2D8}
+.crumb{color:#8A857A;white-space:nowrap}
+.crumb b{font-weight:500;color:#1A1A18}
+.mode{margin-left:auto;display:flex;background:#EFECE5;border-radius:calc(.8*var(--u));padding:calc(.3*var(--u))}
+.mode i{font-style:normal;font-weight:500;padding:calc(.45*var(--u)) calc(1.5*var(--u));border-radius:calc(.6*var(--u));color:#8A857A;transition:color .4s,background .4s,box-shadow .4s}
+.demo:not(.s-rev):not(.s-read) .mode i:nth-child(1),.s-rev .mode i:nth-child(2),.s-read .mode i:nth-child(3){background:#fff;color:#1A1A18;box-shadow:0 1px 2px rgba(0,0,0,.16)}
+.find{border:1px solid #E1DCD0;border-radius:calc(.8*var(--u));padding:calc(.4*var(--u)) calc(1*var(--u));color:#A39D90;white-space:nowrap}
+.side{position:absolute;left:0;top:calc(4.6*var(--u));bottom:0;width:calc(17*var(--u));padding:calc(1.6*var(--u)) calc(1.1*var(--u));display:flex;flex-direction:column;gap:calc(.4*var(--u));background:#F5F2EB;border-right:1px solid #E7E2D8}
+.side p{display:flex;gap:calc(.8*var(--u));align-items:baseline;padding:calc(.6*var(--u)) calc(.8*var(--u));border-radius:calc(.6*var(--u));color:#55514A;white-space:nowrap;overflow:hidden}
+.side .bk{font-weight:600;color:#1A1A18;margin-bottom:calc(.8*var(--u))}
+.side p span,.side p em{font-style:normal;font-size:.9em;color:#B0AA9D}
+.side p em{margin-left:auto}
+.side u{min-width:0;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.side .on{background:#E9E5DB;color:#1A1A18;font-weight:500}
+.ed{position:absolute;left:calc(17*var(--u));right:0;top:calc(4.6*var(--u));bottom:0;overflow:hidden}
+.ed::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(8*var(--u));background:linear-gradient(rgba(255,255,255,0),#fff 78%)}
+.colm{position:absolute;left:calc(18.5*var(--u));top:calc(3.2*var(--u));width:calc(46*var(--u));font:400 calc(1.65*var(--u))/2 var(--mono);transition:transform .9s var(--ease),opacity .6s}
+.colm p+p{margin-top:calc(1.6*var(--u))}
+.colm .tt{font-weight:600;font-size:calc(2.4*var(--u));line-height:1.3;margin-bottom:calc(1.9*var(--u))}
+.scn{display:flex;align-items:center;gap:calc(1.4*var(--u));margin:calc(2.2*var(--u)) 0 calc(1.6*var(--u)) !important;font:600 calc(.95*var(--u))/1 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8A857A}
+.scn::before,.scn::after{content:"";flex:1;border-top:1px solid #E1DCD0}
+.s-np .colm{transform:translateX(calc(-13.5*var(--u)))}
+.s-read .colm{transform:translateX(calc(-16.8*var(--u)))}
+.good,.cins{display:none}
+.s-flag .bad{text-decoration:underline wavy #D8402B;text-decoration-thickness:calc(.12*var(--u));text-underline-offset:calc(.45*var(--u))}
+.s-fixed .bad{display:none}
+.s-fixed .good{display:inline;animation:mend 1.6s ease-out}
+.anc{text-decoration:underline transparent;text-decoration-thickness:calc(.16*var(--u));text-underline-offset:calc(.5*var(--u));transition:text-decoration-color .5s}
+.s-n1 .anc{text-decoration-color:#E08A2B}
+.s-cor .cdel span{color:var(--red);text-decoration:line-through}
+.s-cor .cins{display:inline;color:var(--green)}
+.s-acc .cdel{display:none}
+.s-acc .cins{display:inline;color:inherit;animation:mend 1.6s ease-out}
+@keyframes mend{from{background:rgba(47,125,79,.3)}to{background:rgba(47,125,79,0)}}
+.np{position:absolute;right:0;top:calc(4.6*var(--u));bottom:0;width:calc(27*var(--u));z-index:1;display:flex;flex-direction:column;gap:calc(1.4*var(--u));padding:calc(1.5*var(--u)) calc(1.6*var(--u));background:#fff;border-left:1px solid #E7E2D8;transform:translateX(101%);transition:transform .9s var(--ease)}
+.s-np .np{transform:none}
+.np .ph{font-weight:600;padding-bottom:calc(1*var(--u));border-bottom:1px solid #E7E2D8}
+.note{display:flex;flex-direction:column;gap:calc(.35*var(--u));opacity:0;transform:translateY(calc(1.2*var(--u)));transition:opacity .6s,transform .6s var(--ease)}
+.note .nh{font-size:.92em;color:#A39D90}
+.nh b{font-weight:600}
+.nh .c{color:#D9731A}.nh .q{color:#A53FD0}.nh .k{color:#2E4AC7}
+.s-n1 .n1,.s-n2 .n2{opacity:1;transform:none}
+.nc{display:none}
+.s-cor .n1,.s-cor .n2{display:none}
+.s-cor .nc{display:flex;opacity:1;transform:none;animation:rise .6s var(--ease) both}
+.cw{display:flex;gap:calc(.6*var(--u));align-items:baseline;font-size:1.1em}
+.cw s{color:var(--red)}.cw b{font-weight:500;color:var(--green)}.cw span{color:#C4BCAB}
+.cw .ok{margin-left:auto;color:#C4BCAB;transition:color .4s,transform .4s var(--ease)}
+.s-acc .cw .ok{color:var(--green);transform:scale(1.5)}
+.ufl{position:absolute;inset:0;z-index:3;background:#0B0B0A;opacity:0;visibility:hidden;transition:opacity .8s,visibility 0s .8s}
+.s-uf .ufl{opacity:1;visibility:visible;transition:opacity .4s}
+.ufb{position:absolute;left:0;right:0;top:0;height:calc(24*var(--u));display:flex;flex-direction:column;justify-content:flex-end;align-items:center;overflow:hidden;-webkit-mask-image:linear-gradient(transparent 4%,#000 62%);mask-image:linear-gradient(transparent 4%,#000 62%)}
+.ufb p{flex:none;width:calc(56*var(--u));font:400 calc(1.9*var(--u))/2.1 var(--mono);color:#F3EFE5}
+.ufb p+p{margin-top:calc(1.2*var(--u))}
+.uf1{color:#6B665C !important}
+.ufb .scn{color:#8F887A;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-size:calc(.95*var(--u));line-height:1}
+.ufb .scn::before,.ufb .scn::after{border-color:#37322B}
+.ufr,.ufb .scn,.uf3w{display:none}
+.s-r1 .ufr,.s-r2 .uf3w{display:block}
+.s-r2 .ufb .scn{display:flex;animation:rise .5s var(--ease) both}
+.s-r1 .c1,.s-r2 .c1{display:none}
+.cur{display:inline-block;width:calc(.9*var(--u));height:calc(2.1*var(--u));margin-left:calc(.2*var(--u));vertical-align:calc(-.45*var(--u));background:var(--red-n);animation:blink 1.1s steps(1) infinite}
+.rk{position:absolute;left:calc(2*var(--u));bottom:calc(1.5*var(--u));display:flex;gap:calc(.5*var(--u))}
+.rk kbd{font:500 calc(1.2*var(--u))/1 var(--mono);color:#6B665C;border:1px solid #37322B;border-bottom-width:2px;border-radius:calc(.5*var(--u));padding:calc(.5*var(--u)) calc(.8*var(--u));transition:color .15s,border-color .15s,background .15s,transform .15s}
+.s-r1 .rk kbd:first-child,.s-r2 .rk kbd{color:#0B0B0A;background:var(--red-n);border-color:var(--red-n)}
+.s-r1 .rk kbd:first-child{transform:translateY(1px)}
+.leave{position:absolute;right:calc(2*var(--u));bottom:calc(1.6*var(--u));font-size:calc(1.1*var(--u));color:#8F887A}
+.leave kbd{font:inherit;border:1px solid #37322B;border-radius:calc(.4*var(--u));padding:calc(.1*var(--u)) calc(.5*var(--u));margin-left:calc(.6*var(--u))}
+.exp{position:absolute;right:calc(2*var(--u));bottom:calc(1.7*var(--u));z-index:2;font-weight:600;color:#fff;background:#1A1814;border-radius:calc(.7*var(--u));padding:calc(.7*var(--u)) calc(1.5*var(--u));opacity:0;transition:opacity .5s,transform .16s}
+.s-read .exp{opacity:1}
+.s-press .exp{transform:scale(.9)}
+.fmt{position:absolute;right:calc(37*var(--u));bottom:calc(2.2*var(--u));z-index:2;display:flex;gap:calc(.6*var(--u));opacity:0;transform:translateX(calc(2*var(--u)));transition:opacity .5s,transform .7s var(--ease)}
+.fmt i{font:500 calc(1.05*var(--u))/1 var(--mono);font-style:normal;color:#55514A;background:#fff;border:1px solid #D9D3C6;border-radius:calc(.5*var(--u));padding:calc(.55*var(--u)) calc(.8*var(--u))}
+.s-out .fmt{opacity:1;transform:none}
+.tel{position:absolute;right:calc(-1.5*var(--u));bottom:calc(-2.6*var(--u));z-index:4;width:calc(19*var(--u));height:calc(38*var(--u));padding:calc(.7*var(--u));border-radius:calc(3*var(--u));background:#1A1814;box-shadow:0 calc(3*var(--u)) calc(6*var(--u)) calc(-2*var(--u)) rgba(26,24,20,.65);opacity:0;visibility:hidden;transform:translateY(45%) rotate(6deg);transition:transform 1s var(--ease),opacity .5s,visibility 0s 1s}
+.s-tel .tel{opacity:1;visibility:visible;transform:rotate(2deg);transition:transform 1s var(--ease),opacity .4s}
+.tel>div{position:relative;height:100%;overflow:hidden;border-radius:calc(2.4*var(--u));background:#FFFEFB;padding:calc(2.4*var(--u)) calc(1.5*var(--u)) 0;font-family:var(--serif);font-size:calc(1.08*var(--u));line-height:1.4;text-align:justify;-webkit-hyphens:auto;hyphens:auto}
+.th{text-align:center;font-variant-caps:small-caps;letter-spacing:.06em}
+.tel .th{margin-bottom:calc(1*var(--u))}
+.tel mark{color:inherit;background:rgba(224,163,58,0);border-radius:calc(.2*var(--u));transition:background .5s}
+.s-said .tel mark{background:rgba(224,163,58,.45)}
+.say{position:absolute;left:calc(.8*var(--u));right:calc(.8*var(--u));top:calc(17*var(--u));padding:calc(1*var(--u)) calc(1.1*var(--u));background:#fff;border:1px solid #E1DCD0;border-radius:calc(1.4*var(--u));box-shadow:0 calc(1*var(--u)) calc(2*var(--u)) calc(-1*var(--u)) rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-size:calc(.96*var(--u));line-height:1.35;text-align:left;-webkit-hyphens:manual;hyphens:manual;opacity:0;transform:translateY(calc(1.5*var(--u)));transition:opacity .5s,transform .6s var(--ease)}
+.say b{display:block;margin-bottom:calc(.2*var(--u));font-size:.86em;font-weight:600;color:#8A5006}
+.s-said .say{opacity:1;transform:none}
+.page{position:absolute;left:calc(66*var(--u));top:calc(7.2*var(--u));z-index:4;width:calc(30*var(--u));height:calc(44.5*var(--u));padding:calc(4.6*var(--u)) calc(3.4*var(--u)) 0;background:#FFFEFB;box-shadow:0 calc(.2*var(--u)) calc(.3*var(--u)) rgba(26,24,20,.14),0 calc(2.5*var(--u)) calc(5*var(--u)) calc(-2*var(--u)) rgba(26,24,20,.45);font-family:var(--serif);font-size:calc(1.3*var(--u));line-height:1.36;font-variant-numeric:oldstyle-nums;text-align:justify;-webkit-hyphens:auto;hyphens:auto;opacity:0;transform:translateX(calc(8*var(--u)));transition:opacity .7s,transform 1.1s var(--ease),box-shadow 1.1s}
+.s-page .page{opacity:1;transform:none}
+.s-out .page{transform:translate(calc(3.2*var(--u)),calc(2.6*var(--u))) rotate(3deg) scale(1.05);box-shadow:0 calc(.2*var(--u)) calc(.3*var(--u)) rgba(26,24,20,.14),0 calc(4*var(--u)) calc(7*var(--u)) calc(-2.5*var(--u)) rgba(26,24,20,.7)}
+.page .th{font-size:calc(1.4*var(--u));margin-bottom:calc(2.8*var(--u))}
+.page .in{text-indent:1.2em}
+.page .orn{text-align:center;margin:calc(1*var(--u)) 0}
+.page .fo{position:absolute;right:calc(3.4*var(--u));bottom:calc(2.4*var(--u))}
+@container (max-width:640px){
+.demo{--u:2.4cqw;height:calc(58*var(--u))}
+.side,.crumb,.find{display:none}
+.mode{margin:0 auto}
+.ed{left:0}
+.colm{left:calc(2.8*var(--u));top:calc(2.6*var(--u));width:calc(36*var(--u));font-size:calc(1.62*var(--u))}
+.s-np .colm{transform:none}
+.s-cor .colm{transform:translateY(calc(-15*var(--u)))}
+.s-read .colm{transform:none;opacity:.22}
+.np{left:0;top:auto;width:auto;height:calc(24*var(--u));border-left:0;border-top:1px solid #E7E2D8;box-shadow:0 calc(-2*var(--u)) calc(4*var(--u)) calc(-2.5*var(--u)) rgba(0,0,0,.25);transform:translateY(102%)}
+.ufb{height:calc(30*var(--u))}
+.ufb p{width:calc(35*var(--u));font-size:calc(1.7*var(--u))}
+.tel{right:calc(1*var(--u));bottom:calc(-2*var(--u));width:calc(16*var(--u));height:calc(32*var(--u))}
+.page{left:calc(6.3*var(--u));top:calc(7.4*var(--u));width:calc(29*var(--u));height:calc(44*var(--u));padding:calc(4.4*var(--u)) calc(3*var(--u)) 0}
+.fmt{right:auto;left:calc(2*var(--u))}
+}
+@media (prefers-reduced-motion:reduce){.demo *,.demo *::after{transition:none !important;animation:none !important}.cap span.on{animation:none}}
+
+/* arriving on the page */
+.js .rv{opacity:0;transform:translateY(28px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.js .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:no-preference){
+.d1,.hero-row,.stage{animation:rise .9s var(--ease) both}
+.hero-row{animation-delay:.14s}.stage{animation-delay:.28s}
+.d1 del{animation:fade .5s linear 1.05s both}
+.d1 del::after{animation:strike .5s var(--ease) 1.05s both}
+.d1 ins{animation:insert .75s var(--ease) 1.5s both}
+.hero .corr{animation:rise .8s var(--ease) 2.1s both}
+}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}}
+@keyframes fade{from{color:var(--ink)}}
+@keyframes strike{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+@keyframes insert{from{grid-template-columns:0fr;opacity:0}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none;transition:none}.toc b,.toc .num{transition:none}}
 </style>
 </head>
-<body>
-<script>document.documentElement.classList.add("js")</script>
-<div style="font-family: Inter, -apple-system, sans-serif; color: #1A1A18; background: #F6F3EC; width: 100%; -webkit-font-smoothing: antialiased">
+<body class="no-js">
+<script>document.documentElement.classList.add("js");document.body.classList.remove("no-js")</script>
 
-<!-- Navigation -->
-<header style="border-bottom: 1px solid #E4DED2">
-<nav class="wrap" style="display: flex; align-items: center; justify-content: space-between; height: 72px" aria-label="{{t194}}">
-<a href="#top" style="font-family: 'EB Garamond', serif; font-size: 28px; color: #1A1A18; text-decoration: none; letter-spacing: 0.01em">{{t001}}</a>
-<div class="navlinks">
-<a class="hide" href="#desk" style="font-size: 15px; color: #4A4740; text-decoration: none">{{n01}}</a>
-<a class="hide" href="#editor" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t002}}</a>
-<a class="hide" href="#keyboard" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t003}}</a>
-<a class="hide" href="#versions" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t004}}</a>
-<a class="hide" href="#publish" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t005}}</a>
-<a class="hide" href="#reader" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t006}}</a>
-<a class="hide" href="#pricing" style="font-size: 15px; color: #4A4740; text-decoration: none">{{t007}}</a>
-<a class="hide" href="https://github.com/Musset-App/musset" rel="noopener" style="font-size: 15px; color: #4A4740; text-decoration: none">GitHub</a>
-<a href="/download" style="font-size: 15px; font-weight: 500; color: #FFFFFF; background: #1A1A18; text-decoration: none; padding: 12px 20px; border-radius: 999px">{{t008}}</a>
+<header class="nav">
+<nav class="wrap" aria-label="{{t194}}">
+<a class="brand" href="#top"><img src="/assets/icon.png?v=1" width="36" height="36" alt="">{{t001}}</a>
+<div class="modes">
+<a href="#write">{{p_write}}</a>
+<a href="#structure">{{p_structure}}</a>
+<a href="#revise">{{p_revise}}</a>
+<a href="#share">{{p_share}}</a>
+<a href="#publish">{{p_publish}}</a>
+</div>
+<div class="nav-r">
+<a href="#pricing">{{t007}}</a>
+<a href="https://github.com/Musset-App/musset" rel="noopener">GitHub</a>
+<a class="key sm" href="/download">{{t008}}</a>
 </div>
 </nav>
+<span class="read" aria-hidden="true"></span>
 </header>
 
-<!-- Hero -->
-<section id="top" style="padding: 112px 0 64px">
-<div class="wrap" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 28px">
-<a class="pill" href="#sync"><b>0.5</b>{{n02}}</a>
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C">{{t009}}</p>
-<h1 class="hero-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 88px; line-height: 1.02; letter-spacing: -0.01em; max-width: 900px">{{t010}}</h1>
-<p style="margin: 0; font-size: 20px; line-height: 1.6; color: #4A4740; max-width: 640px">{{t011}}</p>
-<div style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; padding-top: 8px">
-<a href="/download" style="font-size: 17px; font-weight: 500; color: #FFFFFF; background: #2E4AC7; text-decoration: none; padding: 16px 28px; border-radius: 999px">{{t012}}</a>
-<a href="#pricing" style="font-size: 17px; color: #1A1A18; text-decoration: none; padding: 16px 20px">{{t013}}</a>
+<main>
+
+<!-- The cover: the headline is a correction, to accept or to refuse -->
+<section class="hero" id="top">
+<div class="wrap">
+<h1 class="d1" aria-label="{{h_plain}}">{{h_title}}</h1>
+<aside class="corr" aria-label="{{h_corr}}">
+<p class="mn-h"><i></i><b>{{h_corr}}</b> · Claire</p>
+<p class="corr-what"><s>{{h_old}}</s><span aria-hidden="true">→</span><b>{{h_new}}</b></p>
+<p class="corr-say">{{h_say}}</p>
+<div class="corr-act"><button type="button" data-a="accepted">✓ {{h_accept}}</button><button type="button" data-a="rejected">✕ {{h_reject}}</button></div>
+<p class="corr-res" aria-live="polite" data-accepted="{{h_accepted}}" data-rejected="{{h_rejected}}" data-undo="{{h_undo}}"></p>
+</aside>
+<div class="hero-row">
+<p class="lede">{{t011}}</p>
+<div class="hero-copy">
+<div class="hero-cta">
+<a class="key red" href="/download">{{t012}} <i aria-hidden="true">↓</i></a>
+<a class="go" href="#pricing">{{t013}}</a>
 </div>
-<p style="margin: 0; font-size: 13px; color: #6B665C">{{t014}}</p>
-<p style="margin: 0; font-size: 13px; color: #6B665C">{{open_short}}</p>
+<p class="fine">{{t014}}<br>{{open_short}}</p>
 </div>
-<div class="wrap" style="padding-top: 64px">
-<img src="/assets/fa0ec9ca1ab5e94ec0b2dd6c067bef50.jpg" alt="{{t195}}" style="display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid #DDD6C8; box-shadow: 0 40px 80px -40px rgba(40,32,16,0.35)">
+</div>
+<figure class="stage" aria-label="{{a_label}}">
+<div class="shell">
+<div class="demo s-uf" aria-hidden="true">
+<div class="win">
+<div class="bar"><span class="crumb"><b>{{a_book}}</b> / {{a_ch}}</span><span class="mode"><i>{{a_write}}</i><i>{{a_revise}}</i><i>{{a_read}}</i></span><span class="find">⌘K</span></div>
+<div class="side">
+<p class="bk">{{a_book}}</p>
+<p class="on"><span>1</span><u>{{a_ch}}</u><em>152</em></p>
+<p><span>2</span><u>{{a_ch2}}</u><em>145</em></p>
+<p><span>3</span><u>{{a_ch3}}</u><em>20</em></p>
+</div>
+<div class="ed"><div class="colm">
+<p class="tt">{{a_ch}}</p>
+<p>{{a_p1}}</p>
+<p>{{a_p2a}} <span class="anc">{{a_anchor}}</span>{{a_p2b}} <span class="p2e">{{a_p2e}}</span><span class="cdel"> <span>{{a_del}}</span></span><span class="cins"> {{a_ins}}</span> <span class="p2c">{{a_p2c}}</span><span class="bad">{{a_wrong}}</span><span class="good">{{a_right}}</span><span class="p2d">{{a_p2d}}</span></p>
+<p class="scn"><span>{{a_scene}}</span></p>
+<p><span class="s3a">{{a_s3a}}</span>{{a_s3b}}</p>
+</div></div>
+<div class="np">
+<p class="ph">{{a_notes}}</p>
+<div class="note n1"><p class="nh"><b class="c">{{lab_c}}</b> · Claude · «&nbsp;{{a_anchor}}&nbsp;»</p><p>{{a_n1}}</p></div>
+<div class="note n2"><p class="nh"><b class="q">{{lab_q}}</b> · Claude · «&nbsp;{{a_n2q}}&nbsp;»</p><p>{{a_n2}}</p></div>
+<div class="note nc"><p class="cw"><s>{{a_del}}</s><span>→</span><b>{{a_ins}}</b><i class="ok">✓</i></p><p class="nh"><b class="k">{{h_corr}}</b> · Claire</p><p>{{a_say}}</p></div>
+</div>
+<span class="fmt"><i>PDF</i><i>EPUB</i><i>Word</i></span>
+<span class="exp">{{a_export}}</span>
+<div class="ufl"><div class="ufb">
+<p class="uf1">{{a_p1}}</p>
+<p><span class="uf1">{{a_p2a}} {{a_anchor}}{{a_p2b}}</span> <span class="uf2"></span><span class="cur c1"></span></p>
+<p class="ufr"><span class="cur"></span></p>
+<p class="scn"><span>{{a_scene}}</span></p>
+<p class="uf3w"><span class="uf3"></span><span class="cur"></span></p>
+</div><span class="rk"><kbd>↩</kbd><kbd>↩</kbd></span><span class="leave">{{a_leave}}<kbd>⌃⌘U</kbd></span></div>
+</div>
+<div class="tel"><div>
+<p class="th">{{a_ch}}</p>
+<p>{{a_p2a}} {{a_anchor}}{{a_p2b}} {{a_p2e}} <mark>{{a_del}}</mark> {{a_p2c}}{{a_right}}{{a_p2d}}</p>
+<p class="say"><b>Claire Duval</b>{{a_say}}</p>
+</div></div>
+<div class="page">
+<p class="th">{{a_ch}}</p>
+<p>{{a_p1}}</p>
+<p class="in">{{a_p2a}} {{a_anchor}}{{a_p2b}} {{a_p2e}} {{a_ins}} {{a_p2c}}{{a_right}}{{a_p2d}}</p>
+<p class="orn">⁂</p>
+<p>{{a_s3a}}{{a_s3b}}</p>
+<p class="fo">3</p>
+</div>
+</div>
+<noscript><img class="screen" src="/assets/LANG/editor.jpg" width="1920" height="1200" alt="{{t195}}"></noscript>
+</div>
+<div class="under">
+<div class="steps">
+<button type="button" class="step"><i>1</i><span>{{st1}}</span></button>
+<button type="button" class="step"><i>2</i><span>{{st2}}</span></button>
+<button type="button" class="step"><i>3</i><span>{{st3}}</span></button>
+<button type="button" class="step"><i>4</i><span>{{st4}}</span></button>
+<button type="button" class="step"><i>5</i><span>{{st5}}</span></button>
+<button type="button" class="step"><i>6</i><span>{{st6}}</span></button>
+<button type="button" class="pp" aria-label="{{a_pause}}" data-pause="{{a_pause}}" data-play="{{a_play}}"></button>
+</div>
+<p class="cap"><span>{{cap1}}</span><span>{{cap2}}</span><span>{{cap3}}</span><span>{{cap4}}</span><span>{{cap5}}</span><span>{{cap6}}</span></p>
+</div>
+</figure>
+</div>
 </div>
 </section>
 
-<!-- Positioning -->
-<section style="padding: 72px 0 96px">
+<!-- The refusal -->
+<section class="night manifesto sec" id="never">
 <div class="wrap">
-<div class="three">
-<div style="border-top: 1px solid #1A1A18; padding-top: 24px; display: flex; flex-direction: column; gap: 12px">
-<h2 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 32px">{{t015}}</h2>
-<p style="margin: 0; font-size: 16px; line-height: 1.65; color: #4A4740">{{t016}}</p>
+<figure class="epi">
+<blockquote lang="fr">« Mon verre n’est pas grand, mais je bois dans mon verre. »</blockquote>
+<figcaption>Alfred de Musset, <cite lang="fr">La Coupe et les Lèvres</cite>, 1832<span class="epi-t">{{e_trans}}</span></figcaption>
+</figure>
+<h2 class="never">{{m_title}}</h2>
+<div class="never-row">
+<div class="col">
+<p class="lede">{{m_text}}</p>
+<a class="go" href="#revise">{{m_link}}&nbsp;→</a>
 </div>
-<div style="border-top: 1px solid #1A1A18; padding-top: 24px; display: flex; flex-direction: column; gap: 12px">
-<h2 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 32px">{{t017}}</h2>
-<p style="margin: 0; font-size: 16px; line-height: 1.65; color: #4A4740">{{t018}}</p>
+<ul class="verbs">
+<li>{{m_reads}}</li>
+<li>{{m_questions}}</li>
+<li>{{m_annotates}}</li>
+<li><s>{{m_writes}}</s></li>
+</ul>
 </div>
-<div style="border-top: 1px solid #1A1A18; padding-top: 24px; display: flex; flex-direction: column; gap: 12px">
-<h2 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 32px">{{t019}}</h2>
-<p style="margin: 0; font-size: 16px; line-height: 1.65; color: #4A4740">{{t020}}</p>
+<div class="human" id="human">
+<div class="seal" aria-hidden="true"><div>{{t034}}</div></div>
+<div class="col">
+<p class="label red">{{t035}}</p>
+<h3 class="d3">{{t036}}</h3>
+<p class="txt" style="max-width: 40em">{{t037}}</p>
+<ul class="ticks">
+<li>{{t038}}</li>
+<li>{{t039}}</li>
+<li>{{t040}}</li>
+<li>{{t041}}</li>
+</ul>
+<p class="fine">{{t042}}</p>
 </div>
 </div>
 </div>
 </section>
+
+<!-- Contents -->
+<section class="sec" style="padding-bottom: clamp(36px,4vw,64px)">
+<div class="wrap flow">
+<div class="col">
+<p class="label">{{s_eyebrow}}</p>
+<h2 class="d2">{{s_title}}</h2>
+</div>
+<ol class="toc">
+<li><a href="#write"><span class="was">{{s1a}}</span><span class="num" aria-hidden="true">I</span><span class="what"><b>{{p_write}}</b><span>{{s1b}}</span></span></a></li>
+<li><a href="#structure"><span class="was">{{s2a}}</span><span class="num" aria-hidden="true">II</span><span class="what"><b>{{p_structure}}</b><span>{{s2b}}</span></span></a></li>
+<li><a href="#revise"><span class="was">{{s3a}}</span><span class="num" aria-hidden="true">III</span><span class="what"><b>{{p_revise}}</b><span>{{s3b}}</span></span></a></li>
+<li><a href="#share"><span class="was">{{s4a}}</span><span class="num" aria-hidden="true">IV</span><span class="what"><b>{{p_share}}</b><span>{{s4b}}</span></span></a></li>
+<li><a href="#publish"><span class="was">{{s5a}}</span><span class="num" aria-hidden="true">V</span><span class="what"><b>{{p_publish}}</b><span>{{s5b}}</span></span></a></li>
+</ol>
+</div>
+</section>
+
+<!-- ───────── I · Write ───────── -->
+<header class="part" id="write">
+<div class="wrap"><div>
+<p class="part-n" aria-hidden="true">I</p>
+<div class="part-h">
+<p class="label">{{part}} I</p>
+<h2>{{p_write}}</h2>
+<h3 class="d4">{{t015}}</h3>
+<p class="txt">{{t016}}</p>
+</div>
+<div class="part-r">
+<div class="art rv"><svg viewBox="0 0 400 300" aria-hidden="true"><g transform="rotate(-5 215 150)"><rect x="130" y="36" width="190" height="244" rx="4" fill="#3A342C"/><rect x="118" y="24" width="190" height="244" rx="4" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M142 62h72" fill="none" stroke="#1A1814" stroke-width="8" stroke-linecap="round"/><path d="M142 100h142" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="34 12 20 12 46 60"/><path d="M142 124h142" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="18 12 50 12 26 12 60"/><path d="M142 148h142" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="44 12 14 12 30 12 60"/><path d="M142 172h60" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="30 12 60"/><rect class="bl" x="212" y="160" width="9" height="24" fill="#C8321E"/></g><g font-family="'IBM Plex Mono',monospace" font-size="22" font-weight="500" text-anchor="middle" fill="#1A1814"><g transform="rotate(-8 62 232)"><rect x="34" y="210" width="56" height="52" rx="10" fill="#3A342C"/><rect x="34" y="200" width="56" height="52" rx="10" fill="#F6F3EC" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><text x="62" y="234">⌘</text></g><g transform="rotate(5 128 246)"><rect x="100" y="224" width="56" height="52" rx="10" fill="#3A342C"/><rect x="100" y="214" width="56" height="52" rx="10" fill="#F6F3EC" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><text x="128" y="248">K</text></g></g></svg></div>
+<aside class="mn c">
+<p class="mn-h"><i></i><b>{{lab_c}}</b> · Claire</p>
+<p>{{mn1}}</p>
+</aside>
+</div>
+</div></div>
+</header>
+
+<!-- Keyboard -->
+<section class="sec sheet" id="keyboard">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{t043}}</p>
+<h3 class="d2">{{t044}}</h3>
+</div>
+<p class="lede">{{t045}}</p>
+</div>
+<div class="kb">
+<div><p class="k">{{t046}}</p><h4>{{t047}}</h4><p>{{t048}}</p></div>
+<div><p class="k">{{t049}}</p><h4>{{t050}}</h4><p>{{t051}}</p></div>
+<div><p class="k">{{t052}}</p><h4>{{t053}}</h4><p>{{t054}}</p></div>
+<div><p class="k">{{t055}}</p><h4>{{t056}}</h4><p>{{t057}}</p></div>
+</div>
+<div class="split flip">
+<img class="shot rv" src="/assets/LANG/command-bar.jpg" width="1276" height="1011" loading="lazy" alt="{{t198}}" style="border: 0; max-width: 640px; margin: 0 auto">
+<div class="col">
+<h3 class="d3">{{t065}}</h3>
+<p class="txt">{{t066}}</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Ultra Focus, then kiosk mode: a light page, so the dark screen stands out -->
+<section class="sec">
+<div class="wrap">
+<div class="flow" style="gap: clamp(32px,4vw,56px)">
+<div class="split end">
+<div class="col">
+<p class="label red">{{t058}}</p>
+<h3 class="d2">{{t059}}</h3>
+</div>
+<p class="lede">{{t060}}</p>
+</div>
+<div class="uf rv" id="uf" data-level="hard">
+<div class="uf-bar">
+<span class="label">{{t058}}</span>
+<div class="seg" role="radiogroup" aria-label="{{u_level}}">
+<button type="button" role="radio" aria-checked="false" data-level="light">{{u_light}}</button>
+<button type="button" role="radio" aria-checked="false" data-level="normal">{{u_normal}}</button>
+<button type="button" role="radio" aria-checked="true" data-level="hard">{{u_hard}}</button>
+</div>
+</div>
+<div class="uf-page">
+<p class="uf-text" aria-hidden="true"><span class="uf-old"></span><span class="uf-now"></span><span class="uf-caret"></span></p>
+<p class="uf-hint">{{u_hint}}</p>
+<textarea aria-label="{{u_hint}}" autocomplete="off" autocapitalize="sentences" spellcheck="false"></textarea>
+</div>
+<div class="uf-foot"><span><span class="uf-count">0</span> {{u_words}}</span><span class="uf-msg" aria-live="polite" data-text="{{u_no}}">{{u_no}}</span></div>
+</div>
+<noscript><img src="/assets/LANG/ultra-focus.jpg" width="1920" height="1200" loading="lazy" alt="{{n90}}" style="border-radius: 14px"></noscript>
+</div>
+<div class="kiosk flow" id="kiosk" style="gap: clamp(32px,4vw,56px)">
+<div class="split end">
+<div class="col">
+<p class="label">{{t067}}</p>
+<h3 class="d2">{{t068}}</h3>
+</div>
+<p class="lede">{{t069}}</p>
+</div>
+<div class="rules three">
+<div><h4>{{t070}}</h4><p>{{t071}}</p></div>
+<div><h4>{{t072}}</h4><p>{{t073}}</p></div>
+<div><h4>{{t074}}</h4><p>{{t075}}</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ───────── II · Structure ───────── -->
+<header class="part" id="structure">
+<div class="wrap"><div>
+<p class="part-n" aria-hidden="true">II</p>
+<div class="part-h">
+<p class="label">{{part}} II</p>
+<h2>{{p_structure}}</h2>
+<h3 class="d4">{{t017}}</h3>
+<p class="txt">{{t018}}</p>
+</div>
+<div class="part-r">
+<div class="art rv"><svg viewBox="0 0 400 300" aria-hidden="true"><g transform="rotate(-6 100 78)"><rect x="40" y="42" width="150" height="96" rx="6" fill="#3A342C"/><rect x="30" y="32" width="150" height="96" rx="6" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M46 66h64" fill="none" stroke="#1A1814" stroke-width="7" stroke-linecap="round"/><path d="M46 90h112M46 108h84" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/></g><g transform="rotate(5 301 100)"><rect x="238" y="62" width="146" height="96" rx="6" fill="#3A342C"/><rect x="228" y="52" width="146" height="96" rx="6" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M244 88h70" fill="none" stroke="#1A1814" stroke-width="7" stroke-linecap="round"/><path d="M244 110h108" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/><rect x="244" y="122" width="64" height="11" rx="5.5" fill="#C8321E"/></g><g transform="rotate(-2 200 224)"><rect x="130" y="186" width="160" height="96" rx="6" fill="#3A342C"/><rect x="120" y="176" width="160" height="96" rx="6" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M136 212h84" fill="none" stroke="#1A1814" stroke-width="7" stroke-linecap="round"/><path d="M136 234h124M136 252h70" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/></g><path d="M101 44C170 78 236 44 304 64M304 64C306 126 254 152 199 188M101 44C98 112 150 162 199 188" fill="none" stroke="#B5AEA0" stroke-width="2" stroke-linecap="round"/><g fill="#C8321E" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><circle cx="101" cy="44" r="8"/><circle cx="304" cy="64" r="8"/><circle cx="199" cy="188" r="8"/></g></svg></div>
+<aside class="mn q">
+<p class="mn-h"><i></i><b>{{lab_q}}</b> · Claire</p>
+<p class="mn-q">{{mn2q}}</p>
+<p>{{mn2a}}</p>
+</aside>
+</div>
+</div></div>
+</header>
 
 <!-- The desk: panes and tabs -->
-<section id="desk" style="padding: clamp(88px,10vw,128px) 0 clamp(72px,8vw,104px); background: #FFFFFF; border-top: 1px solid #E4DED2">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 56px">
-<div class="two" style="align-items: end">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p class="eyebrow">{{n10}}</p>
-<h2 class="display">{{n11}}</h2>
+<section class="sec sheet" id="desk">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{n10}}</p>
+<h3 class="d2">{{n11}}</h3>
 </div>
-<p class="lede" style="padding-bottom: 8px">{{n12}}</p>
+<p class="lede">{{n12}}</p>
 </div>
 <img class="shot rv" src="/assets/LANG/panes.jpg" width="1920" height="1200" loading="lazy" alt="{{n22}}">
 <div class="rules">
-<div><h3>{{n13}}</h3><p>{{n14}}</p></div>
-<div><h3>{{n15}}</h3><p>{{n16}}</p></div>
-<div><h3>{{n17}}</h3><p>{{n18}}</p></div>
-<div><h3>{{n19}}</h3><p>{{n20}}</p></div>
+<div><h4>{{n13}}</h4><p>{{n14}}</p></div>
+<div><h4>{{n15}}</h4><p>{{n16}}</p></div>
+<div><h4>{{n17}}</h4><p>{{n18}}</p></div>
+<div><h4>{{n19}}</h4><p>{{n20}}</p></div>
 </div>
 <p class="keys">{{n21}}</p>
 </div>
 </section>
 
 <!-- A chapter's scenes side by side, and the book from further away -->
-<section id="scenes" style="padding: clamp(88px,10vw,128px) 0; background: #F6F3EC; border-top: 1px solid #E4DED2">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 64px">
-<div class="two" style="align-items: end">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p class="eyebrow">{{n70}}</p>
-<h2 class="display">{{n71}}</h2>
+<section class="sec" id="scenes">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{n70}}</p>
+<h3 class="d2">{{n71}}</h3>
 </div>
-<p class="lede" style="padding-bottom: 8px">{{n72}}</p>
+<p class="lede">{{n72}}</p>
 </div>
 <div class="pair rv">
 <img class="shot back" src="/assets/LANG/overview.jpg" width="1920" height="1200" loading="lazy" alt="{{n83}}">
 <img class="shot front" src="/assets/LANG/scenes.jpg" width="1920" height="1200" loading="lazy" alt="{{n82}}">
 </div>
 <div class="rules">
-<div><h3>{{n73}}</h3><p>{{n74}}</p></div>
-<div><h3>{{n75}}</h3><p>{{n76}}</p></div>
-<div><h3>{{n77}}</h3><p>{{n78}}</p></div>
-<div><h3>{{n79}}</h3><p>{{n80}}</p></div>
+<div><h4>{{n73}}</h4><p>{{n74}}</p></div>
+<div><h4>{{n75}}</h4><p>{{n76}}</p></div>
+<div><h4>{{n77}}</h4><p>{{n78}}</p></div>
+<div><h4>{{n79}}</h4><p>{{n80}}</p></div>
 </div>
 <p class="keys">{{n81}}</p>
 </div>
 </section>
 
 <!-- Cork boards -->
-<section id="boards" class="wall">
+<section class="sec night wall" id="boards">
 <div class="wrap">
-<div class="grid">
-<div style="display: flex; flex-direction: column; gap: 24px">
-<p class="eyebrow">{{n30}}</p>
-<h2 class="display">{{n31}}</h2>
+<div class="split">
+<div class="col">
+<p class="label red">{{n30}}</p>
+<h3 class="d2">{{n31}}</h3>
 <p class="lede">{{n32}}</p>
-<ul class="dots">
+<ul class="dots auto">
 <li><span>{{n33}}</span></li>
 <li><span>{{n34}}</span></li>
 <li><span>{{n35}}</span></li>
 <li><span>{{n36}}</span></li>
 </ul>
-<small>{{n37}}</small>
+<p class="fine">{{n37}}</p>
 </div>
 <div class="runoff rv"><img src="/assets/LANG/board-dark.jpg" width="1920" height="1200" loading="lazy" alt="{{n38}}"></div>
 </div>
@@ -222,392 +837,177 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 </section>
 
 <!-- The live Bible -->
-<section id="bible" style="padding: clamp(88px,10vw,128px) 0; border-bottom: 1px solid #E4DED2">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 64px">
-<div class="two" style="align-items: end">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p class="eyebrow">{{n40}}</p>
-<h2 class="display">{{n41}}</h2>
+<section class="sec" id="bible">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{n40}}</p>
+<h3 class="d2">{{n41}}</h3>
 </div>
-<p class="lede" style="padding-bottom: 8px">{{n42}}</p>
+<p class="lede">{{n42}}</p>
 </div>
 <div class="pair rv">
 <img class="shot back" src="/assets/LANG/cast.jpg" width="1920" height="1200" loading="lazy" alt="{{n51}}">
 <img class="shot front" src="/assets/LANG/bible.jpg" width="1920" height="1200" loading="lazy" alt="{{n50}}">
 </div>
-<div class="rules" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
-<div><h3>{{n43}}</h3><p>{{n44}}</p></div>
-<div><h3>{{n45}}</h3><p>{{n46}}</p></div>
-<div><h3>{{n47}}</h3><p>{{n48}}</p></div>
+<div class="rules three">
+<div><h4>{{n43}}</h4><p>{{n44}}</p></div>
+<div><h4>{{n45}}</h4><p>{{n46}}</p></div>
+<div><h4>{{n47}}</h4><p>{{n48}}</p></div>
 </div>
-<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6B665C; max-width: 46em">{{n49}}</p>
+<p class="fine">{{n49}}</p>
 </div>
 </section>
 
 <!-- Windows: two screens -->
-<section id="windows" style="padding: clamp(88px,10vw,128px) 0 clamp(72px,8vw,112px)">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 64px">
-<div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 22px">
-<p class="eyebrow">{{n60}}</p>
-<h2 class="display">{{n61}}</h2>
-<p class="lede" style="max-width: 40em">{{n62}}</p>
+<section class="sec deep" id="windows">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{n60}}</p>
+<h3 class="d2">{{n61}}</h3>
+</div>
+<p class="lede">{{n62}}</p>
 </div>
 <div class="screens rv">
 <div class="laptop"><div class="glass"><img src="/assets/LANG/editor.jpg" width="1920" height="1200" loading="lazy" alt="{{n66}}"></div><div class="base"></div></div>
 <div class="monitor"><div class="glass"><img src="/assets/LANG/second-screen.jpg" width="1920" height="1200" loading="lazy" alt="{{n67}}"></div><div class="neck"></div><div class="foot"></div></div>
 </div>
-<div class="rules" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
-<div><p style="font-size: 16px; color: #1A1A18">{{n63}}</p></div>
-<div><p style="font-size: 16px; color: #1A1A18">{{n64}}</p></div>
-<div><p style="font-size: 16px; color: #1A1A18">{{n65}}</p></div>
+<div class="rules three">
+<div><p style="color: var(--ink)">{{n63}}</p></div>
+<div><p style="color: var(--ink)">{{n64}}</p></div>
+<div><p style="color: var(--ink)">{{n65}}</p></div>
 </div>
 </div>
 </section>
+
+<!-- ───────── III · Revise ───────── -->
+<header class="part" id="revise" style="--above: var(--deep)">
+<div class="wrap"><div>
+<p class="part-n" aria-hidden="true">III</p>
+<div class="part-h">
+<p class="label">{{part}} III · {{t021}}</p>
+<h2>{{p_revise}}</h2>
+<h3 class="d4">{{t022}}</h3>
+<p class="txt">{{t023}}</p>
+</div>
+<div class="part-r">
+<div class="art rv"><svg viewBox="0 0 400 300" aria-hidden="true"><g transform="rotate(3 170 150)"><rect x="80" y="32" width="200" height="250" rx="4" fill="#3A342C"/><rect x="68" y="20" width="200" height="250" rx="4" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M92 58h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="40 12 22 12 60"/><path d="M92 84h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="20 12 52 12 28 60"/><path d="M92 110h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="46 12 30 12 34 60"/><path d="M92 136h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="26 12 44 12 60"/><path d="M92 170h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="52 26 18 12 26 60"/><path d="M92 196h146" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="30 12 24 12 50 60"/><path d="M92 222h90" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="44 12 60"/><path d="M86 112C118 103 150 119 184 108S228 106 246 111" fill="none" stroke="#C8321E" stroke-width="4.5" stroke-linecap="round"/><path d="M148 182l8-11 8 11M140 157q6-8 12 0t12 0 12 0 12 0" fill="none" stroke="#C8321E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="254" cy="84" r="5.5" fill="#D9731A"/><circle cx="254" cy="136" r="5.5" fill="#2E4AC7"/><circle cx="254" cy="196" r="5.5" fill="#A53FD0"/></g><g transform="rotate(38 300 150)"><rect x="288" y="56" width="26" height="154" fill="#C8321E" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="288" y="40" width="26" height="16" fill="#F6F3EC" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="288" y="18" width="26" height="22" rx="7" fill="#8F887A" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M288 210L301 244 314 210Z" fill="#F6F3EC" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M296.5 233L301 244 305.500 233Z" fill="#1A1814"/></g></svg></div>
+<aside class="mn q">
+<p class="mn-h"><i></i><b>{{lab_q}}</b> · Claire</p>
+<p class="mn-q">{{mn3q}}</p>
+<p>{{mn3a}}</p>
+</aside>
+</div>
+</div></div>
+</header>
 
 <!-- The publisher inside -->
-<section id="editor" style="padding: 112px 0; background: #FFFFFF; border-top: 1px solid #E4DED2; border-bottom: 1px solid #E4DED2">
-<div class="wrap">
-<div class="two">
-<div style="display: flex; flex-direction: column; gap: 24px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t021}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t022}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t023}}</p>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t024}}</p>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 16px; line-height: 1.55">
-<li style="display: flex; gap: 12px">{{t025}}</li>
-<li style="display: flex; gap: 12px">{{t026}}</li>
-<li style="display: flex; gap: 12px">{{t027}}</li>
-<li style="display: flex; gap: 12px">{{t028}}</li>
+<section class="sec sheet" id="editor">
+<div class="wrap flow">
+<div class="split top">
+<div class="col">
+<p class="lede">{{t024}}</p>
+<ul class="dots">
+<li>{{t025}}</li>
+<li>{{t026}}</li>
+<li>{{t027}}</li>
+<li>{{t028}}</li>
 </ul>
-<p style="margin: 0; padding: 16px 20px; border-left: 3px solid #1F1D1A; background: #F6F3EC; font-size: 16px; line-height: 1.6; color: #1F1D1A">{{t029}}</p>
-<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6B665C">{{t030}}</p>
+<p class="fine">{{t030}}</p>
 </div>
-<img src="/assets/2dae496974c1bd571041c8baf6ecf8ca.jpg" alt="{{t196}}" style="display: block; width: 100%; max-width: 560px; margin: 0 auto; height: auto; border-radius: 14px; border: 1px solid #DDD6C8; box-shadow: 0 30px 60px -30px rgba(40,32,16,0.4); background: #FFFFFF">
-</div>
-<div class="two flip" style="margin-top: 96px">
-<img src="/assets/48d30d6bd98bb342be551429f903177c.jpg" alt="{{t197}}" style="display: block; width: 100%; max-width: 520px; margin: 0 auto; height: auto; border-radius: 14px; border: 1px solid #DDD6C8; box-shadow: 0 30px 60px -30px rgba(40,32,16,0.4); background: #FFFFFF">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 44px; line-height: 1.08">{{t031}}</h3>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t032}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #6B665C">{{t033}}</p>
+<div class="col" style="gap: clamp(28px,4vw,48px); align-items: stretch">
+<img class="shot panel rv" src="/assets/LANG/notes.jpg" width="766" height="620" loading="lazy" alt="{{t196}}">
+<p class="aside-q">{{t029}}</p>
 </div>
 </div>
-</div>
-</section>
-
-<!-- Human Authored -->
-<section id="human" style="padding: 88px 0; border-bottom: 1px solid #E4DED2">
-<div class="wrap" style="display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 56px; align-items: center" data-human>
-<div aria-hidden="true" style="width: 180px; height: 180px; border-radius: 50%; border: 1.5px solid #1F1D1A; display: flex; align-items: center; justify-content: center; margin: 0 auto">
-<div style="width: 152px; height: 152px; border-radius: 50%; border: 1px dashed #8A8478; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center">{{t034}}</div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 20px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #15803D">{{t035}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 48px; line-height: 1.08">{{t036}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t037}}</p>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 15px; line-height: 1.5; color: #1F1D1A">
-<li>{{t038}}</li>
-<li>{{t039}}</li>
-<li>{{t040}}</li>
-<li>{{t041}}</li>
-</ul>
-<p style="margin: 0; font-size: 13px; line-height: 1.6; color: #6B665C">{{t042}}</p>
+<div class="split flip">
+<img class="shot tall rv" src="/assets/LANG/chat.jpg" width="766" height="1712" loading="lazy" alt="{{t197}}">
+<div class="col">
+<h3 class="d2">{{t031}}</h3>
+<p class="lede">{{t032}}</p>
+<p class="txt" style="font-size: 18px">{{t033}}</p>
 </div>
 </div>
-</section>
-
-<!-- Keyboard -->
-<section id="keyboard" style="padding: 112px 0">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 48px">
-<div style="display: flex; flex-direction: column; gap: 20px; max-width: 760px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t043}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t044}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t045}}</p>
-</div>
-<div class="four">
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6B665C">{{t046}}</p>
-<h3 style="margin: 0; font-size: 18px; font-weight: 600">{{t047}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t048}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6B665C">{{t049}}</p>
-<h3 style="margin: 0; font-size: 18px; font-weight: 600">{{t050}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t051}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6B665C">{{t052}}</p>
-<h3 style="margin: 0; font-size: 18px; font-weight: 600">{{t053}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t054}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6B665C">{{t055}}</p>
-<h3 style="margin: 0; font-size: 18px; font-weight: 600">{{t056}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t057}}</p>
-</div>
-</div>
-
-<!-- Ultra Focus -->
-<div style="background: #0B0B0A; border-radius: 16px; overflow: hidden">
-<div style="padding: clamp(28px,5vw,56px) clamp(24px,5vw,56px) clamp(24px,4vw,40px); display: grid; gap: 24px 56px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); align-items: end">
-<div style="display: flex; flex-direction: column; gap: 18px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #FF6A3D">{{t058}}</p>
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 44px; line-height: 1.08; color: #F6F3EC">{{t059}}</h3>
-</div>
-<p style="margin: 0; font-size: 17px; line-height: 1.65; color: #B9B3A6">{{t060}}</p>
-</div>
-<img class="rv" src="/assets/LANG/ultra-focus.jpg" width="1920" height="1200" loading="lazy" alt="{{n90}}" style="display: block; width: 100%; height: auto">
-</div>
-</div>
-</section>
-
-<!-- Command bar -->
-<section style="padding: 0 0 112px">
-<div class="wrap">
-<div class="two flip">
-<img src="/assets/7b472c688ee4aff5b79b9f13e0a512e0.jpg" alt="{{t198}}" style="display: block; width: 100%; max-width: 640px; margin: 0 auto; height: auto; border-radius: 14px; box-shadow: 0 30px 60px -30px rgba(40,32,16,0.4)">
-<div style="display: flex; flex-direction: column; gap: 20px">
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 48px; line-height: 1.08">{{t065}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t066}}</p>
-</div>
-</div>
-</div>
-</section>
-
-<!-- Kiosk mode -->
-<section id="kiosk" style="padding: 112px 0; background: #1F1D1A; color: #F6F3EC">
-<div class="wrap" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 28px">
-<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #B9B3A6">{{t067}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 64px; line-height: 1.04; max-width: 900px">{{t068}}</h2>
-<p style="margin: 0; font-size: 19px; line-height: 1.65; color: #D6D1C5; max-width: 700px">{{t069}}</p>
-<div class="three" style="width: 100%; max-width: 900px; padding-top: 16px; text-align: left">
-<div style="border-top: 1px solid #4A4740; padding-top: 18px; display: flex; flex-direction: column; gap: 8px">
-<h3 style="margin: 0; font-size: 16px; font-weight: 600">{{t070}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #B9B3A6">{{t071}}</p>
-</div>
-<div style="border-top: 1px solid #4A4740; padding-top: 18px; display: flex; flex-direction: column; gap: 8px">
-<h3 style="margin: 0; font-size: 16px; font-weight: 600">{{t072}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #B9B3A6">{{t073}}</p>
-</div>
-<div style="border-top: 1px solid #4A4740; padding-top: 18px; display: flex; flex-direction: column; gap: 8px">
-<h3 style="margin: 0; font-size: 16px; font-weight: 600">{{t074}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #B9B3A6">{{t075}}</p>
-</div>
-</div>
-</div>
-</section>
-
-<!-- Publishing -->
-<section id="publish" style="padding: 112px 0; background: #FFFFFF; border-top: 1px solid #E4DED2; border-bottom: 1px solid #E4DED2">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 56px">
-<div style="display: flex; flex-direction: column; gap: 20px; max-width: 780px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t076}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t077}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t078}}</p>
-</div>
-<img src="/assets/c27d45c67803f07bb9a80ddb824b09e9.jpg" alt="{{t199}}" style="display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid #DDD6C8; box-shadow: 0 30px 60px -36px rgba(40,32,16,0.35)">
-<div style="background: #EFEAE0; border-radius: 16px; padding: 56px 40px; display: flex; flex-direction: column; gap: 40px">
-<div style="display: flex; flex-direction: column; gap: 16px; max-width: 760px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C">{{t079}}</p>
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 44px; line-height: 1.08">{{t080}}</h3>
-<p style="margin: 0; font-size: 17px; line-height: 1.65; color: #4A4740">{{t081}}</p>
-</div>
-<div style="display: flex; justify-content: center; gap: 0; flex-wrap: wrap">
-<img src="/assets/53fc98b7cabce5572252462d6b8fa35d.jpg" alt="{{t200}}" style="display: block; width: min(420px, 100%); height: auto; background: #FFFFFF; box-shadow: -18px 24px 40px -28px rgba(40,32,16,0.45)">
-<img src="/assets/dc6c2df539b2673af252f7adde8d0cda.jpg" alt="{{t201}}" style="display: block; width: min(420px, 100%); height: auto; background: #FFFFFF; box-shadow: 18px 24px 40px -28px rgba(40,32,16,0.45)">
-</div>
-<div class="three">
-<div style="display: flex; flex-direction: column; gap: 8px">
-<h4 style="margin: 0; font-size: 16px; font-weight: 600">{{t082}}</h4>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t083}}</p>
-</div>
-<div style="display: flex; flex-direction: column; gap: 8px">
-<h4 style="margin: 0; font-size: 16px; font-weight: 600">{{t084}}</h4>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t085}}</p>
-</div>
-<div style="display: flex; flex-direction: column; gap: 8px">
-<h4 style="margin: 0; font-size: 16px; font-weight: 600">{{t086}}</h4>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t087}}</p>
-</div>
-</div>
-</div>
-<div class="two">
-<div style="display: flex; flex-direction: column; gap: 18px">
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 36px; line-height: 1.1">{{t088}}</h3>
-<dl style="margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 24px; font-size: 15px; line-height: 1.5">
-<dt style="font-weight: 600">{{t089}}</dt><dd style="margin: 0; color: #4A4740">{{t090}}</dd>
-<dt style="font-weight: 600">{{t091}}</dt><dd style="margin: 0; color: #4A4740">{{t092}}</dd>
-<dt style="font-weight: 600">{{t093}}</dt><dd style="margin: 0; color: #4A4740">{{t094}}</dd>
-<dt style="font-weight: 600">{{t095}}</dt><dd style="margin: 0; color: #4A4740">{{t096}}</dd>
-<dt style="font-weight: 600">{{t097}}</dt><dd style="margin: 0; color: #4A4740">{{t098}}</dd>
-</dl>
-<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #4A4740">{{t099}}</p>
-</div>
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
-<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
-<img src="/assets/3da782a0371060354d2c40b05694b0aa.jpg" alt="{{t202}}" style="display: block; width: 100%; height: auto; border: 1px solid #DDD6C8; box-shadow: 0 20px 40px -28px rgba(40,32,16,0.4)">
-<figcaption style="font-size: 13px; color: #6B665C">{{t100}}</figcaption>
-</figure>
-<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
-<img src="/assets/36f75b02213e4462dae38375a79f65b1.jpg" alt="{{t203}}" style="display: block; width: 100%; height: auto; border: 1px solid #DDD6C8; box-shadow: 0 20px 40px -28px rgba(40,32,16,0.4)">
-<figcaption style="font-size: 13px; color: #6B665C">{{t101}}</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</section>
-
-<!-- Six languages -->
-<section style="padding: 112px 0">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 48px">
-<div style="display: flex; flex-direction: column; gap: 20px; max-width: 760px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t102}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t103}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t104}}</p>
-</div>
-<div class="six">
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t105}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t106}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t107}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t108}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t109}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t110}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t111}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t112}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t113}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t114}}</p>
-</div>
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-<p style="margin: 0; font-size: 13px; font-weight: 600">{{t115}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 22px; line-height: 1.3">{{t116}}</p>
-</div>
-</div>
-<p style="margin: 0; font-size: 15px; color: #6B665C">{{t117}}</p>
 </div>
 </section>
 
 <!-- Versions -->
-<section id="versions" style="padding: 112px 0; background: #121211; color: #F6F3EC">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 56px">
-<div style="display: flex; flex-direction: column; gap: 22px; max-width: 800px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #9DAEFF">{{t004}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t118}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #B9B3A6">{{t119}}</p>
+<section class="sec night" id="versions">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{t004}}</p>
+<h3 class="d2">{{t118}}</h3>
 </div>
-<img src="/assets/8d33690692a4c385b7c2b1be8e4c692a.jpg" alt="{{t204}}" style="display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid #2E2C28">
-<div class="three">
-<div style="background: #1C1B19; border: 1px solid #2E2C28; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 28px">{{t120}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B9B3A6">{{t121}}</p>
+<p class="lede">{{t119}}</p>
 </div>
-<div style="background: #1C1B19; border: 1px solid #2E2C28; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 28px">{{t122}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B9B3A6">{{t123}}</p>
+<img class="rv" src="/assets/LANG/versions.jpg" width="1920" height="1200" loading="lazy" alt="{{t204}}" style="width: 100%; border-radius: 12px; border: 1px solid var(--night-rule)">
+<div class="rules three">
+<div><h4>{{t120}}</h4><p>{{t121}}</p></div>
+<div><h4>{{t122}}</h4><p>{{t123}}</p></div>
+<div><h4>{{t124}}</h4><p>{{t125}}</p></div>
 </div>
-<div style="background: #1C1B19; border: 1px solid #2E2C28; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
-<h3 style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 28px">{{t124}}</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B9B3A6">{{t125}}</p>
-</div>
-</div>
-<p style="margin: 0; font-size: 15px; line-height: 1.65; color: #8F897D; max-width: 820px">{{t126}}</p>
+<p class="fine">{{t126}}</p>
 </div>
 </section>
 
-<!-- Working with an editor -->
-<section id="review" style="padding: 112px 0; background: #FFFFFF; border-bottom: 1px solid #E4DED2">
-<div class="wrap">
-<div class="two flip">
-<img src="/assets/19358ff6a6d98fd02663a0a94c922966.jpg" alt="{{t205}}" style="display: block; width: 100%; max-width: 560px; margin: 0 auto; height: auto; border-radius: 14px; border: 1px solid #DDD6C8; box-shadow: 0 30px 60px -30px rgba(40,32,16,0.4); background: #FFFFFF">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t127}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 48px; line-height: 1.08">{{t128}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t129}}</p>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.55">
-<li>{{t130}}</li>
-<li>{{t131}}</li>
-<li>{{t132}}</li>
-<li>{{t133}}</li>
-</ul>
+<!-- ───────── IV · Share ───────── -->
+<header class="part" id="share" style="--above: var(--night)">
+<div class="wrap"><div>
+<p class="part-n" aria-hidden="true">IV</p>
+<div class="part-h">
+<p class="label">{{part}} IV · {{t163}}</p>
+<h2>{{p_share}}</h2>
+<h3 class="d4">{{t164}}</h3>
+<p class="txt">{{t165}}</p>
 </div>
+<div class="part-r">
+<div class="art rv"><svg viewBox="0 0 400 300" aria-hidden="true"><g transform="rotate(-4 150 150)"><rect x="100" y="30" width="130" height="250" rx="24" fill="#3A342C"/><rect x="90" y="20" width="130" height="250" rx="24" fill="#2A2620" stroke="#6B665C" stroke-width="2.5"/><rect x="98" y="28" width="114" height="234" rx="17" fill="#FFFEFA"/><path d="M135 56h40" fill="none" stroke="#1A1814" stroke-width="5" stroke-linecap="round"/><rect x="108" y="121" width="76" height="14" rx="3" fill="#E0A33A" opacity=".6"/><path d="M112 80h86" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="30 11 40 60"/><path d="M112 104h86" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="16 11 24 11 20 60"/><path d="M112 128h86" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="36 11 22 60"/><path d="M112 152h86" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round" stroke-dasharray="22 11 44 60"/><path d="M112 176h50" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/></g><path d="M236 70h122a14 14 0 0 1 14 14v50a14 14 0 0 1-14 14h-104l-22 18 4-18a14 14 0 0 1-14-14v-50a14 14 0 0 1 14-14z" fill="#F6F3EC" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M242 98h108M242 120h70" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/><path d="M264 180h98a14 14 0 0 1 14 14v36a14 14 0 0 1-14 14l4 18-22-18h-80a14 14 0 0 1-14-14v-36a14 14 0 0 1 14-14z" fill="#3A342C" stroke="#6B665C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M270 204h88M270 222h52" fill="none" stroke="#F6F3EC" stroke-width="4" stroke-linecap="round"/></svg></div>
+<aside class="mn q">
+<p class="mn-h"><i></i><b>{{lab_q}}</b> · Claire</p>
+<p class="mn-q">{{mn4q}}</p>
+<p>{{mn4a}}</p>
+</aside>
 </div>
-</div>
-</section>
-
-<!-- Sync -->
-<section id="sync" style="padding: 112px 0; border-bottom: 1px solid #E4DED2">
-<div class="wrap">
-<div class="two">
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t134}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t135}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t136}}</p>
-</div>
-<div style="display: flex; flex-direction: column; gap: 0; border-top: 1px solid #1A1A18">
-<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; padding: 20px 0; border-bottom: 1px solid #E4DED2">
-<p style="margin: 0; font-weight: 600; font-size: 16px">{{t137}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t138}}</p>
-</div>
-<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; padding: 20px 0; border-bottom: 1px solid #E4DED2">
-<p style="margin: 0; font-weight: 600; font-size: 16px">{{t139}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t140}}</p>
-</div>
-<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; padding: 20px 0; border-bottom: 1px solid #E4DED2">
-<p style="margin: 0; font-weight: 600; font-size: 16px">{{t141}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t142}}</p>
-</div>
-<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; padding: 20px 0; border-bottom: 1px solid #E4DED2">
-<p style="margin: 0; font-weight: 600; font-size: 16px">{{t143}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A4740">{{t144}}</p>
-</div>
-</div>
-</div>
-</div>
-</section>
+</div></div>
+</header>
 
 <!-- Musset Reader -->
-<section id="reader" style="padding: 112px 0; background: #FFFFFF; border-bottom: 1px solid #E4DED2">
+<section class="sec sheet" id="reader">
 <div class="wrap">
-<div class="two flip">
-<div class="phones" aria-label="{{t206}}" role="img">
-<div style="width: 280px; height: 580px; box-sizing: border-box; padding: 10px; border-radius: 46px; background: #1A1A18; box-shadow: 0 40px 70px -35px rgba(40,32,16,0.55)">
+<div class="split flip">
+<div class="phones rv" aria-label="{{t206}}" role="img">
+<div class="phone">
 <div style="width: 100%; height: 100%; border-radius: 37px; background: #FFFEFB; overflow: hidden; display: flex; flex-direction: column">
 <div style="display: flex; align-items: center; justify-content: space-between; padding: 26px 22px 10px; font-size: 12px; color: #6B665C">{{t145}}</div>
 <div style="flex: 1; padding: 18px 26px 0; position: relative; font-family: 'EB Garamond', serif; font-size: 14.5px; line-height: 1.42; color: #1A1A18; text-align: justify; hyphens: auto">
 <p style="margin: 0 0 14px; text-align: center; font-size: 19px; letter-spacing: 0.02em">{{t146}}</p>
-<p style="margin: 0">{{t147}}</p>
-<p style="margin: 0; text-indent: 1.1em">{{t148}}</p>
-<p style="margin: 0; text-indent: 1.1em">{{t149}}</p>
+<p>{{t147}}</p>
+<p style="text-indent: 1.1em">{{t148}}</p>
+<p style="text-indent: 1.1em">{{t149}}</p>
 <span aria-hidden="true" style="position: absolute; right: 7px; top: 148px; width: 4px; height: 20px; border-radius: 4px; background: #B86B0A"></span>
 </div>
-<p style="margin: 0; padding: 12px 0 22px; text-align: center; font-size: 11px; color: #6B665C">{{t150}}</p>
+<p style="padding: 12px 0 22px; text-align: center; font-size: 11px; color: #6B665C">{{t150}}</p>
 </div>
 </div>
-<div class="lower" style="width: 280px; height: 580px; box-sizing: border-box; padding: 10px; border-radius: 46px; background: #1A1A18; box-shadow: 0 40px 70px -35px rgba(40,32,16,0.55)">
+<div class="phone lower">
 <div style="width: 100%; height: 100%; border-radius: 37px; background: #ECEAE4; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
 <div style="background: #FFFFFF; border-radius: 22px 22px 0 0; padding: 22px 20px 26px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; line-height: 1.45">
 <span aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 5px; background: #D6D1C5"></span>
-<p style="margin: 0; font-weight: 600; color: #2E4AC7">{{t151}}</p>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 15px; color: #6B665C">{{t152}}</p>
+<p style="font-weight: 600; color: #2E4AC7">{{t151}}</p>
+<p style="font-family: 'EB Garamond', serif; font-size: 15px; color: #6B665C">{{t152}}</p>
 <div style="display: flex; gap: 10px">
 <span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: rgba(184,107,10,0.15); color: #8A5006; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{t153}}</span>
-<div><p style="margin: 0; font-size: 11px; color: #6B665C">{{t154}}</p><p style="margin: 2px 0 0">{{t155}}</p></div>
+<div><p style="font-size: 11px; color: #6B665C">{{t154}}</p><p style="margin-top: 2px">{{t155}}</p></div>
 </div>
 <div style="display: flex; gap: 10px">
 <span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: #1A1A18; color: #FFFFFF; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{t156}}</span>
-<div><p style="margin: 0; font-size: 11px; color: #6B665C">{{t157}}</p><p style="margin: 2px 0 0">{{t158}}</p></div>
+<div><p style="font-size: 11px; color: #6B665C">{{t157}}</p><p style="margin-top: 2px">{{t158}}</p></div>
 </div>
 <div style="display: flex; gap: 10px">
 <span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: rgba(184,107,10,0.15); color: #8A5006; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{t153}}</span>
-<div><p style="margin: 0; font-size: 11px; color: #6B665C">{{t159}}</p><p style="margin: 2px 0 0">{{t160}}</p></div>
+<div><p style="font-size: 11px; color: #6B665C">{{t159}}</p><p style="margin-top: 2px">{{t160}}</p></div>
 </div>
 <div style="border: 1px solid #DDD6C8; border-radius: 10px; padding: 9px 12px; color: #6B665C">{{t161}}</div>
 <div style="display: flex; gap: 8px; justify-content: flex-end">{{t162}}</div>
@@ -615,37 +1015,168 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 </div>
 </div>
 </div>
-<div style="display: flex; flex-direction: column; gap: 22px">
-<p style="margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #2E4AC7">{{t163}}</p>
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t164}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.65; color: #4A4740">{{t165}}</p>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.55">
+<div class="col" style="align-items: stretch">
+<ul class="plain">
 <li>{{t166}}</li>
 <li>{{t167}}</li>
 <li>{{t168}}</li>
 <li>{{t169}}</li>
 <li>{{t170}}</li>
 </ul>
-<p style="margin: 0; font-size: 15px; color: #6B665C">{{t171}}</p>
+<p class="fine">{{t171}}</p>
 </div>
 </div>
 </div>
 </section>
 
+<!-- Working with an editor -->
+<section class="sec" id="review">
+<div class="wrap">
+<div class="split">
+<div class="col" style="align-items: stretch">
+<p class="label red">{{t127}}</p>
+<h3 class="d2">{{t128}}</h3>
+<p class="lede">{{t129}}</p>
+<ul class="plain">
+<li>{{t130}}</li>
+<li>{{t131}}</li>
+<li>{{t132}}</li>
+<li>{{t133}}</li>
+</ul>
+</div>
+<img class="shot panel rv" src="/assets/LANG/corrections.jpg" width="766" height="690" loading="lazy" alt="{{t205}}">
+</div>
+</div>
+</section>
+
+<!-- Sync -->
+<section class="sec deep" id="sync">
+<div class="wrap">
+<div class="split top">
+<div class="col">
+<p class="label red">{{t134}}</p>
+<h3 class="d2">{{t135}}</h3>
+<p class="lede">{{t136}}</p>
+</div>
+<div class="ledger">
+<div><h4>{{t137}}</h4><p>{{t138}}</p></div>
+<div><h4>{{t139}}</h4><p>{{t140}}</p></div>
+<div><h4>{{t141}}</h4><p>{{t142}}</p></div>
+<div><h4>{{t143}}</h4><p>{{t144}}</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ───────── V · Publish ───────── -->
+<header class="part" id="publish" style="--above: var(--deep)">
+<div class="wrap"><div>
+<p class="part-n" aria-hidden="true">V</p>
+<div class="part-h">
+<p class="label">{{part}} V · {{t076}}</p>
+<h2>{{p_publish}}</h2>
+<h3 class="d4">{{t077}}</h3>
+<p class="txt">{{t078}}</p>
+</div>
+<div class="part-r">
+<div class="art rv"><svg viewBox="0 0 400 310" aria-hidden="true"><path d="M14 52h14M34 32v14M372 52h14M366 32v14M14 282h14M34 288v14M372 282h14M366 288v14" fill="none" stroke="#F6F3EC" stroke-width="2.5" stroke-linecap="round"/><path d="M48 84L200 98 352 84V268L200 282 48 268Z" fill="#3A342C"/><path d="M40 76L200 90 360 76V260L200 274 40 260Z" fill="#4A433A" stroke="#6B665C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M200 84C160 62 100 60 52 72V250C100 238 160 240 200 262Z" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M200 84C240 62 300 60 348 72V250C300 238 240 240 200 262Z" fill="#FFFEFA" stroke="#1A1814" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M72 104Q128 94 184 108M72 126Q128 116 184 130M72 148Q128 138 184 152M72 170Q128 160 184 174M72 192Q128 182 184 196M72 214Q128 204 150 208" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/><path d="M246 104Q274 98 302 102" fill="none" stroke="#1A1814" stroke-width="6" stroke-linecap="round"/><path d="M216 132Q272 118 328 128M216 154Q272 140 328 150M216 222Q272 208 328 218" fill="none" stroke="#1A1814" stroke-width="4" stroke-linecap="round"/><g fill="#C8321E"><circle cx="272" cy="176" r="4.500"/><circle cx="263" cy="190" r="4.500"/><circle cx="281" cy="190" r="4.500"/></g></svg></div>
+<aside class="mn k">
+<p class="mn-h"><i></i><b>{{lab_k}}</b> · Claire</p>
+<p>{{mn5}}</p>
+</aside>
+</div>
+</div></div>
+</header>
+
+<section class="sec sheet" style="padding-top: clamp(48px,6vw,88px)">
+<div class="wrap flow">
+<img class="shot rv" src="/assets/LANG/reading.jpg" width="1920" height="1200" loading="lazy" alt="{{t199}}">
+<div class="split top">
+<div class="col">
+<p class="label red">{{t079}}</p>
+<h3 class="d2">{{t080}}</h3>
+<p class="lede">{{t081}}</p>
+</div>
+<div class="spread rv">
+<img src="/assets/LANG/book-left.jpg" width="900" height="1410" loading="lazy" alt="{{t200}}">
+<img src="/assets/LANG/book-right.jpg" width="900" height="1410" loading="lazy" alt="{{t201}}">
+</div>
+</div>
+<div class="rules three">
+<div><h4>{{t082}}</h4><p>{{t083}}</p></div>
+<div><h4>{{t084}}</h4><p>{{t085}}</p></div>
+<div><h4>{{t086}}</h4><p>{{t087}}</p></div>
+</div>
+</div>
+</section>
+
+<!-- Every country's manuscript -->
+<section class="sec">
+<div class="wrap">
+<div class="split top">
+<div class="col" style="align-items: stretch">
+<h3 class="d2">{{t088}}</h3>
+<dl class="norms">
+<dt>{{t089}}</dt><dd>{{t090}}</dd>
+<dt>{{t091}}</dt><dd>{{t092}}</dd>
+<dt>{{t093}}</dt><dd>{{t094}}</dd>
+<dt>{{t095}}</dt><dd>{{t096}}</dd>
+<dt>{{t097}}</dt><dd>{{t098}}</dd>
+</dl>
+<p class="txt" style="font-size: 18px">{{t099}}</p>
+</div>
+<div class="sheets rv">
+<figure>
+<img src="/assets/LANG/manuscript.jpg" loading="lazy" alt="{{t202}}">
+<figcaption class="fine">{{t100}}</figcaption>
+</figure>
+<figure>
+<img src="/assets/36f75b02213e4462dae38375a79f65b1.jpg" loading="lazy" alt="{{t203}}">
+<figcaption class="fine">{{t101}}</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Six languages -->
+<section class="sec deep">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label red">{{t102}}</p>
+<h3 class="d2">{{t103}}</h3>
+</div>
+<p class="lede">{{t104}}</p>
+</div>
+<div class="spec">
+<div><p class="label">{{t105}}</p><p lang="en">{{t106}}</p></div>
+<div><p class="label">{{t107}}</p><p lang="fr">{{t108}}</p></div>
+<div><p class="label">{{t109}}</p><p lang="de">{{t110}}</p></div>
+<div><p class="label">{{t111}}</p><p lang="es">{{t112}}</p></div>
+<div><p class="label">{{t113}}</p><p lang="it">{{t114}}</p></div>
+<div><p class="label">{{t115}}</p><p lang="pt">{{t116}}</p></div>
+</div>
+<p class="fine">{{t117}}</p>
+</div>
+</section>
+
 <!-- Pricing -->
-<section id="pricing" style="padding: 112px 0">
-<div class="wrap" style="display: flex; flex-direction: column; gap: 48px">
-<div style="display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center">
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 56px; line-height: 1.05">{{t172}}</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #4A4740; max-width: 620px">{{t173}}</p>
+<section class="sec" id="pricing">
+<div class="wrap flow">
+<div class="split end">
+<div class="col">
+<p class="label">{{t007}}</p>
+<h2 class="d2">{{pr_title}}</h2>
 </div>
-<div class="prices" style="max-width: 920px; margin: 0 auto; width: 100%">
-<div style="background: #FFFFFF; border: 1px solid #E4DED2; border-radius: 16px; padding: 40px; display: flex; flex-direction: column; gap: 22px">
-<div style="display: flex; flex-direction: column; gap: 6px">
-<h3 style="margin: 0; font-size: 20px; font-weight: 600">{{t001}}</h3>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 56px; line-height: 1">{{t174}}</p>
+<p class="lede">{{pr_sub}}</p>
 </div>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.5; color: #4A4740">
+<div class="prices">
+<div class="price">
+<h3 class="label">{{t001}}</h3>
+<p class="amt">{{t174}}</p>
+<p class="fine">{{pr_note}}</p>
+<ul class="plain">
 <li>{{t175}}</li>
 <li>{{t176}}</li>
 <li>{{t177}}</li>
@@ -654,14 +1185,13 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 <li>{{t180}}</li>
 <li>{{open_free}}</li>
 </ul>
-<a href="/download" style="margin-top: auto; text-align: center; font-size: 16px; font-weight: 500; color: #1A1A18; border: 1px solid #1A1A18; text-decoration: none; padding: 14px 20px; border-radius: 999px">{{t181}}</a>
+<a class="key red" href="/download">{{t181}} <i aria-hidden="true">↓</i></a>
 </div>
-<div style="background: #1A1A18; color: #F6F3EC; border-radius: 16px; padding: 40px; display: flex; flex-direction: column; gap: 22px">
-<div style="display: flex; flex-direction: column; gap: 6px">
-<h3 style="margin: 0; font-size: 20px; font-weight: 600">{{t134}}</h3>
-<p style="margin: 0; font-family: 'EB Garamond', serif; font-size: 56px; line-height: 1">{{t182}}</p>
-</div>
-<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.5; color: #D6D1C5">
+<div class="price">
+<h3 class="label">{{t134}}</h3>
+<p class="amt">{{t182}}</p>
+<p class="fine">{{pr_sync}}</p>
+<ul class="plain">
 <li>{{t183}}</li>
 <li>{{t184}}</li>
 <li>{{t185}}</li>
@@ -669,32 +1199,116 @@ a{color:#2E4AC7}a:hover{color:#1F348F}
 <li>{{t187}}</li>
 <li>{{t188}}</li>
 </ul>
-<a href="/download" style="margin-top: auto; text-align: center; font-size: 16px; font-weight: 500; color: #1A1A18; background: #F6F3EC; text-decoration: none; padding: 14px 20px; border-radius: 999px">{{t189}}</a>
+<a class="key line" href="/download">{{t189}}</a>
 </div>
 </div>
 </div>
 </section>
 
 <!-- Download -->
-<section id="download" style="padding: 96px 0 120px; border-top: 1px solid #E4DED2">
-<div class="wrap" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px">
-<h2 class="section-title" style="margin: 0; font-family: 'EB Garamond', serif; font-weight: 400; font-size: 64px; line-height: 1.05; max-width: 820px">{{t190}}</h2>
-<a href="/download" style="font-size: 17px; font-weight: 500; color: #FFFFFF; background: #2E4AC7; text-decoration: none; padding: 16px 28px; border-radius: 999px">{{t012}}</a>
-<p style="margin: 0; font-size: 13px; color: #6B665C">{{t191}} · {{open_short}}</p>
-<p style="margin: 8px 0 0; font-size: 15px; color: #4A4740">{{t192}}</p>
+<section class="sec night colophon" id="download">
+<div class="wrap col">
+<h2>{{t190}}</h2>
+<a class="key red" href="/download">{{t012}} <i aria-hidden="true">↓</i></a>
+<p class="fine">{{t191}}<br>{{open_short}}</p>
+<p class="txt">{{t192}}</p>
 </div>
 </section>
 
-<footer style="border-top: 1px solid #E4DED2; padding: 32px 0">
-<div class="wrap" style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-size: 13px; color: #6B665C">{{t193}}</div>
+</main>
+
+<footer>
+<div class="wrap">
+<div class="foot-top">{{t193}}</div>
 {{switcher}}
 {{compare}}
-<p class="wrap" style="margin: 12px auto 0; font-size: 13px"><a href="https://github.com/Musset-App/musset" rel="noopener" style="color: #6B665C">Source code on GitHub</a></p>
-<div class="wrap" style="margin-top: 24px"><a href="https://macappindex.com/apps/musset?ref=badge" target="_blank" rel="noopener" title="Musset on Mac App Index"><img src="https://macappindex.com/apps/musset/badge.svg?theme=light&amp;height=56" alt="Musset on Mac App Index" width="224" height="56" loading="lazy" style="display: block"></a></div>
+<p><a href="https://github.com/Musset-App/musset" rel="noopener">GitHub</a> · <a href="/privacy/">Privacy</a> · <a href="/support/">Support</a></p>
+<p>{{colophon}}</p>
+<a href="https://macappindex.com/apps/musset?ref=badge" target="_blank" rel="noopener" title="Musset on Mac App Index" style="align-self: flex-start; margin-top: 8px"><img src="https://macappindex.com/apps/musset/badge.svg?theme=light&amp;height=56" alt="Musset on Mac App Index" width="224" height="56" loading="lazy"></a>
+</div>
 </footer>
 
-</div>
-<script>(function(){var n=document.querySelectorAll(".rv");if(!("IntersectionObserver" in window)){n.forEach(function(e){e.classList.add("in")});return}
-var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");o.unobserve(e.target)}})},{rootMargin:"0px 0px -12% 0px"});n.forEach(function(e){o.observe(e)})})()</script>
+<script>
+(function(){
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return [].slice.call((r||document).querySelectorAll(s))};
+
+// Pictures arrive as they come into view.
+var rv=$$(".rv");
+if(!("IntersectionObserver" in window)){rv.forEach(function(e){e.classList.add("in")})}
+else{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}})},{rootMargin:"0px 0px -10% 0px"});rv.forEach(function(e){io.observe(e)})}
+
+// The mode switch shows the part being read; the red line under it, how far into the page.
+var tabs=$$(".modes a"),parts=tabs.map(function(a){return $(a.getAttribute("href"))}),end=$("#pricing"),bar=$(".read"),due=false;
+function place(){due=false;var y=window.scrollY,h=document.documentElement.scrollHeight-window.innerHeight,cur=-1;
+bar.style.transform="scaleX("+(h>0?Math.min(1,y/h):0)+")";
+parts.forEach(function(p,i){if(p&&p.getBoundingClientRect().top<140)cur=i});
+if(end&&end.getBoundingClientRect().top<140)cur=-1;
+tabs.forEach(function(a,i){if(i===cur)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current")})}
+window.addEventListener("scroll",function(){if(!due){due=true;requestAnimationFrame(place)}},{passive:true});place();
+
+// The headline's correction: accept it or refuse it, as in Revise.
+var h1=$(".d1"),card=$(".corr"),res=$(".corr-res");
+if(h1&&card){card.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+var a=b.dataset.a;h1.classList.remove("accepted","rejected");
+if(!a){card.removeAttribute("data-state");res.textContent="";return}
+h1.classList.add(a);card.setAttribute("data-state",a);res.textContent=res.dataset[a]+" ";
+var u=document.createElement("button");u.type="button";u.textContent=res.dataset.undo;res.appendChild(u)})}
+
+// The hero's demonstration. A frame is [step, milliseconds into it, the state classes]; a step plays its frames,
+// then the next one starts. A click on a step goes there; paused (or reduced motion), a step shows its last frame.
+var stage=$(".stage"),demo=$(".demo");
+if(demo){var FR=[[0,0,"s-uf"],[0,3100,"s-uf s-r1"],[0,3650,"s-uf s-r2"],[1,0,""],[1,1300,"s-flag"],[1,2500,"s-fixed"],
+[2,0,"s-fixed s-np"],[2,900,"s-fixed s-np s-n1"],[2,2900,"s-fixed s-np s-n1 s-n2"],
+[3,0,"s-fixed s-np s-n1 s-n2 s-tel"],[3,1300,"s-fixed s-np s-n1 s-n2 s-tel s-said"],[3,3000,"s-fixed s-np s-cor s-rev s-tel s-said"],
+[4,0,"s-fixed s-np s-cor s-rev"],[4,1400,"s-fixed s-np s-cor s-rev s-acc"],[4,3100,"s-fixed s-rev s-acc"],
+[5,0,"s-fixed s-acc s-read s-page"],[5,2400,"s-fixed s-acc s-read s-page s-press"],[5,2750,"s-fixed s-acc s-read s-page s-out"]],
+DUR=[7400,4300,5400,5800,4700,6400],btns=$$(".step",stage),caps=$$(".cap span",stage),pp=$(".pp",stage),
+q=function(s){return $(s,demo).textContent},one=q(".colm .p2e")+" "+q(".cdel span")+" "+q(".p2c")+q(".bad")+q(".p2d"),two=q(".s3a"),
+calm=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches,wanted=!calm,seen=false,running=false,at=calm?2:0,T=[],I=[];
+var stop=function(){T.forEach(clearTimeout);I.forEach(clearInterval);T=[];I=[];running=false};
+var set=function(c){demo.className="demo "+c};
+var type=function(sel,text,ms){var el=$(sel,demo),i=0,n=text.length,k=setInterval(function(){el.textContent=text.slice(0,++i);if(i>=n)clearInterval(k)},ms/n);el.textContent="";I.push(k)};
+var typed=function(a,b){$(".uf2",demo).textContent=a;$(".uf3",demo).textContent=b};
+var go=function(s){stop();at=s;var f=FR.filter(function(x){return x[0]===s}),play=wanted&&seen&&!document.hidden;
+btns.forEach(function(b){b.removeAttribute("aria-current")});void stage.offsetWidth;btns[s].setAttribute("aria-current","step");
+caps.forEach(function(c,i){c.classList.toggle("on",i===s)});stage.style.setProperty("--d",DUR[s]+"ms");
+stage.classList.toggle("paused",!wanted);pp.setAttribute("aria-label",pp.dataset[wanted?"pause":"play"]);
+if(!play){set(f[f.length-1][2]);typed(one,two);return}
+running=true;set(f[0][2]);f.slice(1).forEach(function(x){T.push(setTimeout(function(){set(x[2])},x[1]))});
+if(s===0){typed("","");T.push(setTimeout(function(){type(".uf2",one,2000)},600),setTimeout(function(){type(".uf3",two,1700)},4250))}else typed(one,two);
+T.push(setTimeout(function(){go((s+1)%6)},DUR[s]))};
+btns.forEach(function(b,i){b.addEventListener("click",function(){go(i)})});
+pp.addEventListener("click",function(){wanted=!wanted;go(at)});
+document.addEventListener("visibilitychange",function(){if(document.hidden)stop();else if(wanted&&seen)go(at)});
+if("IntersectionObserver" in window){new IntersectionObserver(function(es){seen=es[0].isIntersecting;if(!seen)stop();else if(wanted&&!running)go(at)},{threshold:.15}).observe(demo)}else seen=true;
+go(at)}
+
+// Ultra Focus, for real: the text only goes forward. Light lets the sentence in hand be mended, Normal lets the
+// end be erased, Hardcore neither.
+var uf=$("#uf");
+if(uf){var ta=$("textarea",uf),old=$(".uf-old",uf),now=$(".uf-now",uf),count=$(".uf-count",uf),prev="",t;
+var cut=function(s){var m,i=0,re=/[.!?…]+["”»’)]*\s+/g;while((m=re.exec(s)))i=m.index+m[0].length;return i};
+var show=function(){var i=cut(prev);old.textContent=prev.slice(0,i);now.textContent=prev.slice(i);
+count.textContent=(prev.trim().match(/\S+/g)||[]).length;uf.classList.toggle("dirty",prev.length>0)};
+var no=function(){uf.classList.remove("nope");void uf.offsetWidth;uf.classList.add("nope");clearTimeout(t);t=setTimeout(function(){uf.classList.remove("nope")},1400)};
+var toEnd=function(){var n=ta.value.length;try{ta.setSelectionRange(n,n)}catch(e){}};
+ta.addEventListener("input",function(){var v=ta.value,level=uf.dataset.level,ok;
+if(level==="hard")ok=v.indexOf(prev)===0;
+else if(level==="normal")ok=v.indexOf(prev)===0||prev.indexOf(v)===0;
+else ok=v.indexOf(prev.slice(0,cut(prev)))===0;
+if(ok)prev=v;else{ta.value=prev;no()}
+toEnd();show()});
+ta.addEventListener("keydown",function(e){if(["ArrowLeft","ArrowUp","Home","PageUp"].indexOf(e.key)>=0)e.preventDefault();
+if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="a")){e.preventDefault();if(e.key==="z")no()}});
+["focus","click","select","keyup"].forEach(function(n){ta.addEventListener(n,toEnd)});
+ta.addEventListener("focus",function(){uf.classList.add("on")});
+ta.addEventListener("blur",function(){uf.classList.remove("on")});
+$$(".seg button",uf).forEach(function(b){b.addEventListener("click",function(){uf.dataset.level=b.dataset.level;
+$$(".seg button",uf).forEach(function(o){o.setAttribute("aria-checked",o===b?"true":"false")});ta.focus({preventScroll:true})})})}
+
+// In the specimen, the marks each language sets are in red.
+$$(".spec p[lang]").forEach(function(p){p.innerHTML=p.textContent.replace(/[«»“”„‘’—–¿]/g,function(c){return '<i class="pm">'+c+"</i>"})});
+})();
+</script>
 </body>
 </html>

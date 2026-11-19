@@ -141,6 +141,36 @@ struct TalkEntry: Codable, Identifiable, Equatable {
     var milestone: String?
 }
 
+/// The part of a book a reader was given: all of it, the chapters at some statuses (as they stood in the milestone
+/// they read), or chapters the author chose one by one.
+struct ReadingScope: Codable, Equatable {
+    var statuses: [String]? = nil
+    var chapters: [String]? = nil
+
+    static func statuses(_ list: [ChapterStatus]) -> ReadingScope { ReadingScope(statuses: ChapterStatus.allCases.filter(list.contains).map(\.rawValue)) }
+    static func chapters(_ ids: [String]) -> ReadingScope { ReadingScope(chapters: ids) }
+
+    func allows(_ ch: ChapterEntry) -> Bool {
+        if let chapters { return chapters.contains(ch.id) }
+        if let statuses { return statuses.contains((ch.status ?? .draft).rawValue) }
+        return true
+    }
+
+    /// As the server takes it.
+    var body: [String: Any] { chapters.map { ["chapters": $0] } ?? ["statuses": statuses ?? []] }
+
+    /// « Edited, Final », « 3 chapters »: what a list says of it.
+    func label(pieces: (Int) -> String) -> String {
+        if let chapters { return pieces(chapters.count) }
+        return (statuses ?? []).compactMap { ChapterStatus(rawValue: $0)?.label }.joined(separator: ", ")
+    }
+}
+
+extension Optional where Wrapped == ReadingScope {
+    /// No scope is the whole book.
+    func allows(_ ch: ChapterEntry) -> Bool { self?.allows(ch) ?? true }
+}
+
 /// One conversation, anchored to a passage.
 struct TalkThread: Identifiable, Equatable {
     let id: UUID

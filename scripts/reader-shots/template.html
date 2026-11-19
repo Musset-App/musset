@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- One composed App Store screenshot of Musset Reader: a headline over the device.
+     Rendered by scripts/reader-store-shots.sh with headless Chrome: template.html?device=iphone&slide=1
+     iPhone 6.9" is 1320 × 2868, iPad 13" is 2064 × 2752. The captures are those of scripts/reader-shots.sh. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:"EB Garamond";src:url("../../Musset/Resources/Fonts/EBGaramond-Regular.otf")}
+@font-face{font-family:"EB Garamond";font-style:italic;src:url("../../Musset/Resources/Fonts/EBGaramond-Italic.otf")}
+@font-face{font-family:"Inter";font-weight:100 900;src:url("../../Musset/Resources/Fonts/Inter.ttf")}
+*{box-sizing:border-box}
+html,body{margin:0;overflow:hidden}
+body{--paper:#F6F3EC;--ink:#1A1A18;--soft:#4A4740;--blue:#2E4AC7;--bezel:#0E0E10;
+  background:var(--paper);color:var(--ink);font-family:Inter,sans-serif;position:relative;-webkit-font-smoothing:antialiased}
+body.dark{--paper:#131210;--ink:#F6F3EC;--soft:#B9B3A6;--blue:#8FA2FF;--bezel:#2A2927}
+body.iphone{width:1320px;height:2868px;--w:1000px;--top:672px;--r:132px;--b:20px;--h1:132px;--sub:50px;--eye:30px;--pad:96px;--text:120px}
+body.ipad{width:2064px;height:2752px;--w:1500px;--top:650px;--r:72px;--b:26px;--h1:150px;--sub:54px;--eye:32px;--pad:220px;--text:112px}
+.glow{position:absolute;inset:0;background:
+  radial-gradient(90% 40% at 85% 58%, rgba(255,106,61,.20), transparent 70%),
+  radial-gradient(90% 45% at 10% 82%, rgba(46,74,199,.17), transparent 70%)}
+body.dark .glow{background:
+  radial-gradient(90% 40% at 85% 58%, rgba(255,106,61,.15), transparent 70%),
+  radial-gradient(90% 45% at 10% 82%, rgba(86,110,255,.20), transparent 70%)}
+.text{position:absolute;left:var(--pad);right:var(--pad);top:var(--text);text-align:center}
+.eyebrow{font-size:var(--eye);font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin:0 0 30px}
+h1{font-family:"EB Garamond",serif;font-weight:400;font-size:var(--h1);line-height:1.0;letter-spacing:-.012em;margin:0;text-wrap:balance}
+h1 em{font-style:italic}
+.sub{font-size:var(--sub);line-height:1.36;color:var(--soft);margin:34px auto 0;text-wrap:balance}
+.device{position:absolute;left:50%;top:var(--top);width:var(--w);transform:translateX(-50%);border-radius:calc(var(--r) + var(--b));padding:var(--b);background:var(--bezel);
+  box-shadow:0 0 0 2px rgba(255,255,255,.10) inset,0 0 0 1.5px rgba(40,32,16,.30),0 90px 160px -50px rgba(30,22,8,.55),0 30px 60px -30px rgba(30,22,8,.35)}
+body.dark .device{box-shadow:0 0 0 2px rgba(255,255,255,.12) inset,0 0 0 1.5px rgba(255,255,255,.10),0 90px 200px -40px rgba(0,0,0,.9)}
+.device img{display:block;width:100%;border-radius:var(--r)}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="text"><p class="eyebrow"></p><h1></h1><p class="sub"></p></div>
+<div class="device"><img></div>
+<script>
+// The App Store's pictures, in order. `shot` is the capture's name in raw/<device>/.
+const SLIDES = [
+  { id: "page", shot: "2-book", eyebrow: "Musset Reader", h1: "Their book, set like a <em>printed page</em>.", sub: "An author shared a manuscript with you. Read it the way it will print." },
+  { id: "talk", shot: "4-talk", eyebrow: "Notes", h1: "Say what you think, <em>where</em> you think it.", sub: "Mark a passage, leave a note. The author answers in the same place." },
+  { id: "shelf", shot: "1-shelf", eyebrow: "Books", h1: "Every manuscript you were <em>trusted</em> with.", sub: "Shared by invitation only. Nobody else can open them." },
+  { id: "night", shot: "3-night", eyebrow: "Night", h1: "Read late. The page <em>follows</em>.", sub: "Day and night, the text size you like, a real book typeface.", dark: true },
+  { id: "activity", shot: "5-activity", eyebrow: "Activity", h1: "Know when the author <em>answers</em>.", sub: "New milestones, replies and books, since you last looked." },
+];
+const q = new URLSearchParams(location.search), device = q.get("device") || "iphone", s = SLIDES[(+q.get("slide") || 1) - 1];
+document.body.className = device + (s.dark ? " dark" : "");
+document.querySelector(".eyebrow").textContent = s.eyebrow;
+document.querySelector("h1").innerHTML = s.h1;
+document.querySelector(".sub").textContent = s.sub;
+document.querySelector("img").src = `../../docs/listing-kit/reader/raw/${device}/${s.shot}.png`;
+</script>
+</body>
+</html>

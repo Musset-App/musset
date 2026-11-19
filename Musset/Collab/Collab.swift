@@ -29,6 +29,8 @@ final class Collab {
     @ObservationIgnored var again = Set<String>()
     @ObservationIgnored var waitingRemovals: [String: [String]] = [:]
     var lastError: String?
+    /// Moves when the part of a book given to me changes, so the sidebar reads it again.
+    private(set) var partsRevision = 0
     /// The plan (free or writer) and the rest musset-api knows; nil until asked.
     var account: AccountInfo?
     /// The people I know on Musset, and those I invited by e-mail.
@@ -308,8 +310,25 @@ final class Collab {
     /// Where a reader's copy starts from: the milestone they were given (once it has arrived here), else the
     /// author's text as it is.
     func readingStart(_ git: GitService, remote: String) async -> (ref: String, tag: String?) {
-        guard let me = username, let tag = await reading(of: git)[me]?.tag, git.resolve("refs/tags/\(tag)") != nil else { return ("\(remote)/main", nil) }
+        var mine: Reading?
+        if let me = username { mine = await reading(of: git)[me] }
+        setPart(mine?.scope, for: git)
+        guard let tag = mine?.tag, git.resolve("refs/tags/\(tag)") != nil else { return ("\(remote)/main", nil) }
         return ("refs/tags/\(tag)", tag)
+    }
+
+    /// The part of someone's book I was given, kept on this Mac with the copy: the sidebar lists only that.
+    func part(for git: GitService) -> ReadingScope? {
+        _ = partsRevision
+        guard let data = (UserDefaults.standard.dictionary(forKey: "collabPart") as? [String: Data])?[git.root.standardizedFileURL.path] else { return nil }
+        return try? JSONDecoder().decode(ReadingScope.self, from: data)
+    }
+
+    func setPart(_ scope: ReadingScope?, for git: GitService) {
+        var all = UserDefaults.standard.dictionary(forKey: "collabPart") as? [String: Data] ?? [:]
+        all[git.root.standardizedFileURL.path] = scope.flatMap { try? JSONEncoder().encode($0) }
+        UserDefaults.standard.set(all, forKey: "collabPart")
+        partsRevision += 1
     }
 
     /// The milestone this copy of someone's book was last set on, kept on this Mac: what tells a newer one has come.

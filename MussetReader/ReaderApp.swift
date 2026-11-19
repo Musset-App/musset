@@ -25,8 +25,12 @@ struct MussetReaderApp: App {
                 await api.refreshAll()
             }
             .onOpenURL { url in
-                // musset://join/<token>: an invitation, opened on the phone.
-                if url.host == "join" { ReaderDelegate.pendingInvitation = url.lastPathComponent }
+                // musset://join/<token>: an invitation, opened on the phone. Signed in, it is accepted at once;
+                // otherwise it waits for the account that signs in or is created next.
+                guard url.host == "join" else { return }
+                let token = url.lastPathComponent
+                if api.signedIn { Task { try? await api.acceptInvitation(token) } }
+                else { ReaderDelegate.pendingInvitation = token }
             }
         }
     }
@@ -111,6 +115,8 @@ struct SignInView: View {
             .padding(.horizontal, 28).padding(.top, 72).padding(.bottom, 40)
         }
         .background(Color(red: 1, green: 0.996, blue: 0.984))
+        // Drawn on paper, whatever the phone's appearance: at night its text would be white on cream.
+        .environment(\.colorScheme, .light)
     }
 
     private func field(_ label: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
@@ -129,7 +135,11 @@ struct SignInView: View {
         Task {
             do {
                 if creating { try await api.signUp(email: email, password: password, name: name, invitation: ReaderDelegate.pendingInvitation) }
-                else { try await api.signIn(username: user, password: password) }
+                else {
+                    try await api.signIn(username: user, password: password)
+                    // An invitation opened before signing in: accepted now.
+                    if let token = ReaderDelegate.pendingInvitation { try? await api.acceptInvitation(token) }
+                }
                 ReaderDelegate.pendingInvitation = nil
             } catch { self.error = error.localizedDescription }
             working = false
@@ -139,25 +149,49 @@ struct SignInView: View {
 
 // MARK: Tabs
 
+/// For the store's screenshots (scripts/reader-shots.sh), in development builds only: the screen to open on,
+/// asked at launch with MUSSET_READER_SCREEN = book, night, talk, activity or circle; MUSSET_READER_BOOK names the
+/// book to open (its folder's name), the first one otherwise.
+enum ShotScreen {
+    static var opensBook: Bool { ["book", "night", "talk"].contains(asked ?? "") }
+    static let book: String? = {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["MUSSET_READER_BOOK"]
+        #else
+        return nil
+        #endif
+    }()
+    static let asked: String? = {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["MUSSET_READER_SCREEN"]
+        #else
+        return nil
+        #endif
+    }()
+}
+
 struct ReaderTabs: View {
     private var api: ReaderAPI { .shared }
+    @State private var tab = ShotScreen.asked == "activity" ? 1 : ShotScreen.asked == "circle" ? 2 : 0
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             NavigationStack { ShelfView() }
-                .tabItem { Label(L("Books"), systemImage: "book") }
+                .tabItem { Label(L("Books"), systemImage: "book") }.tag(0)
             NavigationStack { ReaderActivityView() }
-                .tabItem { Label(L("Activity"), systemImage: "bell") }
+                .tabItem { Label(L("Activity"), systemImage: "bell") }.tag(1)
                 .badge(api.activity.filter(\.isUnread).count)
             NavigationStack { ReaderCircleView() }
-                .tabItem { Label(L("Circle"), systemImage: "person.2") }
+                .tabItem { Label(L("Circle"), systemImage: "person.2") }.tag(2)
         }
         .tint(.primary)
-        .task { ReaderDelegate.askForNotifications() }
+        // No prompt for notifications yet: the server keeps the devices but sends nothing to them so far. What
+        // happened in the books shows in Activity; `ReaderDelegate.askForNotifications()` is ready for the day it does.
     }
 }
 
 struct ShelfView: View {
     private var api: ReaderAPI { .shared }
+    @State private var shown: RemoteBook?
 
     private var shared: [RemoteBook] { api.books.filter { $0.owner.login != api.username } }
     private var mine: [RemoteBook] { api.books.filter { $0.owner.login == api.username } }
@@ -174,6 +208,11 @@ struct ShelfView: View {
         .navigationTitle(L("Books"))
         .refreshable { await api.refreshAll() }
         .navigationDestination(for: RemoteBook.self) { BookReaderView(book: $0) }
+        .navigationDestination(item: $shown) { BookReaderView(book: $0) }
+        .onChange(of: api.books) { _, books in
+            // A screenshot of the reading page: the first book opens by itself.
+            if shown == nil, ShotScreen.opensBook, let first = books.first(where: { $0.name == ShotScreen.book }) ?? books.first { shown = first }
+        }
     }
 
     private func row(_ b: RemoteBook) -> some View {
@@ -206,6 +245,8 @@ struct BookReaderView: View {
     /// The milestone the author gave me, asked once when the book opens: it is what I read.
     @State private var given: String?
     @State private var askedGiven = false
+    /// The part of the book the author gave me: its other chapters are not listed.
+    @State private var scope: ReadingScope?
     @State private var openThread: UUID?
     @State private var reader: ReaderModel?
     @State private var error: String?
@@ -234,6 +275,8 @@ struct BookReaderView: View {
         }
         .navigationTitle(chapter.map { manifest?.shownTitle(of: $0) ?? $0.title } ?? book.title)
         .navigationBarTitleDisplayMode(.inline)
+        // The page has the whole screen under its title: the tabs come back with the shelf.
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -255,7 +298,10 @@ struct BookReaderView: View {
                             }
                         }
                     }
-                    // The author chooses among every version; a reader given a milestone reads that one.
+                    // The author chooses among every version; a reader given a milestone reads that one, and is told which.
+                    if let given {
+                        Section { Text(L("Milestone: \(milestones.first { $0.name == given }?.title ?? String(given.dropFirst(6)))")) }
+                    }
                     if !milestones.isEmpty, given == nil {
                         Section(L("Version")) {
                             Button(L("Latest")) { ref = "main"; Task { await reload() } }
@@ -278,7 +324,7 @@ struct BookReaderView: View {
                 ThreadSheet(thread: t, me: me, owner: book.owner.login, quote: t.note.anchor?.quote ?? "",
                             reply: { say(TalkEntry(thread: t.id, kind: .reply, by: me, body: $0, chapter: t.chapter), notify: Array(t.people.subtracting([me]))) },
                             resolve: { say(TalkEntry(thread: t.id, kind: $0 ? .resolve : .reopen, by: me, chapter: t.chapter), notify: []) })
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents(UIDevice.current.userInterfaceIdiom == .pad ? [.large] : [.medium, .large])
             }
         }
         .task { await load() }
@@ -286,15 +332,25 @@ struct BookReaderView: View {
 
     private func load() async {
         do {
+            milestones = await api.milestones(book)
             if !askedGiven {
                 askedGiven = true
-                if book.owner.login != me, let tag = await api.givenMilestone(book) { given = tag; ref = tag }
+                if book.owner.login != me {
+                    // A reader reads the milestone the author gave them. Shared before milestones were given, they
+                    // read the newest one; only the author and a co-writer see the text as it is being written.
+                    if let mine = await api.given(book) { given = mine.tag; scope = mine.scope }
+                    else if await api.role(in: book) != "writer", let newest = milestones.first { given = newest.name }
+                    if let given { ref = given }
+                }
             }
-            milestones = await api.milestones(book)
-            let m = try await api.manifest(book, at: ref)
+            var m = try await api.manifest(book, at: ref)
+            // Only the part I was given: the rest of the book is not mine to read yet.
+            m.chapters = m.chapters.filter { scope.allows($0) }
             manifest = m
             if let first = chapter.flatMap({ c in m.chapters.first { $0.id == c.id } }) ?? m.chapters.first(where: { !$0.excludeFromExport }) {
                 await open(first)
+            } else {
+                error = L("Nothing to read here yet. The author will share more of the book when it is ready.")
             }
         } catch { self.error = error.localizedDescription }
     }
@@ -307,6 +363,8 @@ struct BookReaderView: View {
             chapter = ch
             entries = await api.talk(book, chapters: manifest?.chapters.map(\.id) ?? [ch.id])
             show(ch)
+            // A screenshot of a conversation: the first one that was answered opens by itself.
+            if ShotScreen.asked == "talk" { openThread = threads.first { !$0.replies.isEmpty }?.id }
         } catch { self.error = error.localizedDescription }
     }
 
@@ -342,13 +400,15 @@ struct BookReaderView: View {
         }
         let m = ReaderModel(source: source, marks: marks)
         m.strings = .musset
-        m.textSize = 18
+        // A tablet is held further away, and its page is wider: larger text keeps the line a book's length.
+        m.textSize = UIDevice.current.userInterfaceIdiom == .pad ? 24 : 18
         m.ownInk = Person.ink(me)
         m.onAction = { action, sel in
             let (kind, body) = action.talk
             mark(NSRange(location: sel.range.lowerBound, length: sel.range.count), kind, body: body)
         }
         m.onOpen = { openThread = UUID(uuidString: $0.id) }
+        if ShotScreen.asked == "night" { m.theme = .night }
         reader = m
     }
 

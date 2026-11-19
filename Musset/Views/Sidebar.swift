@@ -239,7 +239,9 @@ extension ChapterSidebar {
         let m = session.manifest
         var out: [BookListRow] = []
         var previous: String?
-        for (i, ch) in m.chapters.enumerated() {
+        // Reading someone's book: only the part its author gave me.
+        let given = Collab.shared.isReviewer(session.git) ? Collab.shared.part(for: session.git) : nil
+        for (i, ch) in m.chapters.enumerated() where given.allows(ch) {
             let part = m.group(of: ch)
             if let part, part.id != previous { out.append(.part(part)) }
             previous = part?.id

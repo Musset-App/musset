@@ -9,63 +9,83 @@
 <meta property="og:title" content="{{title}}">
 <meta property="og:description" content="{{description}}">
 <meta property="og:url" content="{{canonical}}">
+<meta name="theme-color" content="#F6F3EC">
 <meta property="og:image" content="https://musset.app/assets/en/editor.jpg">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..600;1,400..600&amp;family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&amp;display=swap">
 <style>
-body{margin:0;background:#F6F3EC;font-family:Inter,-apple-system,sans-serif;color:#1A1A18;-webkit-font-smoothing:antialiased}
-a{color:#2E4AC7}a:hover{color:#1F348F}
-.wrap{max-width:1040px;margin:0 auto;padding:0 32px;box-sizing:border-box}
-.narrow{max-width:720px}
-header{border-bottom:1px solid #E4DED2}
-header nav{display:flex;align-items:center;justify-content:space-between;height:72px}
-.brand{font-family:'EB Garamond',serif;font-size:28px;color:#1A1A18;text-decoration:none;letter-spacing:.01em}
-.navlinks{display:flex;gap:28px;align-items:center}
-.navlinks a{font-size:15px;color:#4A4740;text-decoration:none}
-.navlinks a.button,.cta{font-weight:500;color:#FFFFFF;background:#1A1A18;text-decoration:none;padding:12px 20px;border-radius:999px}
-.cta{display:inline-block;font-size:17px;background:#2E4AC7;padding:16px 28px}
-.cta:hover,.navlinks a.button:hover{color:#FFFFFF}
-.eyebrow{margin:0;font-size:14px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#2E4AC7}
-h1{margin:0;font-family:'EB Garamond',serif;font-weight:400;font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-.01em}
-h2{margin:0 0 20px;font-family:'EB Garamond',serif;font-weight:400;font-size:clamp(30px,3.6vw,44px);line-height:1.1}
-h3{margin:0 0 8px;font-family:'EB Garamond',serif;font-weight:400;font-size:26px;line-height:1.15}
-p{margin:0 0 16px;font-size:17px;line-height:1.65;color:#4A4740}
-.lede{font-size:clamp(18px,1.6vw,20px);max-width:36em}
-.hero{padding:88px 0 56px;display:flex;flex-direction:column;gap:24px}
-section{padding:56px 0}
-.shot{display:block;width:100%;height:auto;border-radius:14px;border:1px solid #DDD6C8;box-shadow:0 40px 80px -40px rgba(40,32,16,.38);background:#FFFFFF}
+/* The same page as the home page (template.html): EB Garamond for the text, IBM Plex Mono for labels and keys, the
+   editor's red for what needs deciding. */
+:root{--paper:#F6F3EC;--deep:#EDE8DC;--sheet:#FFFEFA;--ink:#1A1814;--ink-2:#4A463E;--ink-3:#6B665C;--rule:#DCD5C6;--rule-2:#C4BCAB;--red:#C8321E;--red-d:#97220F;--night:#141210;--on-night:#F3EFE5;--on-night-2:#B5AEA0;--red-n:#FF7657;
+--serif:'EB Garamond',Garamond,Georgia,serif;--mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:20px;line-height:1.5;font-variant-numeric:oldstyle-nums;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+@media (min-width:1100px){body{font-size:21px}}
+a{color:inherit;text-underline-offset:4px;text-decoration-color:var(--red)}
+a:hover{color:var(--red)}
+::selection{background:var(--red);color:var(--paper)}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:3px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
+.narrow{max-width:800px}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--rule)}
+header nav{display:flex;align-items:center;justify-content:space-between;gap:20px;height:68px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-size:30px;line-height:1;color:var(--ink);text-decoration:none}
+.brand img{width:36px;height:36px;margin:-4px 0 -4px -4px}
+.navlinks{display:flex;gap:24px;align-items:center}
+.navlinks a{font:400 13px/1 var(--mono);color:var(--ink-2);text-decoration:none}
+.navlinks a.button,.cta{display:inline-flex;font:500 15px/1 var(--mono);color:var(--paper);background:var(--red);text-decoration:none;white-space:nowrap;padding:18px 22px;border-radius:9px;box-shadow:0 4px 0 var(--red-d),0 16px 26px -14px rgba(151,34,15,.7);transition:transform .12s,box-shadow .12s}
+.navlinks a.button{font-size:13px;padding:12px 16px;border-radius:8px;background:var(--ink);box-shadow:0 3px 0 #000}
+.cta:hover,.navlinks a.button:hover{color:var(--paper)}
+.cta:active{transform:translateY(3px);box-shadow:0 1px 0 var(--red-d)}
+.navlinks a.button:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+.eyebrow{margin:0;font:500 12px/1.5 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--red)}
+h1{margin:0;font-weight:400;font-size:clamp(44px,7vw,96px);line-height:.98;letter-spacing:-.024em;text-wrap:balance}
+h2{margin:0 0 20px;font-weight:400;font-size:clamp(32px,4vw,52px);line-height:1.04;letter-spacing:-.014em;text-wrap:balance}
+h3{margin:0 0 10px;font-weight:400;font-style:italic;font-size:clamp(26px,2.4vw,32px);line-height:1.12}
+h3 a{text-decoration-thickness:1px}
+p{margin:0 0 16px;color:var(--ink-2);text-wrap:pretty}
+.lede{font-size:clamp(20px,1.8vw,25px);line-height:1.42;max-width:31em}
+.hero{padding:clamp(48px,7vw,104px) 0 clamp(40px,5vw,64px);display:flex;flex-direction:column;gap:26px;align-items:flex-start}
+section{padding:clamp(40px,5vw,72px) 0}
+.shot{display:block;width:100%;height:auto;border-radius:clamp(8px,1vw,14px);border:1px solid var(--rule-2);box-shadow:0 50px 100px -40px rgba(26,24,20,.5);background:var(--sheet)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;min-width:620px;border-collapse:collapse;font-size:15px;line-height:1.5}
-th,td{text-align:left;vertical-align:top;padding:14px 16px 14px 0;border-bottom:1px solid #E4DED2}
-thead th{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6B665C;border-bottom:1px solid #1A1A18}
-tbody th{font-weight:500;color:#1A1A18;width:22%}
-td{color:#4A4740;width:39%}
-td.us{color:#1A1A18}
-.pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px}
-.pick>div{border-top:1px solid #1A1A18;padding-top:20px}
-ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.55;color:#4A4740}
-ul li{display:flex;gap:12px}
-ul li::before{content:"●";color:#FF6A3D;flex:none}
-.pick .other li::before{color:#B8B1A3}
-.note{font-size:13px;color:#6B665C}
-.band{background:#161412;color:#F6F3EC;text-align:center;padding:88px 0}
-.band h2{margin-bottom:12px}.band p{color:#D6D1C5;margin:0 auto 28px;max-width:34em}
-.band .note{color:#8F897D;margin-top:20px}
-.others{display:flex;flex-wrap:wrap;gap:12px 28px;font-size:16px}
-footer{border-top:1px solid #E4DED2;padding:32px 0;font-size:13px;color:#6B665C}
-footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between}
-@media (max-width:760px){.pick{grid-template-columns:minmax(0,1fr)}.navlinks a.hide{display:none}.hero{padding:56px 0 32px}}
+table{width:100%;min-width:640px;border-collapse:collapse;font-size:18px;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:15px 20px 15px 0;border-bottom:1px solid var(--rule)}
+thead th{font:500 12px/1.5 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);border-bottom:4px double var(--ink)}
+thead th:nth-child(2){color:var(--red)}
+tbody th{font-weight:400;font-style:italic;font-size:21px;color:var(--ink);width:22%}
+td{color:var(--ink-2);width:39%}
+td.us{color:var(--ink)}
+.pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(28px,5vw,64px)}
+.pick>div{border-top:4px double var(--ink);padding-top:22px}
+ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;font-size:19px;line-height:1.45;color:var(--ink-2)}
+ul li{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--rule)}
+ul li::before{content:"";flex:none;width:8px;height:8px;margin-top:.55em;border-radius:50%;background:var(--red)}
+.pick .other li::before{background:var(--rule-2)}
+.note{font:400 13px/1.65 var(--mono);color:var(--ink-3)}
+.band{background:var(--night);color:var(--on-night);text-align:center;padding:clamp(72px,9vw,128px) 0;margin-top:clamp(32px,4vw,56px)}
+.band h2{font-size:clamp(44px,7.4vw,108px);line-height:.96;letter-spacing:-.026em;margin-bottom:22px}
+.band h2 em{color:var(--red-n)}
+.band p{color:var(--on-night-2);margin:0 auto 30px;max-width:32em}
+.band .note{color:#8F887A;margin-top:26px}
+footer{padding:32px 0 44px;font:400 13px/1.7 var(--mono);color:var(--ink-3)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;align-items:baseline}
+footer a{color:var(--ink-2)}
+@media (max-width:760px){.pick{grid-template-columns:minmax(0,1fr)}.navlinks a.hide{display:none}}
 </style>
 </head>
 <body>
 <header>
 <nav class="wrap" aria-label="Main">
-<a class="brand" href="/">Musset</a>
+<a class="brand" href="/"><img src="/assets/icon.png?v=1" width="36" height="36" alt="">Musset</a>
 <div class="navlinks">
-<a class="hide" href="/#editor">The editor</a>
-<a class="hide" href="/#versions">Versions</a>
-<a class="hide" href="/#publish">Publishing</a>
+<a class="hide" href="/#write">Write</a>
+<a class="hide" href="/#structure">Structure</a>
+<a class="hide" href="/#revise">Revise</a>
+<a class="hide" href="/#share">Share</a>
+<a class="hide" href="/#publish">Publish</a>
 <a class="hide" href="/#pricing">Pricing</a>
 <a class="hide" href="https://github.com/Musset-App/musset" rel="noopener">GitHub</a>
 <a class="button" href="/download">Download</a>
@@ -88,7 +108,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between}
 
 <footer>
 <div class="wrap">
-<span><a href="/" style="font-family: 'EB Garamond', serif; font-size: 20px; color: #1A1A18; text-decoration: none">Musset</a></span>
+<span><a href="/" style="font-family: var(--serif); font-size: 26px; color: var(--ink); text-decoration: none">Musset</a></span>
 <span>{{footer_links}} · <a href="https://github.com/Musset-App/musset" rel="noopener">GitHub</a></span>
 <span>Made for writers, by a writer. Open source under the GPL v3.</span>
 </div>

@@ -1,0 +1,119 @@
+{
+ "pages": [
+  {
+   "slug": "privacy",
+   "link": "Privacy",
+   "title": "Privacy | Musset",
+   "description": "What Musset, Musset Reader, Musset Sync and musset.app keep about you, where, and how to have it deleted.",
+   "eyebrow": "Privacy",
+   "h1": "What Musset knows about you.",
+   "lede": "Short version: your books stay on your Mac unless you ask otherwise, nothing is tracked, and an account can be deleted from the app. Last changed on 19 November 2026.",
+   "sections": [
+    {
+     "h": "Who is responsible",
+     "p": [
+      "Musset is published by [YOUR NAME OR COMPANY, AND POSTAL ADDRESS]. For anything on this page, write to hello@musset.app."
+     ]
+    },
+    {
+     "h": "Musset, the Mac app",
+     "p": [
+      "Your books are folders of files on your Mac. Musset sends them nowhere unless you turn on something that needs it.",
+      "Once a day Musset asks musset.app whether there is a newer version. Our server adds one to a counter, by day, version and country. No address and no identifier is kept.",
+      "Spelling and grammar are checked on your Mac. If you choose languagetool.org instead, the text checked goes to that service.",
+      "The AI editor is off until you turn it on. When you use it, the passages it needs go to Anthropic or OpenAI through your own account with them, under their terms. Musset keeps no copy and holds no key of theirs.",
+      "If you add your own Pangram key and run that check, the passage checked goes to Pangram.",
+      "Looking up a place on a board asks Apple Maps; looking up a source by ISBN or DOI asks Open Library or Crossref. Only what you typed is sent."
+     ]
+    },
+    {
+     "h": "A Musset account, Musset Sync and Musset Reader",
+     "p": [
+      "An account is optional. It is needed to put a book on Musset Sync, and to read a book someone shared with you, on the Mac or in Musset Reader on iPhone and iPad.",
+      "For an account we keep your name, your e-mail address, the user name made from it, and your password in a form that cannot be read back.",
+      "With Musset Sync we keep the books you send to your account, with their history, and the milestones you set. Only the people you invite can open a book, and each of them reads the milestone you gave them.",
+      "When you read someone’s book we keep the notes, corrections and replies you write in it. They belong to that book: its author sees them.",
+      "We keep who is in your circle and which books you share with them, the invitations you send (the e-mail address you typed, until it is accepted or expires after 30 days), and the list of what happened in your books, to show it to you.",
+      "Books and accounts are stored on a server in Germany (Hetzner, Falkenstein). They are private, but they are not encrypted on that server: the person who runs it could technically read them.",
+      "Musset Reader asks for no location, no contacts, no photos and no tracking permission. It contains no advertising and no analytics."
+     ]
+    },
+    {
+     "h": "Payments",
+     "p": [
+      "Musset Sync is paid through Stripe. Your card details go to Stripe and never reach us. We keep the Stripe customer and subscription identifiers, the subscription’s state and the date it runs until. Nothing can be bought in Musset Reader."
+     ]
+    },
+    {
+     "h": "E-mail",
+     "p": [
+      "We send e-mail only for what you asked: an invitation you send or receive, and news of the books you share, which you can set to grouped, immediate or never in your account. These go out through Cloudflare."
+     ]
+    },
+    {
+     "h": "This website",
+     "p": [
+      "musset.app uses no cookies for tracking, no advertising and no analytics script. It remembers your language in a cookie named lang. Each download adds one to a counter, by day, version and country, with no address and no identifier."
+     ]
+    },
+    {
+     "h": "Deleting your data",
+     "p": [
+      "Delete your account from Musset Reader on iPhone or iPad: under Circle, Delete my account. This removes your account, your circle, your activity and your devices from our server. Books you put on your account are removed with it; notes you wrote in other people’s books stay with those books, signed with your user name.",
+      "You can also write to hello@musset.app to have your account deleted, to get a copy of what we hold, or to have something corrected. If you live in the European Union or the United Kingdom, these are your rights under the GDPR, and you may also complain to your data protection authority."
+     ]
+    },
+    {
+     "h": "Children",
+     "p": [
+      "Musset is not directed at children under 13, and we do not knowingly keep their data."
+     ]
+    },
+    {
+     "h": "Changes",
+     "p": [
+      "When this page changes, the date at the top changes."
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "support",
+   "link": "Support",
+   "title": "Support | Musset",
+   "description": "Help with Musset for Mac, Musset Sync and Musset Reader for iPhone and iPad: how to reach us and where to report a problem.",
+   "eyebrow": "Support",
+   "h1": "Help with Musset.",
+   "lede": "One person makes Musset and answers the mail. Expect a reply within a few days.",
+   "sections": [
+    {
+     "h": "Write to us",
+     "p": [
+      "hello@musset.app, in English or French. Say which app (Musset on the Mac, or Musset Reader on iPhone or iPad), its version, and what you were doing."
+     ]
+    },
+    {
+     "h": "Report a problem or ask for a feature",
+     "p": [
+      "Musset is open source. Problems and ideas are discussed in the open at github.com/Musset-App/musset, under Issues and Discussions."
+     ]
+    },
+    {
+     "h": "Musset Reader: common questions",
+     "p": [
+      "I received an invitation. Open its link on your iPhone or iPad: it creates your free account, or adds the book to the account you already have.",
+      "I cannot see the latest text. You read the milestone the author gave you. When they share a newer one, the book opens on it.",
+      "I forgot my password. Write to hello@musset.app from the address of your account.",
+      "I want to delete my account. In Musset Reader, open Circle, then Delete my account."
+     ]
+    },
+    {
+     "h": "Your account and your data",
+     "p": [
+      "What we keep and how to have it deleted is on the Privacy page: musset.app/privacy/."
+     ]
+    }
+   ]
+  }
+ ]
+}

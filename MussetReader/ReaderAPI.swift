@@ -25,7 +25,17 @@ final class ReaderAPI {
     var circle: [CirclePerson] = []
     var lastError: String?
 
-    var signedIn: Bool { username != nil && !(Keychain.get("forgejo-token") ?? "").isEmpty }
+    /// Whether the keychain holds this account's key. Kept here, and not only read from the keychain, so the
+    /// interface follows it: a user name remembered without its key (a phone restored from a backup) must leave the
+    /// sign-in page once signed in again, although the name itself did not change.
+    private var hasKey = !(Keychain.get("forgejo-token") ?? "").isEmpty
+
+    var signedIn: Bool { username != nil && hasKey }
+
+    private func keep(_ token: String) {
+        Keychain.set("forgejo-token", token)
+        hasKey = !(Keychain.get("forgejo-token") ?? "").isEmpty
+    }
 
     // MARK: Account
 
@@ -34,9 +44,25 @@ final class ReaderAPI {
         let out: Out = try await request("POST", api("users/\(username)/tokens"), body: [
             "name": "musset-reader-\(Int(Date().timeIntervalSince1970))",
             "scopes": ["write:repository", "write:issue", "write:user", "read:organization", "read:misc"]], basic: (username, password))
-        Keychain.set("forgejo-token", out.sha1)
+        keep(out.sha1)
         self.username = username
         await refreshAll()
+    }
+
+    /// An invitation opened from its e-mail by someone who already has an account (`musset://join/<token>`):
+    /// the book it gives is theirs to read from now on.
+    func acceptInvitation(_ token: String) async throws {
+        let _: Empty = try await request("POST", mussetAPI("invitation/\(token)/accept"))
+        await refreshAll()
+    }
+
+    /// What the author lets me do in this book: "reader", "editor" or "writer" (a co-writer). Nil when unknown.
+    func role(in book: RemoteBook) async -> String? {
+        struct Out: Decodable { let roles: [String: String] }
+        guard let me = username else { return nil }
+        let repo = book.full_name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? book.full_name
+        let out: Out? = try? await request("GET", URL(string: mussetAPI("roles").absoluteString + "?repo=" + repo)!)
+        return out?.roles[me]
     }
 
     /// A free account: reading and annotating. Apple's rules for reader apps: no price and no purchase in here.
@@ -45,13 +71,13 @@ final class ReaderAPI {
         var body: [String: Any] = ["email": email, "password": password, "name": name, "device": "iPhone", "lang": UILang.current.localeID]
         if let invitation { body["invitation"] = invitation }
         let out: Out = try await request("POST", mussetAPI("signup"), body: body)
-        Keychain.set("forgejo-token", out.token)
+        keep(out.token)
         username = out.username
         await refreshAll()
     }
 
     func signOut() {
-        Keychain.set("forgejo-token", "")
+        keep("")
         username = nil
         account = nil
         books = []
@@ -113,15 +139,15 @@ final class ReaderAPI {
         return ((try? await request("GET", api("repos/\(book.full_name)/branches?limit=100")) as [B]?) ?? []).map(\.name)
     }
 
-    /// The milestone the author gave me to read in this book (its tag), if any: readers read a milestone the author
-    /// chose, never the text as it is being written.
-    func givenMilestone(_ book: RemoteBook) async -> String? {
-        struct Reading: Decodable { let tag: String }
+    /// What the author gave me of this book: a milestone (readers read one the author chose, never the text as it is
+    /// being written), and the part of it I read (none is the whole book).
+    func given(_ book: RemoteBook) async -> (tag: String, scope: ReadingScope?)? {
+        struct Reading: Decodable { let tag: String; let scope: ReadingScope? }
         struct Out: Decodable { let reading: [String: Reading] }
         guard let me = username else { return nil }
         let repo = book.full_name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? book.full_name
         let out: Out? = try? await request("GET", URL(string: mussetAPI("reading").absoluteString + "?repo=" + repo)!)
-        return out?.reading[me]?.tag
+        return out?.reading[me].map { ($0.tag, $0.scope) }
     }
 
     /// Milestones (`jalon/…` tags), newest first.
