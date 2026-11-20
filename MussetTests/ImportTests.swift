@@ -133,6 +133,174 @@ final class ImportTests: XCTestCase {
         XCTAssertEqual(plan.chapters[0].synopsis["La filature"], "La filature")
     }
 
+    /// A project on disk, written as Scrivener 3 for the Mac writes it.
+    private func scriv(_ binder: String, docs: [String: [String: String]], layout: (String, String) -> String = { "Files/Data/\($0)/\($1)" }) throws -> URL {
+        let p = FileManager.default.temporaryDirectory.appendingPathComponent("Roman-\(UUID()).scriv", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: p) }
+        try FileManager.default.createDirectory(at: p, withIntermediateDirectories: true)
+        for (id, files) in docs {
+            for (name, content) in files {
+                let f = p.appendingPathComponent(layout(id, name))
+                try FileManager.default.createDirectory(at: f.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try content.write(to: f, atomically: true, encoding: .utf8)
+            }
+        }
+        try "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ScrivenerProject Version=\"2.0\"><Binder>\(binder)</Binder></ScrivenerProject>"
+            .write(to: p.appendingPathComponent("\(p.deletingPathExtension().lastPathComponent).scrivx"), atomically: true, encoding: .utf8)
+        return p
+    }
+
+    /// The Mac's RTF: a paragraph ends with a backslash at the end of the line.
+    private func cocoa(_ body: String) -> String {
+        "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2819\n{\\fonttbl\\f0\\fnil\\fcharset0 Palatino-Roman;}\n{\\colortbl;\\red255\\green255\\blue255;}\n\\pard\\fi720\\sl480\\slmult1\\pardirnatural\\partightenfactor0\n\n\\f0\\fs26 \\cf0 \(body)}"
+    }
+
+    func testScrivenerParagraphsStayParagraphs() async throws {
+        let p = try scriv("""
+        <BinderItem UUID="D" Type="DraftFolder"><Title>Draft</Title><Children>
+          <BinderItem UUID="A" Type="Text"><Title>Le quai</Title></BinderItem>
+        </Children></BinderItem>
+        """, docs: ["A": ["content.rtf": cocoa("\\tab Il pleuvait sur le quai.\\\n\\tab \\'c9lise attendit, \\i longtemps\\i0 .\\\n\\\nLe train \\uc0\\u8212  enfin.")]])
+        let text = try await BookImporter.planScrivener(p, cwd: FileManager.default.temporaryDirectory).chapters[0].text
+        XCTAssertEqual(text, "# Le quai\n\nIl pleuvait sur le quai.\n\nÉlise attendit, *longtemps*.\n\nLe train — enfin.\n")
+    }
+
+    func testScrivenerMarksDoNotReachTheText() async throws {
+        let rtf = cocoa("""
+        <$Scr_Ps::0>Une lettre, cit\\'e9e.\\
+        Sa suite.<!$Scr_Ps::0>\\
+        Du <$Scr_Cs::1>\\b gras\\b0 <!$Scr_Cs::1> ici.\\
+        Une note.\\{\\\\Scrv_fn= La note de bas de page.\\\\end_Scrv_fn\\}\\
+        \\{\\\\Scrv_annot \\\\color=\\{\\\\R=0.6\\\\G=0.04\\\\B=0.01\\} \\\\text=V\\'e9rifier la date.\\\\end_Scrv_annot\\}\\
+        Elle {\\field{\\*\\fldinst{HYPERLINK "scrivcmt://AAAA-1"}}{\\fldrslt h\\'e9sita}} puis {\\field{\\*\\fldinst{HYPERLINK "scrivcmt://AAAA-2"}}{\\fldrslt partit.}}\\
+        Voir {\\field{\\*\\fldinst{HYPERLINK "scrivlnk://BBBB"}}{\\fldrslt le chapitre deux}}.\\
+        {\\pict\\pngblip\\picw10\\pich10 89504e470d0a1a0a}\\
+        \\itap1\\trowd \\taflags1 \\trgaph108\\trleft-108 \\clvertalc \\cellx8640
+        \\pard\\intbl\\itap1 Dans un tableau.\\cell \\lastrow\\row
+        \\pard Fin.
+        """)
+        let comments = """
+        <?xml version="1.0" encoding="UTF-8"?><Comments>
+        <Comment ID="AAAA-1"><![CDATA[{\\rtf1\\ansi\\ansicpg1252 Trop long ?}]]></Comment>
+        <Comment ID="AAAA-2" Footnote="Yes"><![CDATA[{\\rtf1\\ansi\\ansicpg1252 Not\\'e9 en marge.}]]></Comment>
+        </Comments>
+        """
+        let p = try scriv("""
+        <BinderItem UUID="D" Type="DraftFolder"><Title>Draft</Title><Children>
+          <BinderItem UUID="A" Type="Text"><Title>Un</Title></BinderItem>
+        </Children></BinderItem>
+        """, docs: ["A": ["content.rtf": rtf, "content.comments": comments, "content.styles": "S-QUOTE\nS-BOLD\n"]])
+        try "<Styles><Style Name=\"Block Quote\" ID=\"S-QUOTE\"/><Style Name=\"Strong\" ID=\"S-BOLD\"/></Styles>"
+            .write(to: p.appendingPathComponent("Files/styles.xml"), atomically: true, encoding: .utf8)
+        let plan = try await BookImporter.planScrivener(p, cwd: FileManager.default.temporaryDirectory)
+        let text = plan.chapters[0].text
+        for leak in ["Scr_", "Scrv_", "scrivcmt", "scrivlnk", "<img", "![", "<table", "||", "\\<", "&lt;"] {
+            XCTAssertFalse(text.contains(leak), "\(leak) in:\n\(text)")
+        }
+        XCTAssertTrue(text.contains("> Une lettre, citée.\n\n> Sa suite."), text)
+        XCTAssertTrue(text.contains("Du **gras** ici."), text)
+        XCTAssertTrue(text.contains("Une note.[^1]"), text)
+        XCTAssertTrue(text.contains("[^1]: La note de bas de page."), text)
+        XCTAssertTrue(text.contains("{>>Vérifier la date.<<}"), text)
+        XCTAssertTrue(text.contains("Elle {==hésita==}{>>Trop long ?<<} puis partit.[^2]"), text)
+        XCTAssertTrue(text.contains("[^2]: Noté en marge."), text)
+        XCTAssertTrue(text.contains("Voir le chapitre deux."), text)
+        XCTAssertTrue(text.contains("Dans un tableau.\n\nFin."), text)
+    }
+
+    func testScrivenerPartsChaptersAndScenes() async throws {
+        let doc = { (s: String) in ["content.rtf": self.cocoa(s)] }
+        let p = try scriv("""
+        <BinderItem UUID="D" Type="DraftFolder"><Title>Manuscript</Title><Children>
+          <BinderItem UUID="PR" Type="Text"><Title>Prologue</Title></BinderItem>
+          <BinderItem UUID="P1" Type="Folder"><Title>Part One</Title><Children>
+            <BinderItem UUID="C1" Type="Folder"><Title>Chapter 1</Title><Children>
+              <BinderItem UUID="S1" Type="Text"><Title>Arrival</Title><Children>
+                <BinderItem UUID="S1B" Type="Text"><Title></Title></BinderItem>
+              </Children></BinderItem>
+              <BinderItem UUID="S2" Type="Text"><Title>Arrival</Title></BinderItem>
+              <BinderItem UUID="N1" Type="Text"><Title>Notes to self</Title><MetaData><IncludeInCompile>No</IncludeInCompile></MetaData></BinderItem>
+              <BinderItem UUID="IMG" Type="Image"><Title>Map</Title></BinderItem>
+            </Children></BinderItem>
+            <BinderItem UUID="C2" Type="Folder"><Title>Chapter 2</Title><Children>
+              <BinderItem UUID="S3" Type="Text"><Title>The road -- north</Title></BinderItem>
+            </Children></BinderItem>
+          </Children></BinderItem>
+          <BinderItem UUID="P2" Type="Folder"><Title>Part Two</Title><Children>
+            <BinderItem UUID="C3" Type="Folder"><Title>Chapter 3</Title></BinderItem>
+          </Children></BinderItem>
+        </Children></BinderItem>
+        <BinderItem UUID="R" Type="ResearchFolder"><Title>Research</Title><Children>
+          <BinderItem UUID="RX" Type="Text"><Title>Salt trade</Title></BinderItem>
+        </Children></BinderItem>
+        """, docs: ["PR": doc("Before."), "S1": doc("She arrived."), "S1B": doc("Later that same night, she slept badly."),
+                    "S2": doc("Again."), "N1": doc("SECRET NOTE"), "S3": doc("North."), "P2": doc("An epigraph for the part."),
+                    "RX": doc("RESEARCH"), "S2x": [:]].merging(["S2": ["content.rtf": cocoa("Again."), "synopsis.txt": "She comes back."]]) { $1 })
+        let plan = try await BookImporter.planScrivener(p, cwd: FileManager.default.temporaryDirectory)
+        XCTAssertEqual(plan.chapters.map(\.title), ["Prologue", "Chapter 1", "Chapter 2", "Part Two", "Chapter 3"])
+        let one = plan.chapters[1]
+        XCTAssertEqual(Scenes.parse(one.text).map(\.title), ["Arrival", "Later that same night, she slept", "Arrival 2"])
+        XCTAssertEqual(one.synopsis["Arrival 2"], "She comes back.")
+        XCTAssertTrue(plan.chapters[2].text.contains("<!-- scene: The road – north -->"))
+        XCTAssertEqual(plan.chapters[3].text, "# Part Two\n\nAn epigraph for the part.\n")
+        XCTAssertEqual(plan.chapters.map(\.part), [nil, "Part One", "Part One", "Part Two", "Part Two"])
+
+        // The book made from it has the two parts, each with its chapters.
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("livre-\(UUID())", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
+        try await AppState().createBook(at: root, title: "Roman", author: "A", lang: "en", genre: nil, chapters: plan.chapters)
+        let m = try BookStore(root: root).loadManifest()
+        XCTAssertEqual(m.orderedParts.map(\.title), ["Part One", "Part Two"])
+        XCTAssertEqual(m.chapters.map { ch in m.parts?.first { $0.id == ch.part }?.title }, [nil, "Part One", "Part One", "Part Two", "Part Two"])
+        let all = plan.chapters.map(\.text).joined()
+        XCTAssertFalse(all.contains("SECRET NOTE"))
+        XCTAssertFalse(all.contains("RESEARCH"))
+        XCTAssertTrue(plan.keeps.contains { $0.to == L("Left out") })
+    }
+
+    /// Scrivener 2 numbers its documents and keeps them side by side in Files/Docs.
+    func testScrivener2Project() async throws {
+        let p = try scriv("""
+        <BinderItem ID="1" Type="DraftFolder"><Title>Draft</Title><Children>
+          <BinderItem ID="3" Type="Folder"><Title>One</Title><Children>
+            <BinderItem ID="4" Type="Text"><Title>Dawn</Title></BinderItem>
+            <BinderItem ID="5" Type="Text"><Title>Plain</Title></BinderItem>
+          </Children></BinderItem>
+        </Children></BinderItem>
+        """, docs: ["4": [".rtf": "{\\rtf1\\ansi\\ansicpg1252 First light.\\par Second paragraph.}", "_synopsis.txt": "The sun rises."],
+                    "5": [".txt": "A line.\nAnother."]], layout: { "Files/Docs/\($0)\($1)" })
+        let plan = try await BookImporter.planScrivener(p, cwd: FileManager.default.temporaryDirectory)
+        XCTAssertEqual(plan.chapters.map(\.title), ["One"])
+        XCTAssertEqual(plan.chapters[0].text, "# One\n\n<!-- scene: Dawn -->\n\nFirst light.\n\nSecond paragraph.\n\n<!-- scene: Plain -->\n\nA line.\n\nAnother.\n")
+        XCTAssertEqual(plan.chapters[0].synopsis["Dawn"], "The sun rises.")
+    }
+
+    /// A real project, when one is at hand: nothing of Scrivener's own may reach the text. Writes the chapters to
+    /// MUSSET_SCRIV_OUT for reading.
+    func testARealScrivenerProject() async throws {
+        guard let path = ProcessInfo.processInfo.environment["MUSSET_SCRIV"] else { throw XCTSkip("MUSSET_SCRIV is not set") }
+        let project = URL(fileURLWithPath: path)
+        let before = try Data(contentsOf: Scrivener.binder(of: project))
+        let started = Date()
+        let plan = try await BookImporter.planScrivener(project, cwd: FileManager.default.temporaryDirectory)
+        print("SCRIV \(plan.chapters.count) chapters, \(plan.wordCount) words, \(String(format: "%.1f", Date().timeIntervalSince(started))) s")
+        XCTAssertFalse(plan.chapters.isEmpty)
+        XCTAssertEqual(try Data(contentsOf: Scrivener.binder(of: project)), before)
+        if let out = ProcessInfo.processInfo.environment["MUSSET_SCRIV_OUT"] {
+            let dir = URL(fileURLWithPath: out)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            for (i, c) in plan.chapters.enumerated() {
+                try c.text.write(to: dir.appendingPathComponent(String(format: "%02d %@.md", i + 1, c.title.replacingOccurrences(of: "/", with: "-"))), atomically: true, encoding: .utf8)
+            }
+        }
+        for c in plan.chapters {
+            for leak in ["Scr_", "Scrv_", "scrivcmt", "scrivlnk", "<img", "<table", "<td", "data:image"] {
+                XCTAssertFalse(c.text.contains(leak), "\(leak) in « \(c.title) »")
+            }
+            XCTAssertFalse(c.text.contains("  \n"), "a line break where a paragraph ends in « \(c.title) »")
+        }
+    }
+
     func testUlyssesExportFolder() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID())", isDirectory: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }

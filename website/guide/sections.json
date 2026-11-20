@@ -1,0 +1,9 @@
+[
+ {"id": "start", "title": "Start here", "blurb": "Install Musset, open or bring in a book, and find your way around."},
+ {"id": "write", "title": "Write", "blurb": "The page, the keys under your hands, and the modes that leave only the text."},
+ {"id": "structure", "title": "Structure", "blurb": "Chapters, scenes, the plot, the people and places of the book."},
+ {"id": "revise", "title": "Revise", "blurb": "Versions, corrections, an editor's reading, and the editors who live in Word."},
+ {"id": "share", "title": "Share", "blurb": "The same book on every Mac, and in front of the readers you choose."},
+ {"id": "publish", "title": "Publish", "blurb": "The manuscript each country's publishers expect, and the printed book."},
+ {"id": "reference", "title": "Reference", "blurb": "Every shortcut, the files on disk, and what leaves your Mac."}
+]

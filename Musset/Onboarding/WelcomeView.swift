@@ -118,9 +118,12 @@ struct WelcomeView: View {
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
             focused = true
-            // Development aid, like -musset-screen: opens the check screen for a file at launch.
-            let args = ProcessInfo.processInfo.arguments
-            if let i = args.firstIndex(of: "-musset-import"), i + 1 < args.count { Task { await begin(URL(fileURLWithPath: args[i + 1])) } }
+            // Development aids, like -musset-screen: `-musset-import <file>` opens the check screen for a file at launch,
+            // `-musset-title <title>` types a title and `-musset-step form` goes on to the form. (Launch arguments are
+            // read as defaults, so a test can set them too.)
+            let d = UserDefaults.standard
+            if let t = d.string(forKey: "musset-title") { title = t; choosingForm = d.string(forKey: "musset-step") == "form" }
+            if let f = d.string(forKey: "musset-import") { Task { await begin(URL(fileURLWithPath: f)) } }
         }
     }
 

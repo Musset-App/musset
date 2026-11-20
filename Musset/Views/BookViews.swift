@@ -474,10 +474,20 @@ extension AppState {
         var chapters: [ChapterEntry] = []
         var plot = PlotGrid.load(root)
         plot.columns = PlotGrid.columns(forGenre: genre)
+        // The parts of the book it comes from: each run of chapters under one title is a part.
+        var parts: [BookPart] = []
+        var partIDs: [String?] = []
+        for (i, ch) in planned.enumerated() {
+            if let name = ch.part {
+                if i == 0 || planned[i - 1].part != name { parts.append(BookPart(title: name)) }
+                partIDs.append(parts.last?.id)
+            } else { partIDs.append(nil) }
+        }
         for (i, part) in planned.enumerated() {
             let slug = part.title.slug("_", words: 5)
             let id = String(format: "%02d_%@", i + 1, slug.isEmpty ? "chapitre" : slug)
-            let entry = ChapterEntry(id: id, file: "\(id).md", title: part.title)
+            var entry = ChapterEntry(id: id, file: "\(id).md", title: part.title)
+            entry.part = partIDs[i]
             try store.write(part.text, to: entry)
             chapters.append(entry)
             for (scene, synopsis) in part.synopsis {
@@ -486,6 +496,7 @@ extension AppState {
         }
         var m = BookManifest(title: title, author: author, lang: lang, chapters: chapters)
         m.genre = genre
+        if !parts.isEmpty { m.parts = parts }
         // The form chosen for a new book; an imported one has none and reads as the book Musset always made.
         if let form { m.setForm(form) }
         try store.saveManifest(m)

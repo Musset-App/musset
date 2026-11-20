@@ -14,6 +14,8 @@ import re
 import shutil
 from pathlib import Path
 
+from guide_build import changed, guide_pages
+
 HERE = Path(__file__).resolve().parent
 SITE = "https://musset.app"
 # Code, name in its own language, html lang.
@@ -72,11 +74,15 @@ def compare_pages(dist):
     items = lambda xs: "<ul>" + "".join(f"<li><span>{e(x)}</span></li>" for x in xs) + "</ul>"
     pages = [(f"/compare/{p['slug']}/", f"Musset vs {p['name']}") for p in data["pages"]]
 
-    def write(where, title, description, body, current=None):
+    def write(where, title, description, body, current=None, crumbs=()):
         links = " · ".join(f'<a href="{href}">{e(text)}</a>' for href, text in pages if href != current)
         page = template
+        trail = [("Musset", "/")] + list(crumbs)
+        ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": n + 1, "name": name, "item": SITE + href} for n, (name, href) in enumerate(trail)]}
         for key, value in {"title": html.escape(title), "description": html.escape(description, quote=True),
-                           "canonical": SITE + where, "body": body, "footer_links": links}.items():
+                           "canonical": SITE + where, "body": body, "footer_links": links,
+                           "ld": f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'}.items():
             page = page.replace("{{" + key + "}}", value)
         left = re.search(r"\{\{\w+\}\}", page)
         if left:
@@ -116,7 +122,8 @@ def compare_pages(dist):
 </div>
 </div></section>
 {sections}"""
-        write(where, p["title"], p["description"], body, current=where)
+        write(where, p["title"], p["description"], body, current=where,
+              crumbs=[("Compare", "/compare/"), (f"Musset vs {name}", where)])
 
     cards = "".join(f'<div><h3><a href="/compare/{p["slug"]}/">Musset vs {e(p["name"])}</a></h3><p>{e(p["card"])}</p></div>'
                     for p in data["pages"])
@@ -126,7 +133,7 @@ def compare_pages(dist):
 <p class="lede">{e(data["index"]["lede"])}</p>
 </div>
 <section><div class="wrap"><div class="pick" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">{cards}</div></div></section>"""
-    write("/compare/", data["index"]["title"], data["index"]["description"], body)
+    write("/compare/", data["index"]["title"], data["index"]["description"], body, crumbs=[("Compare", "/compare/")])
 
     # Privacy and Support: plain pages on the same template (compare/site-pages.json), asked for by the App Store.
     plain = json.loads((HERE / "compare/site-pages.json").read_text(encoding="utf-8"))["pages"]
@@ -137,8 +144,41 @@ def compare_pages(dist):
 <h1>{e(p["h1"])}</h1>
 <p class="lede">{e(p["lede"])}</p>
 </div>
-{sections}""")
+{sections}""", crumbs=[(p["link"], f"/{p['slug']}/")])
     return [("/compare/", "Compare")] + pages + [(f"/{p['slug']}/", p["link"]) for p in plain]
+
+
+GUIDE = {"en": "Guide", "fr": "Guide", "de": "Handbuch", "es": "Guía", "it": "Guida", "pt": "Guia"}
+# The pages of the guide people look for most, linked from the foot of the English home page.
+GUIDE_LINKS = [("/guide/start-a-book/", "Your first book"), ("/guide/import-scrivener/", "Coming from Scrivener"),
+               ("/guide/import-word/", "Coming from Word"), ("/guide/ultra-focus/", "Ultra Focus"),
+               ("/guide/keyboard-modes/", "Keyboard modes"), ("/guide/story-bible/", "The story bible"),
+               ("/guide/book-history/", "Version history"), ("/guide/track-changes/", "Track changes"),
+               ("/guide/share-with-beta-readers/", "Beta readers"),
+               ("/guide/standard-manuscript-format/", "Standard manuscript format"),
+               ("/guide/manuscript-formats-by-country/", "Manuscript formats by country"),
+               ("/guide/typeset-a-book/", "Typeset a book"), ("/guide/keyboard-shortcuts/", "Shortcuts")]
+
+# og:locale wants a country.
+LOCALES = {"en": "en_US", "fr": "fr_FR", "de": "de_DE", "es": "es_ES", "it": "it_IT"}
+
+
+def home_data(strings, code, tag):
+    """What the home page says about itself to search engines: the app, who makes it, the site."""
+    plain = lambda t: html.unescape(re.sub(r"<[^>]+>", " ", t)).replace("\u00a0", " ").strip()
+    app = {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Musset", "url": SITE + path(code),
+           "description": plain(strings["description"]), "inLanguage": tag, "applicationCategory": "Writing application",
+           "operatingSystem": "macOS 14 or later", "downloadUrl": SITE + "/download",
+           "image": f"{SITE}/assets/{code}/editor.jpg", "screenshot": f"{SITE}/assets/{code}/editor.jpg",
+           "license": "https://www.gnu.org/licenses/gpl-3.0.html", "isAccessibleForFree": True,
+           "availableLanguage": ["en", "fr", "de", "es", "it", "pt"],
+           "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+           "author": {"@type": "Organization", "name": "Musset", "url": SITE + "/"}}
+    org = {"@context": "https://schema.org", "@type": "Organization", "name": "Musset", "url": SITE + "/",
+           "logo": SITE + "/assets/icon.png", "email": "hello@musset.app",
+           "sameAs": ["https://github.com/Musset-App/musset"]}
+    site = {"@context": "https://schema.org", "@type": "WebSite", "name": "Musset", "url": SITE + "/", "inLanguage": tag}
+    return "\n".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in (app, org, site))
 
 
 def main():
@@ -154,6 +194,11 @@ def main():
         file = HERE / f"strings/{code}.json"
         strings = {**english, **(json.loads(file.read_text(encoding="utf-8")) if file.exists() else {})}
         values = {**strings, "lang": tag, "alternates": alternates + f'\n<link rel="canonical" href="{SITE}{path(code)}">',
+                  "url": SITE + path(code), "locale": tag.replace("-", "_") if "-" in tag else LOCALES[code],
+                  "ld": home_data(strings, code, tag),
+                  # The guide is in English, like the comparison pages; every language links to it by its own word.
+                  "guide": GUIDE[code],
+                  "guide_foot": ('<p>' + " · ".join(f'<a href="{w}">{html.escape(n)}</a>' for w, n in GUIDE_LINKS) + '</p>') if code == "en" else "",
                   "switcher": switcher(code, strings.get("languages", "Language")),
                   # The comparison pages are in English only, so only the English page links to them.
                   "compare": '<p><a href="/compare/">Musset compared with Scrivener, Ulysses, iA Writer and Manuskript</a></p>' if code == "en" else ""}
@@ -174,13 +219,62 @@ def main():
         out.write_text(page, encoding="utf-8")
         missing = [k for k in english if k not in strings or (code != "en" and file.exists() and k not in json.loads(file.read_text(encoding="utf-8")))]
         print(f"{code}: {out.relative_to(HERE)}" + (f" ({len(missing)} strings in English)" if code != "en" and missing else ""))
-    (dist / "_headers").write_text("/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
-    (dist / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
+    (dist / "_headers").write_text(
+        "/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n"
+        "/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n"
+        # The same pages at Cloudflare's own address are not for search engines.
+        "https://:project.pages.dev/*\n  X-Robots-Tag: noindex\n")
+    (dist / "_redirects").write_text("".join(f"{a} /guide/ 301\n" for a in ("/docs", "/docs/*", "/help", "/manual", "/guides", "/tutorials")))
+    (dist / "robots.txt").write_text(f"User-agent: *\nAllow: /\nDisallow: /download/\n\nSitemap: {SITE}/sitemap.xml\n")
     compared = compare_pages(dist)
     print("en: " + ", ".join(where for where, _ in compared))
-    urls = "".join(f"<url><loc>{SITE}{where}</loc></url>" for where in [path(c) for c, _, _ in LANGS] + [w for w, _ in compared])
-    (dist / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
+    guide = guide_pages(dist, lambda page: images(page, "en"))
+    not_found(dist)
+    (dist / "llms.txt").write_text(llms(guide), encoding="utf-8")
 
+    # The sitemap: each page with the day it last changed; the home page with its six languages.
+    home_day = max(changed(HERE / f) for f in ["template.html"] + [f"strings/{c}.json" for c, _, _ in LANGS])
+    other_day = max(changed(HERE / f) for f in ("compare.html", "compare/pages.json", "compare/site-pages.json"))
+    langs = "".join(f'<xhtml:link rel="alternate" hreflang="{tag}" href="{SITE}{path(code)}"/>' for code, _, tag in LANGS) \
+        + f'<xhtml:link rel="alternate" hreflang="x-default" href="{SITE}/"/>'
+    urls = [f"<url><loc>{SITE}{path(c)}</loc><lastmod>{home_day}</lastmod>{langs}</url>" for c, _, _ in LANGS]
+    urls += [f"<url><loc>{SITE}{w}</loc><lastmod>{other_day}</lastmod></url>" for w, _ in compared]
+    urls += [f"<url><loc>{SITE}{w}</loc><lastmod>{day}</lastmod></url>" for w, day in guide]
+    (dist / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+        'xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + "\n".join(urls) + "\n</urlset>\n")
+    print(f"sitemap.xml: {len(urls)} addresses")
+
+
+def llms(guide):
+    """llms.txt: the site in a page, for the programs that read it on someone's behalf."""
+    from guide_build import read
+    pages = {p["where"]: p for p in (read(f) for f in sorted((HERE / "guide").glob("*.md")))}
+    lines = ["# Musset", "",
+             "> Musset is a writing app for the Mac, for people who finish books: a calm plain-text editor, chapters and "
+             "scenes, a story bible, every version kept, revision with corrections, sharing with readers, and typeset "
+             "PDFs and each country's submission manuscript. Its AI reads and annotates and never writes text for the "
+             "book. Open source (GPL v3), macOS 14 or later, free during the beta, then US$9.90 once.", "",
+             "## Guide", ""]
+    lines += [f"- [{pages[w]['title']}]({SITE}{w}): {pages[w]['description']}" for w, _ in guide if w in pages]
+    lines += ["", "## More", "", f"- [Home]({SITE}/): what Musset does", f"- [Compare]({SITE}/compare/): Musset beside Scrivener, Ulysses, iA Writer and Manuskript",
+              f"- [Download]({SITE}/download)", "- [Source code](https://github.com/Musset-App/musset)", f"- [Privacy]({SITE}/privacy/)", ""]
+    return "\n".join(lines)
+
+
+def not_found(dist):
+    """404.html: without it, Cloudflare Pages answers any unknown address with the home page and a 200."""
+    page = (HERE / "guide.html").read_text(encoding="utf-8")
+    body = """<article class="front">
+<p class="crumbs">404</p>
+<h1>This page was cut from the book.</h1>
+<p class="lede">Nothing lives at this address. The <a href="/">home page</a> shows what Musset does, the <a href="/guide/">guide</a> shows how, and <a href="/download">the download is here</a>.</p>
+</article>"""
+    for key, value in {"title": "Page not found | Musset", "description": "Nothing lives at this address.",
+                       "canonical": SITE + "/", "side": "", "body": body, "layout": "index lost", "ld": ""}.items():
+        page = page.replace("{{" + key + "}}", value)
+    page = page.replace('<link rel="canonical" href="https://musset.app/">', '<meta name="robots" content="noindex">')
+    (dist / "404.html").write_text(page, encoding="utf-8")
 
 if __name__ == "__main__":
     main()

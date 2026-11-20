@@ -143,6 +143,8 @@ struct PlannedChapter: Identifiable, Equatable {
     var title: String
     var text: String
     var synopsis: [String: String] = [:]
+    /// The title of the part it stands in, when the book it comes from has parts.
+    var part: String? = nil
 }
 
 /// A book about to be imported: what was found, for the author to check. The original is never changed.
@@ -261,77 +263,6 @@ enum BookImporter {
         t = t.replacingOccurrences(of: "\\", with: "").replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "__", with: "")
         t = t.trimmingCharacters(in: CharacterSet(charactersIn: "* _").union(.whitespaces))
         return t
-    }
-
-    // MARK: Scrivener
-
-    /// A `.scriv` project read without Scrivener: the binder gives the order, each document its text and synopsis.
-    static func planScrivener(_ project: URL, cwd: URL) async throws -> ImportPlan {
-        let items = try FileManager.default.contentsOfDirectory(at: project, includingPropertiesForKeys: nil)
-        guard let binder = items.first(where: { $0.pathExtension == "scrivx" }) else {
-            throw BibleImporter.Failure(L("No binder in this project."))
-        }
-        let doc = try XMLDocument(contentsOf: binder)
-        guard let draft = try doc.nodes(forXPath: "//BinderItem[@Type='DraftFolder']").first as? XMLElement else {
-            throw BibleImporter.Failure(L("No draft folder in this project."))
-        }
-        var chapters: [PlannedChapter] = []
-        for item in children(of: draft) { try await collect(item, into: &chapters, project: project, cwd: cwd) }
-        return ImportPlan(source: .scrivener, file: project, title: project.deletingPathExtension().lastPathComponent,
-                          rule: L("Musset reads the project without opening Scrivener, and does not change it."),
-                          chapters: chapters,
-                          keeps: [(L("Binder"), L("Chapters and scenes")), (L("Synopsis"), L("Scene synopsis"))])
-    }
-
-    private static func children(of item: XMLElement) -> [XMLElement] {
-        item.elements(forName: "Children").first?.elements(forName: "BinderItem") ?? []
-    }
-
-    private static func title(_ item: XMLElement) -> String {
-        item.elements(forName: "Title").first?.stringValue ?? L("Untitled")
-    }
-
-    /// A folder is a chapter, its documents are its scenes; a document on its own is a chapter.
-    private static func collect(_ item: XMLElement, into chapters: inout [PlannedChapter], project: URL, cwd: URL) async throws {
-        let kids = children(of: item)
-        let name = title(item)
-        if kids.contains(where: { !children(of: $0).isEmpty }) {
-            for kid in kids { try await collect(kid, into: &chapters, project: project, cwd: cwd) }
-            return
-        }
-        var text = "# \(name)\n\n"
-        var synopsis: [String: String] = [:]
-        if let own = try await documentText(item, project: project, cwd: cwd), !own.isEmpty { text += own + "\n\n" }
-        if let s = documentSynopsis(item, project: project) { synopsis[""] = s }
-        for kid in kids {
-            let scene = title(kid)
-            text += Scenes.markerLine(scene) + "\n\n"
-            if let t = try await documentText(kid, project: project, cwd: cwd), !t.isEmpty { text += t + "\n\n" }
-            if let s = documentSynopsis(kid, project: project) { synopsis[scene] = s }
-        }
-        chapters.append(.init(title: name, text: text.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", synopsis: synopsis))
-    }
-
-    private static func dataDir(_ item: XMLElement, project: URL) -> URL? {
-        guard let uuid = item.attribute(forName: "UUID")?.stringValue ?? item.attribute(forName: "ID")?.stringValue else { return nil }
-        return project.appendingPathComponent("Files/Data/\(uuid)", isDirectory: true)
-    }
-
-    private static func documentSynopsis(_ item: XMLElement, project: URL) -> String? {
-        guard let dir = dataDir(item, project: project) else { return nil }
-        let s = try? String(contentsOf: dir.appendingPathComponent("synopsis.txt"), encoding: .utf8)
-        return s?.isEmpty == true ? nil : s
-    }
-
-    private static func documentText(_ item: XMLElement, project: URL, cwd: URL) async throws -> String? {
-        guard let dir = dataDir(item, project: project) else { return nil }
-        let id = item.attribute(forName: "ID")?.stringValue ?? ""
-        let candidates = [dir.appendingPathComponent("content.rtf"), project.appendingPathComponent("Files/Docs/\(id).rtf")]
-        guard let file = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else { return nil }
-        let out = try await ExportService.runPandoc([file.path, "-f", "rtf", "-t", "gfm", "--wrap=none"], cwd: cwd)
-        if out.ok { return out.stdout.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let attr = try NSAttributedString(url: file, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil)
-        return attr.string.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: Ulysses
