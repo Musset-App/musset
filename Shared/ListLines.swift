@@ -7,6 +7,9 @@ import Foundation
 struct ListOptions: Equatable, Hashable {
     var bullets = true
     var numbered = false
+    /// In a book of fiction, a « - » line that reads as a line of dialogue is one: the typography makes it a dash.
+    /// An essay's hyphen lines are all items.
+    var dialogue = false
 
     static let none = ListOptions(bullets: false, numbered: false)
     var any: Bool { bullets || numbered }
@@ -19,7 +22,7 @@ extension BookManifest {
     var listOptions: ListOptions {
         let t = textFeatures
         let rich = structure.map { BookStructure.preset($0.form).richText } ?? false
-        return ListOptions(bullets: structure?.text?.bulletLists ?? rich, numbered: t.numberedLists)
+        return ListOptions(bullets: structure?.text?.bulletLists ?? rich, numbered: t.numberedLists, dialogue: !rich)
     }
 
     /// The lists a book's outputs read. A hyphen line left in the text has always printed as a bullet: it still
@@ -105,6 +108,17 @@ enum ListLines {
         }
         return Item(line: line.location, indent: markerStart - line.location, level: level(columns: columns), marker: marker,
                     number: number, text: i, isEmpty: i >= end)
+    }
+
+    /// Whether a « - » item reads as a line of dialogue typed with a hyphen: at the margin, and a sentence with its
+    /// closing mark (« - Tu viens ? », « - Non, dit-elle. »). « - du pain » is an item. Stars and plus signs always are.
+    static func readsAsDialogue(_ ns: NSString, _ item: Item) -> Bool {
+        guard item.number == nil, item.indent == 0, ns.substring(with: item.marker) == "-" else { return false }
+        let line = ns.lineRange(for: NSRange(location: item.line, length: 0))
+        let body = ns.substring(with: NSRange(location: item.text, length: max(0, NSMaxRange(line) - item.text)))
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "*_\u{00A0}\u{202F}")))
+        guard let last = body.unicodeScalars.last else { return false }
+        return ".!?…»”\"".unicodeScalars.contains(last)
     }
 
     /// The start of the line before `start` that holds something, nil at the top of the text.

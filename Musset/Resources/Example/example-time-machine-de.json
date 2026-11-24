@@ -1,0 +1,226 @@
+{
+ "title": "Die Zeitmaschine",
+ "synopsis": "Ein viktorianischer Erfinder zeigt seinen Gästen eine Maschine, die durch die Zeit reist. Eine Woche später taumelt er in sein eigenes Speisezimmer, staubbedeckt und hinkend, und erzählt, wo er gewesen ist.\n\nIm Jahr 802 701 findet er die Eloi, kleine, sanfte Wesen, die in verfallenen Palästen leben und das Dunkel fürchten. Er hält sie für die Erben einer vollendeten Welt, bis seine Maschine im Sockel einer weißen Sphinx verschwindet und er den Morlocken begegnet, die unter der Erde leben, die Maschinen in Gang halten und sich von den Eloi nähren.\n\nMit Weena, einer Eloi, die sich ihm angeschlossen hat, durchsucht er ein verlassenes Museum nach Waffen, verliert sie in einem Waldbrand und holt sich seine Maschine aus der Falle zurück, die man ihm gestellt hat. Er flieht in die Zukunft, bis zu einer sterbenden Erde unter einer roten Sonne, und kehrt heim.\n\nNiemand glaubt ihm ganz. Am nächsten Tag bricht er wieder auf und kommt nicht zurück.",
+ "chapters": [
+  "Donnerstagsessen in Richmond. Der Zeitreisende behauptet, die Zeit sei eine vierte Dimension, in der man sich bewegen könne.",
+  "Vor den Augen seiner Gäste schickt er ein kleines Modell in die Zeit, dann zeigt er ihnen die fast fertige Maschine.",
+  "Am folgenden Donnerstag kommt er zu spät, verstört und hinkend, isst und beginnt zu erzählen.",
+  "Die erste Reise: die Tage flackern, das Haus vergeht, und er hält im Jahr 802 701 vor einer weißen Sphinx.",
+  "Die Eloi: klein, schön, ohne Neugier. Sie führen ihn in eine große Halle und geben ihm Früchte.",
+  "Er durchwandert das verfallene Land bei Sonnenuntergang und schließt, die Menschheit habe ihren Kampf gegen die Natur gewonnen und sei dann erschlafft.",
+  "Die Maschine ist fort. Eine Nacht der Panik; Schleifspuren führen zum Bronzesockel der Sphinx.",
+  "Er lernt die Sprache, rettet Weena aus dem Fluss, bemerkt die Brunnen und sieht ein weißes, affenartiges Wesen.",
+  "Hinab in einen Brunnen, in die Welt der Morlocken: Maschinen und Fleisch. Er entkommt mit seinen letzten Streichhölzern.",
+  "Die Wahrheit: die Eloi sind Vieh. Er bricht mit Weena zum grünen Porzellanpalast auf.",
+  "Der Palast ist ein verfallenes Museum. Er findet Streichhölzer, Kampfer und einen eisernen Hebel.",
+  "Der Rückweg bei Nacht. Er zündet ein Feuer an, der Wald brennt, und Weena ist verloren.",
+  "Die Sphinx steht offen. Die Morlocken haben mit seiner Maschine eine Falle gestellt; er kämpft sich frei und zieht den Hebel.",
+  "Dreißig Millionen Jahre später: eine rote Sonne, ein regloses Meer, riesige Krebse, eine Finsternis, das letzte Lebewesen.",
+  "Er kehrt in sein Laboratorium zurück, wenige Stunden nach dem Aufbruch, und tritt mitten ins Essen.",
+  "Die Gäste glauben ihm nicht. Am nächsten Tag sieht der Erzähler ihn wieder aufbrechen, mit einer Kamera und einem Rucksack.",
+  "Drei Jahre später. Der Erzähler bewahrt zwei welke Blumen auf und fragt sich."
+ ],
+ "statuses": [
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "edited",
+  "edited",
+  "edited",
+  "edited",
+  "done",
+  "done",
+  "draft"
+ ],
+ "sheets": [
+  {
+   "kind": "character",
+   "title": "Der Zeitreisende",
+   "aliases": [
+    "Zeitreisende",
+    "Zeitreisenden"
+   ],
+   "fields": {
+    "Occupation": "Erfinder, Privatier",
+    "Wants": "Wissen, was aus der Menschheit wird",
+    "Hides": "Seinen Namen. Er bekommt nie einen."
+   },
+   "body": "Graue Augen, ein blasses Gesicht, das sich rötet, wenn er spricht. Zu klug, als dass man ihm glaubte, sagt der Erzähler: man vermutet immer einen Trick.\n\nDie Kapitel 4 bis 15 erzählt er selbst; was davor und danach steht, gehört dem Erzähler."
+  },
+  {
+   "kind": "character",
+   "title": "Weena",
+   "aliases": [],
+   "fields": {
+    "Occupation": "Eine der Eloi",
+    "Wants": "Im Dunkeln nicht allein zu sein",
+    "Hides": ""
+   },
+   "body": "Er zieht sie aus dem Fluss, und von da an weicht sie nicht mehr von ihm. Sie füllt ihm die Taschen mit Blumen; zwei davon sind alles, was er zurückbringt.\n\nIm Waldbrand in Kapitel 12 verloren. Ob sie gestorben ist, erfahren wir nie."
+  },
+  {
+   "kind": "character",
+   "title": "Der Erzähler",
+   "aliases": [
+    "Hillyer"
+   ],
+   "fields": {
+    "Occupation": "Ein ständiger Donnerstagsgast",
+    "Wants": "Ihm zu glauben",
+    "Hides": ""
+   },
+   "body": "Erzählt die Kapitel 1 bis 3, das 16. und den Epilog. Der Name Hillyer fällt ein einziges Mal, in Kapitel 16: vermutlich ist er das."
+  },
+  {
+   "kind": "character",
+   "title": "Filby",
+   "aliases": [],
+   "fields": {
+    "Occupation": "",
+    "Wants": "Recht zu behalten",
+    "Hides": ""
+   },
+   "body": "Ein streitliebender Mann mit rotem Haar. Der Zweifler des ersten Abends."
+  },
+  {
+   "kind": "character",
+   "title": "Der Arzt",
+   "aliases": [
+    "Arzt",
+    "der Doktor"
+   ],
+   "fields": {},
+   "body": "Ein Donnerstagsgast. Untersucht in Kapitel 16 die Blumen und kann sie nicht einordnen."
+  },
+  {
+   "kind": "character",
+   "title": "Der Psychologe",
+   "aliases": [
+    "Psychologe",
+    "Psychologen",
+    "Psycholog"
+   ],
+   "fields": {},
+   "body": "Ein Donnerstagsgast. Es ist seine Hand, die den Hebel des Modells bewegt."
+  },
+  {
+   "kind": "character",
+   "title": "Der Herausgeber",
+   "aliases": [
+    "Herausgeber",
+    "Blank"
+   ],
+   "fields": {},
+   "body": "Kommt am zweiten Donnerstag. Bietet einen Schilling die Zeile für die Geschichte, Wort für Wort."
+  },
+  {
+   "kind": "character",
+   "title": "Die Eloi",
+   "aliases": [
+    "Eloi"
+   ],
+   "fields": {},
+   "body": "Das Volk der Oberwelt. Etwa vier Fuß groß, zart, lockig, schnell müde und schnell vergesslich. Sie schlafen gemeinsam in den großen Hallen und gehen nach Einbruch der Dunkelheit nicht hinaus."
+  },
+  {
+   "kind": "character",
+   "title": "Die Morlocken",
+   "aliases": [
+    "Morlocken",
+    "Morlocke"
+   ],
+   "fields": {},
+   "body": "Das Volk der Unterwelt. Bleich, großäugig, vom Licht geblendet. Sie halten die Maschinen in Gang und kleiden die Eloi, wie ein Bauer seine Herde versorgt."
+  },
+  {
+   "kind": "place",
+   "title": "Richmond",
+   "aliases": [],
+   "fields": {
+    "Where": "An der Themse, westlich von London",
+    "When": "Die 1890er Jahre"
+   },
+   "body": "Das Haus des Zeitreisenden: das Rauchzimmer, das Speisezimmer und das Laboratorium am Ende des langen, zugigen Gangs. Die ganze Geschichte verlässt diesen Punkt der Karte nie, nur dieses Jahr."
+  },
+  {
+   "kind": "place",
+   "title": "Die weiße Sphinx",
+   "aliases": [
+    "weiße Sphinx",
+    "weißen Sphinx",
+    "Sphinx"
+   ],
+   "fields": {
+    "Where": "Auf dem Rasen, wo die Maschine zuerst hält",
+    "When": "802 701"
+   },
+   "body": "Weißer Marmor auf einem Bronzesockel, verwittert, die Flügel gebreitet, mit dem Schatten eines Lächelns. Der Sockel ist hohl und hat Türen."
+  },
+  {
+   "kind": "place",
+   "title": "Der grüne Porzellanpalast",
+   "aliases": [
+    "grüne Porzellanpalast",
+    "grünen Porzellanpalast",
+    "Porzellanpalast"
+   ],
+   "fields": {
+    "Where": "Etwa achtzehn Meilen von der Sphinx, gegen Wimbledon",
+    "When": "802 701"
+   },
+   "body": "Ein verfallenes Museum, ein South Kensington der letzten Tage: Fossilien, tote Maschinen, eine zu Lumpen zerfallene Bibliothek. Noch finden sich dort eine Schachtel Streichhölzer und ein Glas Kampfer."
+  },
+  {
+   "kind": "event",
+   "title": "Das Jahr 802 701",
+   "aliases": [],
+   "fields": {
+    "Date": "802 701 n. Chr."
+   },
+   "body": "Von den Zifferblättern der Maschine abgelesen; im Text steht die Zahl stets in Worten. Die Kapitel 4 bis 13 spielen hier, in acht Tagen."
+  },
+  {
+   "kind": "event",
+   "title": "Die sterbende Erde",
+   "aliases": [],
+   "fields": {
+    "Date": "In mehr als dreißig Millionen Jahren"
+   },
+   "body": "Kapitel 14. Die Erde dreht sich nicht mehr; die Sonne ist rot, riesig und steht still. Der letzte Halt vor der Heimkehr."
+  }
+ ],
+ "notes": [
+  {
+   "quote": "Der Zeitreisende (denn so werde ich am besten von ihm reden)",
+   "kind": "note",
+   "body": "Er bekommt nie einen Namen, die meisten Gäste auch nicht. So lassen: die beiden, die einen haben, Filby und Weena, fallen dadurch auf."
+  },
+  {
+   "quote": "Filby, ein streitliebender Mann mit rotem Haar",
+   "kind": "praise",
+   "body": "Eine ganze Figur in sechs Wörtern."
+  },
+  {
+   "quote": "Es gibt keinen Unterschied zwischen der Zeit und einer der drei Dimensionen des Raumes",
+   "kind": "todo",
+   "body": "Der Vortrag zieht sich. Könnte der Arzt einen Absatz früher unterbrechen?"
+  }
+ ],
+ "milestones": [
+  {
+   "title": "Erste deutsche Ausgabe",
+   "note": "J. C. C. Bruns, Minden, 1904, in der Übersetzung von Felix Paul Greve."
+  },
+  {
+   "title": "Durchsicht",
+   "note": "Die Kapitel 1 bis 10 sind endgültig."
+  }
+ ]
+}

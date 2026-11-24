@@ -31,7 +31,7 @@ struct ChapterScopePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             row(.book, L("The whole book", ctx: "Le livre entier"),
-                "\(session.manifest.chapters.filter { !$0.excludeFromExport }.count) " + session.words.piecesInOrder)
+                L("\(session.words.count(session.manifest.chapters.filter { !$0.excludeFromExport }.count, .piece)), in order"))
             row(.status, session.words.piecesByStatus, L("For example: only what is edited or final"))
             if scope == ChapterScopeMode.status.rawValue {
                 let on = Self.statuses(statusList)

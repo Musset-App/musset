@@ -251,6 +251,11 @@ final class ImportTests: XCTestCase {
         try await AppState().createBook(at: root, title: "Roman", author: "A", lang: "en", genre: nil, chapters: plan.chapters)
         let m = try BookStore(root: root).loadManifest()
         XCTAssertEqual(m.orderedParts.map(\.title), ["Part One", "Part Two"])
+        // Musset-App/musset#2: a new book has its lists, bullets and numbers, in the editor and on the page, whatever its form.
+        XCTAssertEqual(m.listOptions, ListOptions(bullets: true, numbered: true, dialogue: true))
+        XCTAssertEqual(m.printedListOptions, ListOptions(bullets: true, numbered: true))
+        XCTAssertTrue(m.typesetText.bullets && m.typesetText.numbered)
+        XCTAssertFalse(m.hasForm, "an imported book still reads as the book Musset always made")
         XCTAssertEqual(m.chapters.map { ch in m.parts?.first { $0.id == ch.part }?.title }, [nil, "Part One", "Part One", "Part Two", "Part Two"])
         let all = plan.chapters.map(\.text).joined()
         XCTAssertFalse(all.contains("SECRET NOTE"))
@@ -407,5 +412,104 @@ final class ImportTests: XCTestCase {
         XCTAssertEqual(s.bible.entries(in: "a-trier").first?.body, "Une idée sans place\n")
         XCTAssertEqual(s.collectTodos().filter { $0.chapter == "01" }.count, 1)
         XCTAssertEqual(s.linkTargets(matching: "pon").first?.title, "Le pont")
+    }
+}
+
+@MainActor
+final class FirstRunTests: XCTestCase {
+    /// The example is a whole book: its chapters, its people, its history with what was cut, and it opens twice
+    /// on the same folder.
+    func testTheExampleBookIsMadeAsABookIs() async throws {
+        let shelf = FileManager.default.temporaryDirectory.appendingPathComponent("example-\(UUID())", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: shelf) }
+        let app = AppState()
+        try await ExampleBook.open(in: app, at: shelf, lang: "en-GB")
+        let s = try XCTUnwrap(app.current)
+        XCTAssertTrue(ExampleBook.isExample(s.root))
+        XCTAssertEqual(s.manifest.title, "The Time Machine")
+        XCTAssertEqual(s.manifest.chapters.count, 17)
+        XCTAssertEqual(s.manifest.chapters.first?.title, "Introduction")
+        XCTAssertEqual(s.manifest.chapters.last?.status, .draft)
+        XCTAssertEqual(Set(s.manifest.chapters.compactMap(\.status)), [.draft, .done, .edited, .final])
+        XCTAssertTrue(s.bible.entries.contains { $0.title == "Weena" && $0.kind == .character })
+        XCTAssertTrue(s.bible.entries.contains { $0.kind == .cut && $0.title == "The Grey Man" })
+        XCTAssertEqual(s.milestones.map(\.title).sorted(), ["First edition", "Serial, New Review"])
+        XCTAssertFalse((s.plot.synopsis ?? "").isEmpty)
+        // The passage is in the serial and no longer in the book.
+        let chapter = s.manifest.chapters[13]
+        let today = try String(contentsOf: s.root.appendingPathComponent(chapter.file), encoding: .utf8)
+        XCTAssertFalse(today.contains("some small breed of kangaroo"))
+        let serial = try XCTUnwrap(s.milestones.first { $0.title == "Serial, New Review" })
+        XCTAssertTrue((s.git.show(serial.id, path: chapter.file) ?? "").contains("some small breed of kangaroo"))
+        XCTAssertEqual(NoteStore.read(NoteStore.url(s.root, s.manifest.chapters[0].id)).count, 3)
+        XCTAssertFalse(today.contains("Gutenberg"))
+        // Opened again: the same book, not a second one.
+        let again = AppState()
+        try await ExampleBook.open(in: again, at: shelf, lang: "en-GB")
+        XCTAssertEqual(again.current?.root.standardizedFileURL, s.root.standardizedFileURL)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: shelf.path).filter { !$0.hasPrefix(".") }.count, 1)
+    }
+
+    func testTheExampleReadsInFrenchAndFallsBackToEnglish() {
+        XCTAssertEqual(ExampleBook.title("fr-FR"), "La Machine à explorer le temps")
+        XCTAssertEqual(ExampleBook.title("pt-BR"), "The Time Machine")
+        XCTAssertEqual(ExampleBook.title("it-IT"), "La macchina del tempo")
+        XCTAssertEqual(ExampleBook.title("de-CH"), "Die Zeitmaschine")
+        XCTAssertEqual(ExampleBook.title("es-MX"), "La máquina exploradora del tiempo")
+        XCTAssertEqual(ExampleBook.content("it-IT")?.chapters.count, 17)
+        let fr = try? XCTUnwrap(ExampleBook.content("fr-FR"))
+        XCTAssertEqual(fr?.chapters.count, 17)
+        XCTAssertNil(fr?.cut)
+    }
+
+    /// Every language's example builds, with its notes anchored in its own first chapter.
+    /// Musset-App/musset#2: the genres under « Other… » read in French in an English interface.
+    func testGenreNamesFollowTheInterface() {
+        for p in ScoringLibrary.shared.presets { XCTAssertNotEqual(p.shownName, "", p.id) }
+        let saved = UserDefaults.standard.string(forKey: UILang.key)
+        defer { UserDefaults.standard.set(saved, forKey: UILang.key) }
+        UserDefaults.standard.set(UILang.en.rawValue, forKey: UILang.key)
+        XCTAssertEqual(ScoringLibrary.shared.presets.first { $0.id == "historique" }?.shownName, "Historical novel")
+        XCTAssertEqual(BookGenres.label("horreur"), "Horror")
+        UserDefaults.standard.set(UILang.de.rawValue, forKey: UILang.key)
+        XCTAssertEqual(BookGenres.label("horreur"), "Horror")
+        XCTAssertEqual(BookGenres.label("historique"), "Historischer Roman")
+    }
+
+    func testEveryExampleBuilds() async throws {
+        for lang in ["fr-FR", "it-IT", "de-DE", "es-ES"] {
+            let shelf = FileManager.default.temporaryDirectory.appendingPathComponent("example-\(UUID())", isDirectory: true)
+            addTeardownBlock { try? FileManager.default.removeItem(at: shelf) }
+            let app = AppState()
+            try await ExampleBook.open(in: app, at: shelf, lang: lang)
+            let s = try XCTUnwrap(app.current)
+            XCTAssertEqual(s.manifest.chapters.count, 17, lang)
+            XCTAssertEqual(NoteStore.read(NoteStore.url(s.root, s.manifest.chapters[0].id)).count, 3, lang)
+            XCTAssertTrue(s.bible.entries.contains { $0.title == "Weena" }, lang)
+            XCTAssertEqual(s.milestones.count, 2, lang)
+        }
+    }
+
+    /// What is said once is said for typing, not for a book that arrives with its words.
+    func testNoticesComeFromTypingOnly() async throws {
+        let d = UserDefaults.standard
+        let keys = ["said.kept", "said.read"]
+        let old = keys.map { d.object(forKey: $0) }
+        defer { for (k, v) in zip(keys, old) { d.set(v, forKey: k) } }
+        keys.forEach(d.removeObject)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("notice-\(UUID())/b", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
+        let app = AppState()
+        try await app.createBook(at: root, title: "B", author: "A", lang: "en", genre: nil, chapters: [PlannedChapter(title: "One", text: "# One\n\n")])
+        let s = try XCTUnwrap(app.current)
+        app.wordsChanged(from: 0, to: 25_000, in: s)
+        XCTAssertNil(app.notice)
+        app.wordsChanged(from: 20, to: 26, in: s)
+        XCTAssertNotNil(app.notice)
+        app.notice = nil
+        app.wordsChanged(from: 26, to: 40, in: s)
+        XCTAssertNil(app.notice, "said once")
+        app.wordsChanged(from: 290, to: 301, in: s)
+        XCTAssertEqual(app.notice?.action, .read)
     }
 }

@@ -509,7 +509,7 @@ struct StructureSettings: View {
                 SettingsRow(title: L("Sub-headings"), hint: L("Lines starting with « ## » and « ### » become sections: they show in the sidebar and the jump field, and « ## » in the table of contents.")) {
                     SettingsSwitch(on: Binding(get: { m.textFeatures.subheadings }, set: { v in change { $0.text = text($0) { $0.subheadings = v } } }))
                 }
-                SettingsRow(title: L("Bullet lists"), hint: L("A line that starts with « - », « * » or « + » and a space is a list item: Return continues the list, Tab nests the item. Off, a hyphen at the start of a line becomes a dialogue dash again.")) {
+                SettingsRow(title: L("Bullet lists"), hint: L("A line that starts with « - », « * » or « + » and a space is a list item: Return continues the list, Tab nests the item. Off, a hyphen at the start of a line becomes a dialogue dash again. On, a hyphen line that reads as a line of dialogue (a sentence with its full stop or question mark) still becomes a dash, except in an essay.")) {
                     SettingsSwitch(on: Binding(get: { m.listOptions.bullets }, set: { v in change { $0.text = text($0) { $0.bulletLists = v } } }))
                 }
                 SettingsRow(title: L("Numbered lists"), hint: L("Off, « 1. » opens a sentence like any number. On, a line starting with « 1. » opens a list; « 1943. Barcelona. » stays a sentence.")) {

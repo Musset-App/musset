@@ -1,0 +1,80 @@
+p006 L04 · y brillantes y su rostro, habitualmente pálido,
+p006 L11 · hallábamos en esa voluptuosa situación de so-
+p007 L30 · que exista un cubo *instantáneo*?
+p008 L21 ¶ —Eso—dijo un jovencito, haciendo nerviosos
+p008 L31 · es más que una manera distinta de enfrontar o
+p009 L01 · examinar el Tiempo. *No existe diferencia algu-*
+p009 L02 · *na entre el Tiempo y una cualquiera de las tres*
+p009 L03 · *dimensiones del Espacio, excepto que nuestro co-*
+p009 L04 · *nocimiento marcha paralelamente a lo largo de*
+p009 L05 · *ella*. Pero algunas gentes estúpidas han tomado
+p009 L09 ¶ —Yo no—exclamó el provincial.
+p011 L13 · vernos libremente en el Espacio? Podemos, sí,
+p011 L30 ¶ —Más fácilmente, mucho más fácilmente de
+p013 L08 ¶ —¡Oh! Eso—interrumpió Filby,—es…
+p013 L09 ¶ —¿Qué?—preguntó el Explorador del Tiempo.
+p013 L14 · co—dijo Filby,—pero jamás logrará usted con-
+p013 L16 ¶ —Puede ser—dijo el Explorador del Tiempo;—
+p013 L23 ¶ —…qué viajará en cualquier dirección del Es-
+p013 L30 · un historiador—indicó el psicólogo.—Poder volver
+p014 L01 · al pasado y comprobar a gusto los relatos que nos
+p014 L18 ¶ —Sí; eso es lo que a mí me parecía; de tal
+p014 L19 · modo, que jamás he hablado de esto hasta…
+p014 L21 · usted a comprobar *esto*?
+p014 L24 ¶ —Bien, bien—dijo el psicólogo.—¡Háganos ver
+p014 L25 · esta demostración, aunque todo ello no sea más que
+p014 L27 ¶ El Explorador del Tiempo nos miró sonriendo,
+p015 L06 · de escamoteo—contestó el doctor.
+p018 L01 · cir esto.—He aquí, además, una pequeña palanca
+p018 L06 ¶ —Dos años me ha costado construirlo—res-
+p018 L11 · mente que haciendo presión sobre ella, esta pa-
+p018 L12 · lanca, hace que la máquina se deslice en el futuro,
+p018 L28 ¶ —No—dijo de pronto.—Deme usted su mano.
+p018 L31 · el psicólogo mismo quien puso a aquel modelo
+p019 L26 ¶ —Ciertamente—dijo nuestro amigo, agachándo-
+p020 L05 · mo un pequeño viaje.
+p020 L07 · en el porvenir?—preguntó Filby.
+p020 L08 ¶ —En el porvenir o en el pasado. No puedo
+p020 L10 ¶ Un momento después, el psicólogo tuvo una ins-
+p020 L14 ¶ —¿Por qué? — preguntó el Explorador del
+p021 L12 · rá, naturalmente, una cincuentésima o centési-
+p022 L01 · temblorosa luz, la danza de las sombras… Asi-
+p022 L04 · había desaparecido ante nuestra vista. Algunas
+p022 L18 · tro amigo, elevando la lámpara,—de que por me-
+p024 L13 · curiosas eventualidades, los hechos increíbles, las
+p024 L15 · pleta confusión, que su pretendido invento nos
+p024 L16 · sugería. Por mi parte, me sentía singularmente
+p024 L25 · llo.
+p024 L25+ ¶ El jueves siguiente me trasladé a Richmond;
+p025 L05 ¶ —¿Dónde está? — pregunté, refiriéndome a
+p026 L01 ¶ —¡Hola! ¡Al fin! — grité yo, que sentado
+p026 L06 ¶ —¡Gran Dios!—exclamó el doctor.—¡En qué
+p026 L26 · llena de *champagne*, que bebió de un solo trago.
+p026 L28 · a la mesa y la sombra de su habitual sonrisa
+p027 L07 ¶ —¡Qué bien sienta esto!—dijo.
+p027 L31 · seguirle, al cerrarse tras él la puerta, pero me con-
+p028 L03 · desatinando. Oí al editor que decía: *Extraña*
+p028 L04 · *conducta de un sabio famoso*, pues, siguiendo su
+p028 L08 ¶ —¿Qué farsa es esta? — preguntó el perio-
+p028 L13 · mente la escalera. No creo que, aparte nosotros,
+p029 L16 · el periodista, en el momento en que reaparecía
+p029 L21 ¶ —Me dicen estos señores—dijo el editor rien-
+p029 L24 · adelantarnos algo sobre política? ¿Cuánto pide
+p029 L29 ¶ —¿Dónde está mi carnero?—preguntó.—¡Oh,
+p030 L01 ¶ —¡Venga la historia!—gritó el editor.
+p030 L28 · que de ordinario y vaciaba su copa de *champagne*
+p031 L04 ¶ Extendió la mano, cogió un cigarro y cortó
+p031 L23 · que no creo que sér humano los haya vivido
+MISPRINT p007 L09: printed «áulas», probably «aulas»
+UNSURE p008 L01: after «cubo» at the line end, comma or full stop (OCR has a full stop; the sentence runs on)
+MISPRINT p013 L23: printed «qué» with an accent, probably «que»
+UNSURE p017 L23: a dot after «encima» at the line end, full stop or a speck (the sentence runs on)
+UNSURE p018 L16: mark after «desvanecerá» at the line end, full stop, comma or a speck
+UNSURE p019 L01: «Explorádora» or «Exploradora», a mark over the a may be a speck
+MISPRINT p019 L08: printed «vuelva», probably «vuelta»
+UNSURE p020 L20: «viajasé» or «viajase», a small mark over the e may be a speck
+UNSURE p024 L10: «madie» or «nadie», the first letter is damaged
+MISPRINT p024 L12: printed «obsesionase», probably «obsesionasen»
+MISPRINT p028 L11: printed «pensamiento. fijo» with a full stop, probably a comma
+MISPRINT p029 L08: printed «¿Es qué» with an accent, probably «que»
+UNSURE p028 L16: after «criados» at the line end, comma or full stop (OCR has a full stop; it looks like a comma and the sentence runs on)

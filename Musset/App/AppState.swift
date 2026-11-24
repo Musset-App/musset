@@ -59,6 +59,8 @@ final class AppState {
     var showHome = false { didSet { if !showHome { homeSection = .books } } }
     /// The optional AI helpers, with what they bring.
     var showHelpers = false
+    /// One line at the foot of the window, in the first days (`FirstSteps`).
+    var notice: FirstNotice?
     /// The panes and tabs of the open book's window, and the tab shown in the pane one is in.
     var workspace: Workspace? { current?.workspace }
     var activeTab: PaneTab? { workspace?.activeTab }
@@ -209,6 +211,7 @@ final class AppState {
         libraryPaths = UserDefaults.standard.stringArray(forKey: "libraryPaths") ?? []
         // A test run hosted in the app must not open the book the author may be writing in.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        countLaunch()
         if let last = UserDefaults.standard.string(forKey: "lastBook"), libraryPaths.contains(last) {
             openBook(URL(fileURLWithPath: last))
         } else if let first = libraryPaths.first {

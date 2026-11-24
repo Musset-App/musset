@@ -1,0 +1,83 @@
+p110 L07 · do los Eloïs de humano, dábales derecho a mi
+p110 L08 · simpatía y hacíame con ellos compartir su de-
+p110 L21 · Esfinge, aunque tenía ya la noción de una es-
+p110 L23 · poder abrir estas puertas, llevando ante mí un
+p110 L27 · llevarla muy lejos. Había resuelto llevarme a
+p111 L01 # »Llegamos hacia mediodía al Palacio de Porce-
+p112 L01 · na podria ayudarme a interpretarlos, pero me di
+p112 L09 · tanas laterales. Al primer vistazo, tuve la idea
+p112 L11 · baldosas y gran número de diversos objetos des-
+p112 L22 · brontosauro, confirmándose mi hipótesis de ha-
+p112 L23 · llarme en un museo. En uno de los lados encon-
+p113 L03 · paleontológica, que había encerrado una magní-
+p113 L26 ¶ Este Palacio de Porcelana Verde, a juzgar por
+p113 L31 · más interesante que el espectáculo de estos fó-
+p114 L08 · porción de azufre hizo que en mi espíritu se
+p114 L30 · alumbrado artificial. Me hallaba aquí en mi ele-
+p115 L01 · enormes de gigantescas máquinas, rotas y corroí-
+p115 L12 ¶ De pronto Weena pegóse materialmente a mí,
+p115 L13 · tan súbitamente, que me estremecí. Si por ella
+p115 L28 · ciente sobresalto de Weena lo que me hizo aper-
+p116 L05 · y un poco más lejos, hacia la oscuridad, parecía
+p116 L16 ¶ Cogí a Weena de la mano, pero acometido
+p116 L24 · la fuerza de resistencia de la palanca no me
+p117 L14 · así como de jirones de banderas, si bien reconocí
+p117 L22 · Si hubiese sido escritor, ¡cómo hubiese podido
+p117 L27 · to pensaba en el *Philosophical Transactions* y en
+p118 L15 · alegremente que supe el aire de *The Land of*
+p118 L16 · *the Leal*. Era una mezcla de modesto cancán,
+p118 L19 ¶ Pensé que escaparme por medio de esta ca-
+p118 L20 · ja de cerillas a través del tiempo, de innumera-
+p120 L03 · bía de todas las épocas y de todas las partes
+p120 L16 ¶ —¡Eureka!—grité. Y lleno de alegría rompí
+p121 L16 · mejor que mi maza de hierro. Pero ahora, con
+p121 L17 DELETE
+p122 L01 # »Salimos del Palacio cuando aun lucía el Sol
+p122 L08 · dormir. Para ello, durante el camino recogí ra-
+p124 L10 ¶ Quiso coger las llamas y jugar con ellas; creo
+p124 L13 · de su resistencia, hundíme atrevidamente en el
+p124 L25 · encima de mí todo estaba negro, salvo acá y acu-
+p124 L31 ¶ Durante algún tiempo no oí más que los cru-
+p125 L09 · locks, que me envolvían poco a poco. Un minuto
+p126 L01 · cé a Weena. A mis espaldas parecía estar lleno
+p126 L17 · canfor se extinguiese, procuré juntar ramitas y
+p126 L21 · cendí una cerilla y al instante dos descoloridas for-
+p126 L28 · cayó. Encendí un nuevo trozo de alcanfor y pro-
+p127 L01 · había caído una sola gota de lluvia. Así, en vez
+p127 L19 · mente. Pero todo estaba oscuro y sobre mí sentí las
+p128 L04 · finos dientes. Revolvíme hacia un lado y mi
+p128 L09 · Sentí bajo mis golpes un delicioso aplastamiento
+p129 L17 · que, avanzándome, me hicieron dar un rodeo a
+p129 L20 · tropezando, a mi lado, pasó rozándome y se pre-
+p129 L29 · rodeaban el claro de la selva con una barrera
+p130 L03 · no pensé que se hallaban cegados, y con mi ba-
+p130 L06 · uno o dos y destrocé a otros varios; pero al
+p130 L09 · comprendí su miserable estado de impotencia y
+p130 L21 · allí.
+p130 L22 ¶ Sentéme al fin en la cima del montículo, con-
+p131 L06 · tar; golpeé el suelo con mis manos, levantéme
+p131 L21 · me es posible expresar de qué modo mitigó esto mi
+p131 L23 · fin que parecía reservársele. Pensando en todo
+p131 L25 · punto, aunque pude al fin contenerme, una ma-
+p132 L01 · brar mi orientación hacia la Blanca Esfinge. En-
+p132 L20 · que era, para mí, un inmenso sufrimiento.
+p133 L01 # »A las ocho o las nueve de la mañana llegué a
+p133 L11 · los Eloïs pasaban y repasaban entre los árboles.
+p134 L02 · neo. Ya conocía yo lo que recubría toda esta be-
+p134 L03 · lleza del mundo exterior. Como los días que pasa
+p134 L11 · con pie firme en camino hacia el *confort* y el
+p134 L13 · do, como consigna, las palabras: *seguridad* y
+p134 L14 · *estabilidad*, y había alcanzado su objeto, para
+p134 L15 · llegar finalmente a esto. Quizás algún día al-
+p135 L14 · se aplicaban a una mecánica que, por perfecta,
+p135 L21 · es como vi finalmente el mundo del año ocho-
+MISPRINT p119 L19: printed «mapa», probably «maza»
+MISPRINT p121 L22: printed «ea» (nun-ea), probably «ca»
+MISPRINT p133 L10: printed «dé», probably «de»
+MISPRINT p134 L16: printed «calzaron» (al-calzaron), probably «canzaron»
+UNSURE p112 L01: the line is distorted in the scan; «podria» or «podría», «di» or «dí» cannot be told (only «ia»→«na» corrected)
+UNSURE p126 L22: «mas,» or «mas;», a speck above the comma
+UNSURE p133 L01: a dot after «A» («»A. las»), speck or printed full stop; removed in the correction
+UNSURE p135 L30: «fatiga.» or «fatiga,», the mark is unclear
+UNSURE p124 L11: «si no» or «sí no», a mark over the i
+UNSURE p118 L17: «patalco» or «pataleo», the c/e is not clear in the print

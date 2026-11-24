@@ -1,0 +1,66 @@
+p032 L06 · su valor lo que oí aquella noche! Aunque su-
+p033 L07 · está retorcido, y rota una de las barras de marfil;
+p034 L11 · la otra; apreté la primera, e inmediatamente el
+p034 L21 · media!
+p034 L31 · sición más extrema. Vino la noche con la rapi-
+p034 L31+ · dez con que se apaga una lámpara. Un instante
+p035 L03 · y llegó otra vez, en sombras, la noche de ma-
+p035 L12 · una caída en el vacío. Experimenté asimismo la
+p036 L03 · cielo revestía una admirable profundidad azul,
+p036 L14 · se elevaba por encima de mí. Vi los árboles
+p036 L17 · gajaban y desaparecían. Vi inmensos edificios
+p036 L19 · ños. La superficie entera de la tierra parecía cam-
+p038 L10 · *a lo Ignoto*. Esta posibilidad se había muy a me-
+p039 L10 ¶ Se me ocurrió al fin que era una estupidez
+p040 L02 · reciéndome que retrocedía o avanzaba, según caía,
+p040 L04 · zo. Al fin, volví los ojos y vi que las nubes
+p040 L05 · se desvanecían, aclarándose el cielo con la pro-
+p040 L06 · mesa del sol. Volví a dirigir la mirada a la esta-
+p041 L08 · se cierne para abatirse sobre él. Mi miedo dege-
+p041 L15 · sobre la palanca, permanecí inmóvil, jadeando
+p041 L25 ¶ Oí entonces voces que se aproximaban y a
+p042 L06 · Haciendo estas observaciones, me apercibí por
+p043 L01 # »En un instante estuvimos, este sér delicado
+p043 L08 ¶ Llegaron aún varios más y pronto reuní a
+p043 L09 · mi alrededor un grupo de una docena de aque-
+p043 L10 · llos exquisitos seres, uno de los cuales me dirigió
+p043 L13 · blar, moví la cabeza, y mostrándole mis oídos,
+p044 L28 · zás parezca esto un poco egoísta por mi parte),
+p044 L30 · aquel interés que en un principio les había su-
+p045 L24 · bía venido del Sol con la tempestad! Echaba aque-
+p045 L25 · llo completamente por tierra la opinión que de
+p046 L05 · guirnalda de flores magníficas y frescas, para mí
+p046 L18 · al otro lado de la Esfinge de mármol blanco, que
+p046 L28 · mí se alzaban, misteriosos y oscuros. Mi impre-
+p046 L31 · bles, de un jardín largo tiempo abandonado y
+p047 L01 · no obstante sin malas hierbas. Vi gran número de
+p047 L05 · flores silvestres, entre los variados arbustos, pe-
+p047 L05+ · ro no pude examinarlas atentamente. La má-
+p047 L08 ¶ El arco de la entrada estaba ricamente escul-
+p048 L02 · pie del suelo, llenas de diversas frutas. Creí
+p048 L29 · vestidos con la misma tela sedosa, suave y só-
+p049 L02 · estrictamente vegetarianas, y mientras permanecí
+p051 L01 # »Pronto hice el raro descubrimiento de que mis
+p052 L02 · que reían y murmuraban acerca de mí, y que,
+p052 L03 · luego de haberme sonreído y hecho algún amis-
+p052 L25 · ruínas. Por ejemplo, subiendo la colina y a poca
+p053 L18 ¶ —El comunismo—me dije.
+p054 L03 · cían en extremo precoces, cosa que pude luego com-
+p054 L17 · guna necesidad, de una familia efectiva; y la
+p055 L05 · amarillo que no pude reconocer, corroído por una
+p055 L16 · Támesis, por donde se deslizaba el río como una
+p056 L13 · tencia, el verdadero progreso de la civilización
+MISPRINT p036 L05: printed «saltos.» with a full stop at the line end, probably a comma («saltos,»)
+MISPRINT p037 L30: printed «éllo» with an accent, probably «ello»
+MISPRINT p048 L01: printed «inultitud», probably «multitud»
+MISPRINT p055 L21: printed «ailá» (damaged type), probably «allá»
+UNSURE p034 L06: «tarse» seems to carry a mark on the e («tarsé»); speck or printer's slip
+UNSURE p034 L18: the mark after «marcaba» at the line end may be a full stop rather than a comma
+UNSURE p034 L31+: this line is physically the first printed line at the top of the p035 image, above p035 L01
+UNSURE p037 L05: «piritu,» seems to have no acute on the first i in the print
+UNSURE p039 L07: the print has spaces around the dashes («hospitalidad — dije, — para con»)
+UNSURE p039 L22: the «l» of «alada» is damaged and looks like «aiada»
+UNSURE p047 L01: first letter of «no» is damaged (looks like «ho»/«ño»); corrected to «no»
+UNSURE p049 L06: a mark after «una» at the line end may be a printed comma or a speck; line left as is
+UNSURE p052 L25: «ruínas» appears to carry an accent on the i in the print (p055 L19 has plain «ruinas»)
+UNSURE p056 L13: the last letter of «progreso» is damaged type (looks like «n»)

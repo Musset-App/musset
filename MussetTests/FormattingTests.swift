@@ -82,6 +82,25 @@ final class ParagraphRestyleTests: XCTestCase {
         return tv
     }
 
+    /// Musset-App/musset#2: « **fort** » read as emphasis around « *fort* » and showed in italics.
+    func testStrongIsBoldAndEmphasisItalic() {
+        let text = "Un **fort**, un *penché*, un __gras__, un ***double*** et **un *mot* dedans**."
+        let tv = editor(text)
+        let fm = NSFontManager.shared
+        func traits(_ word: String) -> NSFontTraitMask {
+            let at = (text as NSString).range(of: word).location
+            return fm.traits(of: tv.textStorage!.attribute(.font, at: at, effectiveRange: nil) as! NSFont)
+        }
+        XCTAssertTrue(traits("fort").contains(.boldFontMask)); XCTAssertFalse(traits("fort").contains(.italicFontMask))
+        XCTAssertTrue(traits("gras").contains(.boldFontMask)); XCTAssertFalse(traits("gras").contains(.italicFontMask))
+        XCTAssertTrue(traits("penché").contains(.italicFontMask)); XCTAssertFalse(traits("penché").contains(.boldFontMask))
+        let double = (text as NSString).range(of: "double").location
+        XCTAssertTrue(traits("double").contains(.boldFontMask))
+        XCTAssertTrue(traits("double").contains(.italicFontMask) || tv.textStorage!.attribute(.obliqueness, at: double, effectiveRange: nil) != nil)
+        XCTAssertTrue(traits("dedans").contains(.boldFontMask))
+        XCTAssertFalse(traits("Un ").contains(.boldFontMask))
+    }
+
     /// The text styled from scratch, with the caret where the editor has it.
     private func whole(_ tv: ZenTextView) -> NSAttributedString {
         let fresh = NSTextStorage(string: tv.string)

@@ -1,0 +1,66 @@
+p058 L12 · cariño la idea de un paraíso social.
+p058 L16 · sea más que un revoltijo de errores, ¿cuál es
+p059 L06 · llas numerosas y enormes ruinas, sentía con-
+p059 L25 · lectual, así como la física, estaría como fuera
+p060 L25 ¶ Permanecí allí, entre las tinieblas que lo in-
+p062 L01 # »Mientras reflexionaba sobre este triunfo dema-
+p062 L11 · finge sobre su pedestal de bronce, cada vez más
+p062 L13 · cía más brillante. Pude ver, no lejos de allí,
+p063 L05 ¶ Sí, si *era* el prado; pues el rostro estropeado
+p063 L22 · ñar la sangre, y púseme a correr nuevamente,
+p064 L06 · minutos, ¡y yo no soy ya joven! Mientras co-
+p064 L15 · na se veía. Cuando estuve ante el espacio vacío,
+p065 L06 · impiden, cuando están éstas retiradas—cuyo pro-
+p065 L12 ¶ Creo que fuí presa de una crisis de locura. Re-
+p066 L06 ¶ —¿Dónde está mi Máquina del Tiempo? —
+p066 L11 · asustados. Cuando vi que me rodeaban comprendí
+p066 L20 · ridad de la Luna. Oí gritos de terror y el ruído
+p067 L09 · gorriones brincaba alrededor de mí, sobre el cés-
+p067 L16 · enfrontar claramente mi situación; comprendí la
+p068 L08 · cir verdad, buscando lo que necesitaba, casi me
+p068 L27 · que parecían hechas por uno de esos curiosos ani-
+p068 L28 · males a los que llamamos *perezosos*. Aquello llevó
+p069 L01 · planchas estaban perfectamente ajustadas. Fuílas
+p069 L08 · sité esforzar mucho mi cerebro para deducir que
+p069 L13 · percibí las cabezas de dos pequeñas criaturas,
+p069 L15 · mí. Me volví hacia ellas, sonriente, haciéndoles
+p069 L28 · deseando recuperar mi Máquina, comprenderán
+p069 L30 · la espalda, renaciera mi mal humor.
+p070 L15 · una milla quizás de allí, pero no se inquietaron
+p070 L29 · Máquina, es preciso dejar tranquila la Esfinge.
+p071 L04 · rrible; es el camino de la monomanía. Arrostra
+p071 L08 ¶ Apercibíme entonces, de pronto, de lo cómico
+p072 L02 · figurado. Sus sencillas frases se componían por
+p073 L01 # »Todo lo lejos que me fué dable ver, el mundo
+p075 L03 · utopías de los tiempos venideros, he hallado pro-
+p075 L09 · como la por mí allí hallada. Imagínense ustedes
+p075 L18 · a sus amigos, al regresar a la tribu? ¡Y qué
+p075 L31 · ploración. Fué esta una cuestión que pretendí
+p076 L11 · Permítanme exponer mis dificultades. Los dis-
+p077 L10 · conocidas. Pues bien; de esta forma me aparecía
+p078 L01 · que no esperé de ella gratitud alguna. Esta vez,
+p078 L29 · decíame, para entretenerme en un *flirt* en minia-
+p079 L07 · entonces no supe y aún no muy exactamente, lo
+p079 L20 · dículo enfado hícele gestos amenazadores, y echó-
+p080 L13 · monas pasábanme por el rostro sus blandos ten-
+p080 L21 · sala y me detuve sobre las losas de piedra de la
+p080 L21+ · escalinata del palacio; quería contemplar la sa-
+p080 L28 · Al lado de la colina creía percibir unas figuras
+p081 L01 · la pendiente, vi blancas formas. Dos veces creí
+p081 L09 · y glacial de la madrugada, que conocen ustedes,
+p081 L14 · los alrededores. Ningún indicio hallé de mis for-
+p081 L17 ¶ —Si esas formas eran espíritus—díjeme,—¿qué
+p081 L25 · era, por tanto, muy raro poder contemplar cua-
+p081 L26 · tro de ellos a la vez. Pero no era muy convin-
+p082 L04 ¶ No sé si ya les he dicho que la temperatura
+p082 L08 · la Tierra más cerca de él. Generalmente se ad-
+p082 L21 · ta, según creo, buscando en alguna de aque-
+p082 L22 · llas grandes ruinas, no lejos del gran edificio don-
+p082 L31 · ya que el brusco paso de la luz a las tinieblas, ha-
+p082 L32 DELETE
+MISPRINT p063 L15: printed «física.» with a full stop at the end of the line, probably a comma
+MISPRINT p064 L29: printed «inperfección», probably «imperfección»
+MISPRINT p069 L10: printed «allí.» with a full stop at the end of the line, probably a comma
+UNSURE p070 L21: «largá» or «larga», there is an accent-like mark over the final a that may be a speck
+MISPRINT p073 L02: printed «exhuberante», probably «exuberante»
+UNSURE p076 L05: «és» or «es», there is a mark over the e that may be a speck

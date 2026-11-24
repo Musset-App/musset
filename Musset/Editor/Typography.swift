@@ -284,6 +284,8 @@ enum Typography {
                 let line = ns.lineRange(for: NSRange(location: at, length: 0))
                 at = NSMaxRange(line)
                 guard let item = ListLines.candidate(ns, at: line.location), item.number == nil else { continue }
+                // A line of dialogue typed with a hyphen is not an item: it gets its dash.
+                if lists.dialogue, ListLines.readsAsDialogue(ns, item) { continue }
                 let r = NSRange(location: line.location, length: item.text - line.location)
                 if !spans.contains(where: { NSIntersectionRange($0, r).length > 0 }) { spans.append(r) }
             }

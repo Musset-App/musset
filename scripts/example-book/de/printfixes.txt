@@ -1,0 +1,15 @@
+# Misprints of the 1904 print corrected in the clean file: printed form => corrected form (PDF page in the comment above each)
+# p19: closing mark missing at the end of the speech
+wollen *das* beweisen?\n\n => wollen *das* beweisen?«\n\n
+# p37: opening mark missing
+schnitt das Ende ab. Aber kommen Sie => schnitt das Ende ab. »Aber kommen Sie
+# p57: comma for full stop before a capital
+einziges Gericht, Diese Leute => einziges Gericht. Diese Leute
+# p58
+blondhariges => blondhaariges
+# p70
+volkommener => vollkommener
+# p97
+hiunterblickte => hinunterblickte
+# p117
+unmenschlisches => unmenschliches

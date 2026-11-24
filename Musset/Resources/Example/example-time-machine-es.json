@@ -1,0 +1,180 @@
+{
+ "title": "La máquina exploradora del tiempo",
+ "synopsis": "Un inventor de la época victoriana enseña a sus invitados una máquina que viaja por el tiempo. Una semana después entra tambaleándose en su propio comedor, cubierto de polvo y cojeando, y les cuenta de dónde viene.\n\nEn el año 802.701 encuentra a los Eloïs, seres pequeños y dulces que viven en palacios en ruinas y temen la oscuridad. Los toma por los herederos de un mundo llegado a la perfección, hasta que su máquina desaparece en el pedestal de una esfinge blanca y conoce a los Morlocks, que viven bajo tierra, cuidan de las máquinas y se alimentan de los Eloïs.\n\nCon Weena, una de los Eloïs, que se ha encariñado con él, registra un museo abandonado en busca de armas, la pierde en el incendio de un bosque y recupera su máquina de la trampa que le habían tendido. Huye hacia el porvenir, hasta una tierra moribunda bajo un sol rojo, y luego regresa.\n\nNadie acaba de creerle. Al día siguiente vuelve a partir, y no regresa.",
+ "chapters": [
+  "Cena del jueves en Richmond. El Explorador del Tiempo sostiene que el tiempo es una cuarta dimensión y que es posible moverse por ella.",
+  "Envía un modelo reducido al tiempo ante los ojos de sus invitados y luego les enseña la máquina, casi terminada.",
+  "El jueves siguiente llega tarde, demacrado y cojeando, come, y empieza su relato.",
+  "El primer viaje: los días parpadean, la casa se desvanece, y se detiene en el año 802.701 ante una esfinge blanca.",
+  "Los Eloïs: pequeños, hermosos, sin curiosidad. Lo llevan a una gran sala y le dan fruta.",
+  "Recorre el país en ruinas a la puesta del sol y concluye que la humanidad ganó su guerra contra la naturaleza y después se ablandó.",
+  "La máquina ha desaparecido. Una noche de pánico; unas huellas llevan al pedestal de bronce de la esfinge.",
+  "Aprende la lengua, salva a Weena del río, repara en los pozos y entrevé una criatura blanca, simiesca.",
+  "Baja por un pozo al mundo de los Morlocks: máquinas y carne. Escapa con sus últimas cerillas.",
+  "La verdad: los Eloïs son ganado. Parte con Weena hacia el Palacio de Porcelana Verde.",
+  "El palacio es un museo en ruinas. Encuentra cerillas, alcanfor y una palanca de hierro.",
+  "El regreso de noche. Enciende una hoguera, el bosque arde, y Weena se pierde.",
+  "La esfinge está abierta. Los Morlocks han cebado una trampa con su máquina; se libra de ellos y empuja la palanca.",
+  "Treinta millones de años después: un sol rojo, un mar inmóvil, cangrejos gigantes, un eclipse, el último ser vivo.",
+  "Vuelve a su laboratorio, unas horas después de haber salido, y entra en plena cena.",
+  "Los invitados no le creen. Al día siguiente el narrador lo ve partir de nuevo, con una cámara fotográfica y un saco.",
+  "Tres años más tarde. El narrador conserva dos flores marchitas, y se pregunta."
+ ],
+ "statuses": ["final", "final", "final", "final", "final", "final", "final", "final", "final", "final", "edited", "edited", "edited", "edited", "done", "done", "draft"],
+ "sheets": [
+  {
+   "kind": "character",
+   "title": "El Explorador del Tiempo",
+   "aliases": ["Explorador del Tiempo", "el Explorador"],
+   "fields": {
+    "Occupation": "Inventor, rentista",
+    "Wants": "Saber qué será de la humanidad",
+    "Hides": "Su nombre. Nunca se le da uno."
+   },
+   "body": "Ojos grises, un rostro pálido que se anima cuando habla. Demasiado ingenioso para que se le crea, dice el narrador: siempre se sospecha algún truco.\n\nCuenta él mismo los capítulos 4 a 15; lo que precede y lo que sigue es del narrador."
+  },
+  {
+   "kind": "character",
+   "title": "Weena",
+   "aliases": [],
+   "fields": {
+    "Occupation": "Una de los Eloïs",
+    "Wants": "No quedarse sola en la oscuridad",
+    "Hides": ""
+   },
+   "body": "La saca del río y ella ya no se separa de él. Le llena los bolsillos de flores; dos de ellas son todo lo que trae de vuelta.\n\nPerdida en el incendio del bosque, en el capítulo 12. Nunca se sabrá si murió."
+  },
+  {
+   "kind": "character",
+   "title": "El narrador",
+   "aliases": [],
+   "fields": {
+    "Occupation": "Un asiduo de los jueves",
+    "Wants": "Creerle",
+    "Hides": ""
+   },
+   "body": "Cuenta los capítulos 1 a 3, el 16 y el epílogo. Es el único que vuelve a la casa al día siguiente."
+  },
+  {
+   "kind": "character",
+   "title": "Filby",
+   "aliases": [],
+   "fields": {
+    "Occupation": "",
+    "Wants": "Tener la última palabra",
+    "Hides": ""
+   },
+   "body": "Personaje argumentativo, de roja cabellera. El escéptico de la primera noche."
+  },
+  {
+   "kind": "character",
+   "title": "El doctor",
+   "aliases": ["doctor"],
+   "fields": {},
+   "body": "Un invitado de los jueves. Examina las flores en el capítulo 16 y no consigue clasificarlas."
+  },
+  {
+   "kind": "character",
+   "title": "El psicólogo",
+   "aliases": ["psicólogo"],
+   "fields": {},
+   "body": "Un invitado de los jueves. Es su mano la que empuja la palanca del modelo reducido."
+  },
+  {
+   "kind": "character",
+   "title": "El editor",
+   "aliases": ["editor", "Blank"],
+   "fields": {},
+   "body": "Llega el segundo jueves. Ofrece un chelín por cada línea del relato completo."
+  },
+  {
+   "kind": "character",
+   "title": "Los Eloïs",
+   "aliases": ["Eloïs"],
+   "fields": {},
+   "body": "El pueblo del mundo superior. Un metro veinte, más o menos, frágiles, de pelo rizado, pronto cansados y pronto olvidadizos. Duermen juntos en las grandes salas y no salen de noche."
+  },
+  {
+   "kind": "character",
+   "title": "Los Morlocks",
+   "aliases": ["Morlocks", "Morlock"],
+   "fields": {},
+   "body": "El pueblo del mundo subterráneo. Pálidos, de ojos grandes, cegados por la luz. Mantienen las máquinas en marcha y visten a los Eloïs, como un granjero cuida de su rebaño."
+  },
+  {
+   "kind": "place",
+   "title": "Richmond",
+   "aliases": [],
+   "fields": {
+    "Where": "A orillas del Támesis, al oeste de Londres",
+    "When": "Hacia 1890"
+   },
+   "body": "La casa del Explorador: el salón de fumar, el comedor, y el laboratorio al final del largo corredor. Toda la historia transcurre en este punto del mapa; solo cambia el año."
+  },
+  {
+   "kind": "place",
+   "title": "La Blanca Esfinge",
+   "aliases": ["Blanca Esfinge", "Esfinge"],
+   "fields": {
+    "Where": "En el césped donde la máquina se detiene primero",
+    "When": "802.701"
+   },
+   "body": "Mármol blanco sobre un pedestal de bronce, carcomida por el tiempo, las alas desplegadas, la sombra de una sonrisa. El pedestal está hueco, y tiene puertas."
+  },
+  {
+   "kind": "place",
+   "title": "El Palacio de Porcelana Verde",
+   "aliases": ["Palacio de Porcelana Verde"],
+   "fields": {
+    "Where": "A unos treinta kilómetros de la esfinge, hacia Wimbledon",
+    "When": "802.701"
+   },
+   "body": "Un museo en ruinas, un South Kensington de los últimos días: fósiles, máquinas muertas, una biblioteca hecha jirones. Aún guarda una caja de cerillas y un tarro de alcanfor."
+  },
+  {
+   "kind": "event",
+   "title": "El año 802.701",
+   "aliases": [],
+   "fields": {
+    "Date": "802.701 d. C."
+   },
+   "body": "Leído en los cuadrantes de la máquina. Los capítulos 4 a 13 transcurren aquí, en ocho días."
+  },
+  {
+   "kind": "event",
+   "title": "La tierra moribunda",
+   "aliases": [],
+   "fields": {
+    "Date": "Dentro de más de treinta millones de años"
+   },
+   "body": "Capítulo 14. La tierra ha dejado de girar; el sol es rojo, enorme, inmóvil. La última parada antes del regreso."
+  }
+ ],
+ "notes": [
+  {
+   "quote": "El Explorador del Tiempo (como para mayor comodidad le llamaremos)",
+   "kind": "note",
+   "body": "Nunca tiene nombre, como casi ninguno de los invitados. Conservarlo: así destacan los dos que sí lo tienen, Filby y Weena."
+  },
+  {
+   "quote": "Filby, personaje argumentativo, de roja cabellera",
+   "kind": "praise",
+   "body": "Un personaje entero en seis palabras."
+  },
+  {
+   "quote": "existe diferencia alguna entre el Tiempo y una cualquiera de las tres dimensiones del Espacio",
+   "kind": "todo",
+   "body": "La exposición se alarga. ¿Podría interrumpir el doctor un párrafo antes?"
+  }
+ ],
+ "milestones": [
+  {
+   "title": "Primera edición",
+   "note": "Editorial B. Bauzá, Barcelona, 1925, en la traducción de J. d’Albroi."
+  },
+  {
+   "title": "Relectura",
+   "note": "Los capítulos 1 a 10 son definitivos."
+  }
+ ]
+}

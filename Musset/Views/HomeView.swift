@@ -267,7 +267,7 @@ struct HomeView: View {
 
     private func facts(_ card: BookCard) -> [String] {
         var out: [String] = []
-        if let genre = card.manifest.genre, let p = ScoringLibrary.shared.presets.first(where: { $0.id == genre }) { out.append(p.name) }
+        if let genre = card.manifest.genre, let p = ScoringLibrary.shared.presets.first(where: { $0.id == genre }) { out.append(p.shownName) }
         if card.todos > 0 { out.append(L("\(card.todos) to do")) }
         let touched = when(card.touched)
         if !touched.isEmpty { out.append(touched) }

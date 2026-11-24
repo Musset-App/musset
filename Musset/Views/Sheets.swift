@@ -252,7 +252,8 @@ struct ExportSheet: View {
 
     private func pickPreset() {
         if let last = layouts[format.rawValue], presets.contains(where: { $0.id == last }) { selected = last }
-        if !presets.contains(where: { $0.id == selected }) { selected = presets.first?.id ?? "" }
+        // A first PDF is the book as a book; the submission manuscript is one choice away.
+        if !presets.contains(where: { $0.id == selected }) { selected = (presets.first { $0.id == "reader" } ?? presets.first)?.id ?? "" }
     }
 
     /// The last export's choices; the first time, the book's special pages, without the made-up cover.

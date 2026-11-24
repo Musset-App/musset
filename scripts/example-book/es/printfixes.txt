@@ -1,0 +1,50 @@
+# Evident misprints of the 1925 printing, corrected (printed => corrected). Delete a line to get the printed form back.
+# Damaged or wrong letters
+inultitud de mesas => multitud de mesas
+dada su inperfección => dada su imperfección
+porque los Marlocks => porque los Morlocks
+delicados Elïos => delicados Eloïs
+aquí y ailá => aquí y allá
+pero nunea me => pero nunca me
+algún día alcalzaron => algún día alcanzaron
+vegetación ylas rojizas => vegetación y las rojizas
+pequeña camara fotográfica => pequeña cámara fotográfica
+coral volítico => coral oolítico
+hablar a madie => hablar a nadie
+y nopudiendo usar => y no pudiendo usar
+sitio de ia Blanca => sitio de la Blanca
+dando la vuelva sobre => dando la vuelta sobre
+de patalco, y => de pataleo, y
+# Stray accents (a mark over the letter that the word does not have elsewhere in the book)
+una largá espera => una larga espera
+y és que => y es que
+Máquina Explorádora => Máquina Exploradora
+si viajasé en => si viajase en
+trajes dé los => trajes de los
+# Missing accents, where the book prints the accent everywhere else
+Weena podria ayudarme => Weena podría ayudarme
+mi espiritu, turbado => mi espíritu, turbado
+Así, despues de => Así, después de
+# A full stop printed in the middle of a sentence
+un cubo. sin => un cubo, sin
+por encima. del aparato => por encima del aparato
+se desvanecerá. pasando => se desvanecerá, pasando
+propio pensamiento. fijo => propio pensamiento, fijo
+los criados. cuya => los criados, cuya
+continuos saltos. llegó => continuos saltos, llegó
+de gentes. aun más => de gentes, aun más
+angustia física. que => angustia física, que
+entrado allí. era => entrado allí, era
+los pozos. emplazados => los pozos, emplazados
+talleres subterráneos. que => talleres subterráneos, que
+a Weena. sobre => a Weena, sobre
+al Sol. como => al Sol, como
+y fatiga. que => y fatiga, que
+de toda. vida => de toda vida
+Hacia el, Noroeste => Hacia el Noroeste
+# A comma printed at the end of a sentence
+allí tendido, Me sacó => allí tendido. Me sacó
+tales pensamientos,\n\nProcuré => tales pensamientos.\n\nProcuré
+# A hyphenated word broken at the end of a line
+palaciosdormitorios => palacios-dormitorios
+tecnicoquímica => tecnico-química

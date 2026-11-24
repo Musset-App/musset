@@ -50,6 +50,8 @@ struct BibleSidebarSection: View {
     @Bindable var session: BookSession
     let bridge: EditorBridge
     @State private var open: Set<String> = ["personnages", "personnages#main"]
+    /// The empty Bible's folders, shown because the author asked to see them.
+    @State private var unfolded = false
     @State private var naming: Naming?
     @State private var name = ""
     @State private var deleting: String?
@@ -117,8 +119,29 @@ struct BibleSidebarSection: View {
         return out
     }
 
+    /// Nothing in the Bible yet, and no name in the outline waiting for a sheet: the shelves stay folded away.
+    private var bare: Bool { !unfolded && bible.entries.isEmpty && bible.tagsWithoutSheet(session.plot).isEmpty }
+
     var body: some View {
         header
+        if bare {
+            SidebarRowView(active: false) {
+                Text(L("Characters, places, notes")).foregroundStyle(.tertiary).lineLimit(1)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right").font(.ui(8)).foregroundStyle(.tertiary)
+            }
+            .padding(.leading, 4)
+            .contentShape(Rectangle())
+            .onTapGesture { unfolded = true }
+            .rowButton(L("Show the Bible’s folders"))
+            .help(L("Show the Bible’s folders"))
+            .sidebarRow()
+        } else {
+            shelves
+        }
+    }
+
+    @ViewBuilder private var shelves: some View {
         let sources = bible.entries.filter { $0.kind == .reference }.count
         SidebarRowView(active: app.activeTab == .sources) {
             Image(systemName: "books.vertical").font(.ui(11)).foregroundStyle(.tertiary).frame(width: 14)

@@ -1,0 +1,220 @@
+{
+ "title": "The Time Machine",
+ "synopsis": "A Victorian inventor shows his dinner guests a machine that travels through time. A week later he staggers into his own dining room, dusty and limping, and tells them where he has been.\n\nIn the year 802,701 he finds the Eloi, small and gentle people who live in ruined palaces and fear the dark. He takes them for the heirs of a perfected world, until his machine vanishes into the pedestal of a white sphinx and he meets the Morlocks, who live underground, tend the machinery, and feed on the Eloi.\n\nWith Weena, an Eloi who attaches herself to him, he searches a derelict museum for weapons, loses her in a forest fire, and wins his machine back from the trap set for him. He flees forward to a dying earth under a red sun, then home.\n\nNobody quite believes him. The next day he leaves again, and does not return.",
+ "chapters": [
+  "Thursday dinner at Richmond. The Time Traveller argues that time is a fourth dimension and that one can move along it.",
+  "He sends a small model into time before his guests' eyes, then shows them the full machine, nearly finished.",
+  "The following Thursday he arrives late, haggard and limping, eats, and begins his story.",
+  "The first journey: days flicker, the house falls away, and he stops in the year 802,701 before a white sphinx.",
+  "The Eloi: small, beautiful, incurious people who lead him to a great hall and feed him fruit.",
+  "He walks the ruined country at sunset and concludes that mankind won its war with nature and went soft.",
+  "The machine is gone. A night of panic; drag marks lead to the bronze pedestal of the sphinx.",
+  "He learns the language, saves Weena from the river, notices the wells, and sees a white ape-like creature.",
+  "Down a well, into the Morlocks' world of machines and meat. He escapes with his last matches.",
+  "The truth: the Eloi are cattle. He sets out with Weena for the Palace of Green Porcelain.",
+  "The palace is a ruined museum. He finds matches, camphor, and an iron lever.",
+  "The night walk back. He lights a fire, the forest burns, and Weena is lost.",
+  "The sphinx stands open. The Morlocks have baited a trap with his machine; he fights free and pulls the lever.",
+  "Thirty million years on: a red sun, a still sea, giant crabs, an eclipse, and the last living thing.",
+  "He returns to his laboratory, hours after he left, and walks in on the dinner.",
+  "The guests do not believe him. Next day the narrator sees him leave again, with a camera and a knapsack.",
+  "Three years later. The narrator keeps two withered flowers, and wonders."
+ ],
+ "statuses": [
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "edited",
+  "edited",
+  "edited",
+  "edited",
+  "done",
+  "done",
+  "draft"
+ ],
+ "sheets": [
+  {
+   "kind": "character",
+   "title": "The Time Traveller",
+   "aliases": [
+    "Time Traveller"
+   ],
+   "fields": {
+    "Occupation": "Inventor, man of private means",
+    "Wants": "To know what becomes of mankind",
+    "Hides": "His name. He is never given one."
+   },
+   "body": "Grey eyes, a pale face that flushes when he talks. Too clever to be believed, the narrator says: one always suspects a trick.\n\nHe tells his own story from chapter 4 to chapter 15; everything before and after is the narrator's."
+  },
+  {
+   "kind": "character",
+   "title": "Weena",
+   "aliases": [],
+   "fields": {
+    "Occupation": "One of the Eloi",
+    "Wants": "Not to be left alone in the dark",
+    "Hides": ""
+   },
+   "body": "He pulls her from the river and she follows him from then on. She fills his pockets with flowers; two of them are all he brings back.\n\nLost in the forest fire in chapter 12. We never learn whether she died."
+  },
+  {
+   "kind": "character",
+   "title": "The narrator",
+   "aliases": [
+    "Hillyer"
+   ],
+   "fields": {
+    "Occupation": "A regular Thursday guest",
+    "Wants": "To believe him",
+    "Hides": ""
+   },
+   "body": "Tells chapters 1 to 3, 16 and the epilogue. The Time Traveller calls a guest Hillyer once, at the door, in chapter 16: probably him."
+  },
+  {
+   "kind": "character",
+   "title": "Filby",
+   "aliases": [],
+   "fields": {
+    "Occupation": "",
+    "Wants": "To win the argument",
+    "Hides": ""
+   },
+   "body": "An argumentative person with red hair. The sceptic of the first evening."
+  },
+  {
+   "kind": "character",
+   "title": "The Medical Man",
+   "aliases": [],
+   "fields": {},
+   "body": "A Thursday guest. Examines the flowers in chapter 16 and cannot place their order."
+  },
+  {
+   "kind": "character",
+   "title": "The Psychologist",
+   "aliases": [],
+   "fields": {},
+   "body": "A Thursday guest. It is his hand that presses the lever of the model."
+  },
+  {
+   "kind": "character",
+   "title": "The Editor",
+   "aliases": [
+    "Blank"
+   ],
+   "fields": {},
+   "body": "Arrives the second Thursday. Offers a shilling a line for the story, verbatim."
+  },
+  {
+   "kind": "character",
+   "title": "The Eloi",
+   "aliases": [
+    "Eloi"
+   ],
+   "fields": {},
+   "body": "The people of the Upper-world. About four feet tall, fragile, curly-haired, quick to tire and quick to forget. They sleep together in the great halls and will not go out after dark."
+  },
+  {
+   "kind": "character",
+   "title": "The Morlocks",
+   "aliases": [
+    "Morlocks",
+    "Morlock"
+   ],
+   "fields": {},
+   "body": "The people of the Under-world. Pale, large-eyed, blinded by light. They keep the machines running and clothe the Eloi, as a farmer keeps his herd."
+  },
+  {
+   "kind": "place",
+   "title": "Richmond",
+   "aliases": [],
+   "fields": {
+    "Where": "On the Thames, west of London",
+    "When": "The 1890s"
+   },
+   "body": "The Time Traveller's house: the smoking-room, the dining-room, and the laboratory down the long draughty corridor. The whole story never leaves this spot on the map, only this year."
+  },
+  {
+   "kind": "place",
+   "title": "The White Sphinx",
+   "aliases": [
+    "White Sphinx",
+    "sphinx"
+   ],
+   "fields": {
+    "Where": "On the lawn where the machine first stops",
+    "When": "802,701"
+   },
+   "body": "White marble on a bronze pedestal, weather-worn, wings spread, with the faint shadow of a smile. The pedestal is hollow, and has doors."
+  },
+  {
+   "kind": "place",
+   "title": "The Palace of Green Porcelain",
+   "aliases": [
+    "Palace of Green Porcelain"
+   ],
+   "fields": {
+    "Where": "Some eighteen miles from the sphinx, towards Wimbledon",
+    "When": "802,701"
+   },
+   "body": "A museum in ruins, a latter-day South Kensington: fossils, dead machines, a library fallen to rags. Still holds a box of matches and a jar of camphor."
+  },
+  {
+   "kind": "event",
+   "title": "The year 802,701",
+   "aliases": [],
+   "fields": {
+    "Date": "802,701 A.D."
+   },
+   "body": "Read off the dials of the machine. Chapters 4 to 13 take place here, over eight days."
+  },
+  {
+   "kind": "event",
+   "title": "The dying earth",
+   "aliases": [],
+   "fields": {
+    "Date": "More than thirty million years hence"
+   },
+   "body": "Chapter 14. The earth has stopped turning; the sun is red, huge and fixed. The last stop before home."
+  }
+ ],
+ "notes": [
+  {
+   "quote": "The Time Traveller (for so it will be convenient to speak of him)",
+   "kind": "note",
+   "body": "He never gets a name, and nor do most of the guests. Keep it: it makes the two who are named, Filby and Weena, stand out."
+  },
+  {
+   "quote": "Filby, an argumentative person with red hair",
+   "kind": "praise",
+   "body": "A whole character in six words."
+  },
+  {
+   "quote": "There is no difference between Time and any of the three dimensions of Space",
+   "kind": "todo",
+   "body": "The lecture runs long. Could the Medical Man interrupt a paragraph sooner?"
+  }
+ ],
+ "milestones": [
+  {
+   "title": "Serial, New Review",
+   "note": "As it ran in the New Review, January to May 1895, with the episode of the grey creatures in chapter 14."
+  },
+  {
+   "title": "First edition",
+   "note": "Heinemann, May 1895. The grey creatures are cut: they are in the Cuts folder."
+  }
+ ],
+ "cut": {
+  "chapter": 13,
+  "after": "as fast as the seconds hand of a watch—into futurity.",
+  "title": "The Grey Man",
+  "text": "“Very cautiously, for I remembered my former headlong fall, I began to reverse my motion. Slower and slower went the circling hands until the thousands one seemed motionless and the daily one was no longer a mere mist upon its scale. Still slower, until the grey haze around me became distincter and dim outlines of an undulating waste grew visible.\n\n“I stopped. I was on a bleak moorland, covered with a sparse vegetation, and grey with a thin hoarfrost. The time was midday, the orange sun, shorn of its effulgence, brooded near the meridian in a sky of drabby grey. Only a few black bushes broke the monotony of the scene. The great buildings of the decadent men among whom, it seemed to me, I had been so recently, had vanished and left no trace: not a mound even marked their position. Hill and valley, sea and river—all, under the wear and work of the rain and frost, had melted into new forms. No doubt, too, the rain and snow had long since washed out the Morlock tunnels. A nipping breeze stung my hands and face. So far as I could see there were neither hills, nor trees, nor rivers: only an uneven stretch of cheerless plateau.\n\n“Then suddenly a dark bulk rose out of the moor, something that gleamed like a serrated row of iron plates, and vanished almost immediately in a depression. And then I became aware of a number of faint-grey things, coloured to almost the exact tint of the frost-bitten soil, which were browsing here and there upon its scanty grass, and running to and fro. I saw one jump with a sudden start, and then my eye detected perhaps a score of them. At first I thought they were rabbits, or some small breed of kangaroo. Then, as one came hopping near me, I perceived that it belonged to neither of these groups. It was plantigrade, its hind legs rather the longer; it was tailless, and covered with a straight greyish hair that thickened about the head into a Skye terrier’s mane. As I had understood that in the Golden Age man had killed out almost all the other animals, sparing only a few of the more ornamental, I was naturally curious about the creatures. They did not seem afraid of me, but browsed on, much as rabbits would do in a place unfrequented by men; and it occurred to me that I might perhaps secure a specimen.\n\n“I got off the machine, and picked up a big stone. I had scarcely done so when one of the little creatures came within easy range. I was so lucky as to hit it on the head, and it rolled over at once and lay motionless. I ran to it at once. It remained still, almost as if it were killed. I was surprised to see that the thing had five feeble digits to both its fore and hind feet—the fore feet, indeed, were almost as human as the fore feet of a frog. It had, moreover, a roundish head, with a projecting forehead and forward-looking eyes, obscured by its lank hair. A disagreeable apprehension flashed across my mind. As I knelt down and seized my capture, intending to examine its teeth and other anatomical points which might show human characteristics, the metallic-looking object, to which I have already alluded, reappeared above a ridge in the moor, coming towards me and making a strange clattering sound as it came. Forthwith the grey animals about me began to answer with a short, weak yelping—as if of terror—and bolted off in a direction opposite to that from which this new creature approached. They must have hidden in burrows or behind bushes and tussocks, for in a moment not one of them was visible.\n\n“I rose to my feet, and stared at this grotesque monster. I can only describe it by comparing it to a centipede. It stood about three feet high, and had a long segmented body, perhaps thirty feet long, with curiously overlapping greenish-black plates. It seemed to crawl upon a multitude of feet, looping its body as it advanced. Its blunt round head, with a polygonal arrangement of black eye spots, carried two flexible, writhing, horn-like antennæ. It was coming along, I should judge, at a pace of about eight or ten miles an hour, and it left me little time for thinking. Leaving my grey animal, or grey man, whichever it was, on the ground, I set off for the machine. Halfway I paused, regretting that abandonment, but a glance over my shoulder destroyed any such regret. When I gained the machine the monster was scarce fifty yards away. It was certainly not a vertebrated animal. It had no snout, and its mouth was fringed with jointed dark-coloured plates. But I did not care for a nearer view.\n\n“I traversed one day and stopped again, hoping to find the colossus gone and some vestige of my victim; but, I should judge, the giant centipede did not trouble itself about bones. At any rate both had vanished. The faintly human touch of these little creatures perplexed me greatly. If you come to think, there is no reason why a degenerate humanity should not come at last to differentiate into as many species as the descendants of the mud fish who fathered all the land vertebrates. I saw no more of any insect colossus, as to my thinking the segmented creature must have been. Evidently the physiological difficulty that at present keeps all the insects small had been surmounted at last, and this division of the animal kingdom had arrived at the long awaited supremacy which its enormous energy and vitality deserve. I made several attempts to kill or capture another of the greyish vermin, but none of my missiles were so successful as my first; and, after perhaps a dozen disappointing throws, that left my arm aching, I felt a gust of irritation at my folly in coming so far into futurity without weapons or equipment. I resolved to run on for one glimpse of the still remoter future—one peep into the deeper abysm of time—and then to return to you and my own epoch. Once more I remounted the machine, and once more the world grew hazy and grey."
+ }
+}

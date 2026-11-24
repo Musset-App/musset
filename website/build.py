@@ -177,7 +177,9 @@ def home_data(strings, code, tag):
     org = {"@context": "https://schema.org", "@type": "Organization", "name": "Musset", "url": SITE + "/",
            "logo": SITE + "/assets/icon.png", "email": "hello@musset.app",
            "sameAs": ["https://github.com/Musset-App/musset"]}
-    site = {"@context": "https://schema.org", "@type": "WebSite", "name": "Musset", "url": SITE + "/", "inLanguage": tag}
+    # The name Google shows above the result instead of the bare domain.
+    site = {"@context": "https://schema.org", "@type": "WebSite", "name": "Musset", "alternateName": ["Musset app", "musset.app"],
+            "url": SITE + "/", "inLanguage": tag}
     return "\n".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in (app, org, site))
 
 
@@ -188,6 +190,8 @@ def main():
     shutil.rmtree(dist, ignore_errors=True)
     # Only what the pages use: the pictures of each language, and the icon.
     shutil.copytree(HERE / "assets", dist / "assets", ignore=lambda d, names: [n for n in names if re.fullmatch(r"[0-9a-f]{32}\.jpg", n)])
+    # Search engines and browsers ask for /favicon.ico before reading any page; without it Google shows a blank globe.
+    shutil.copy(HERE / "assets/favicon.ico", dist / "favicon.ico")
     alternates = "\n".join([f'<link rel="alternate" hreflang="{tag}" href="{SITE}{path(code)}">' for code, _, tag in LANGS]
                            + [f'<link rel="alternate" hreflang="x-default" href="{SITE}/">'])
     for code, _, tag in LANGS:

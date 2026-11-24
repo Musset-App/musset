@@ -499,6 +499,13 @@ extension AppState {
         if !parts.isEmpty { m.parts = parts }
         // The form chosen for a new book; an imported one has none and reads as the book Musset always made.
         if let form { m.setForm(form) }
+        // Lists work in every new book, whatever its form (Musset-App/musset#2); an existing book keeps what it had.
+        var shape = m.structure ?? BookStructure(form: .novel)
+        var text = shape.text ?? BookStructure.TextFeatures()
+        text.bulletLists = text.bulletLists ?? true
+        text.numberedLists = text.numberedLists ?? true
+        shape.text = text
+        m.structure = shape
         try store.saveManifest(m)
         try plot.save(root)
         if let preset = ScoringLibrary.shared.presets.first(where: { $0.id == genre }), var bareme = Bareme.forBook(root) ?? Bareme(migrating: nil) {

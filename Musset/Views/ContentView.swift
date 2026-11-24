@@ -72,6 +72,9 @@ struct ContentView: View {
                 }
                 .ignoresSafeArea(.container, edges: .top)
                 .onAppear { chat.attach(session.root); proof.attach(session); openScreenFromLaunchArguments() }
+                // The first days: what is said once, and what is offered on a later visit (FirstSteps).
+                .onChange(of: session.bookCounts.words) { old, new in app.wordsChanged(from: old, to: new, in: session) }
+                .task(id: session.root) { try? await Task.sleep(for: .seconds(4)); app.considerOffers() }
                 .onChange(of: session.root) { _, r in chat.attach(r); proof.attach(session); pangram.clear(bridge) }
                 .onChange(of: session.selectedChapterID) { _, _ in pangram.clear(bridge) }
                 .onChange(of: app.showSearch) { _, on in if !on { bridge.setSearchQuery("") } }
@@ -121,6 +124,10 @@ struct ContentView: View {
             ZStack { if let session = app.current { VersionSwitchToast(session: session) } }
                 .animation(.easeOut(duration: 0.25), value: app.current?.lastVersionSwitch)
         }
+        .overlay(alignment: .bottom) {
+            if let session = app.current, !app.showHome, !app.reviewMode, app.activeTab?.isChapter != false { EmptyPageHint(session: session) }
+        }
+        .overlay(alignment: .bottom) { FirstNoticeView(app: app) }
         .onAppear {
             CaptureController.shared.app = app; CaptureController.shared.install(); Collab.shared.start(app)
             app.openWindow = { [openWindow] ref in openWindow(id: PaneWindow.sceneID, value: ref) }
@@ -707,7 +714,8 @@ struct StatusBar: View {
                 Button { app.showReaders() } label: { Text(word) }
                     .buttonStyle(.plain).foregroundStyle(Collab.shared.sync.isProblem ? Ink.warning : .secondary)
                     .help(Collab.shared.sync.help)
-            } else if !Collab.shared.canSync, !Collab.shared.isLocalOnly(session), !session.repoStatus.linked {
+            } else if !Collab.shared.canSync, !Collab.shared.isLocalOnly(session), !session.repoStatus.linked, session.bookCounts.words >= 1000, !ExampleBook.isExample(session.root) {
+                // (Not on a book barely begun: there is nothing yet to keep safe, and it reads as a warning.)
                 // The book lives on this Mac only: said once, quietly, and an open door to Musset Sync.
                 separator
                 Button { app.offerSync(for: session) } label: {

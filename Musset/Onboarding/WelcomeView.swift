@@ -13,7 +13,7 @@ enum BookGenres {
         case "polar": L("Crime")
         case "romance": "Romance"
         case "essai": L("Essay")
-        default: ScoringLibrary.shared.presets.first { $0.id == id }?.name ?? id
+        default: ScoringLibrary.shared.presets.first { $0.id == id }?.shownName ?? id
         }
     }
 
@@ -56,8 +56,6 @@ struct WelcomeView: View {
     @State private var author = UserDefaults.standard.string(forKey: "lastAuthor") ?? NSFullUserName()
     @State private var location = BookStore.defaultFolder
     @State private var editing = false
-    /// Musset Sync, offered once, unticked, when the book is made.
-    @State private var keepInSync = false
     @State private var plan: ImportPlan?
     @State private var working = false
     @State private var error: String?
@@ -89,26 +87,31 @@ struct WelcomeView: View {
             }
             .padding(.horizontal, 16).frame(height: 44)
             .background(WindowDragArea())
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Musset").font(.system(size: 22, design: .serif)).foregroundStyle(.secondary).padding(.top, 24)
-                Text(L("What is your book called?")).foregroundStyle(.secondary).padding(.top, 40)
-                TextField(L("Untitled"), text: $title)
-                    .textFieldStyle(.plain).font(.uiMono(34)).focused($focused)
-                    .padding(.top, 10).padding(.bottom, 12)
-                    .overlay(alignment: .bottom) { Rectangle().fill(Ink.accent).frame(height: 1.5) }
-                    .onSubmit { if hasTitle { choosingForm = true } }
-                    .accessibilityLabel(L("Book title"))
-                if hasTitle { details } else {
-                    Text(L("A working title will do. You can change it whenever you like."))
-                        .foregroundStyle(.secondary).padding(.top, 14)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Musset").font(.system(size: 30, design: .serif)).padding(.top, 12)
+                    Text(L("A calm place to write a book, and to watch it become one.")).font(.ui(15)).foregroundStyle(.secondary).padding(.top, 6)
+                    // The one question. Return starts the book: a novel, in the language of the interface.
+                    Text(L("What is your book called?")).foregroundStyle(.secondary).padding(.top, 40)
+                    TextField("", text: $title, prompt: Text(L("A working title")).foregroundColor(Color(nsColor: .tertiaryLabelColor)))
+                        .textFieldStyle(.plain).font(.uiMono(34)).focused($focused)
+                        .padding(.top, 10).padding(.bottom, 12)
+                        .overlay(alignment: .bottom) { Rectangle().fill(Ink.accent).frame(height: 1.5) }
+                        .onSubmit { if hasTitle { createBlank() } }
+                        .accessibilityLabel(L("Book title"))
+                    if editing { details } else { start }
+                    if let error { Text(error).font(.ui(12)).foregroundStyle(Ink.error).padding(.top, 8) }
+                    doors.padding(.top, 44)
+                    HStack {
+                        Spacer()
+                        Button(L("Find my books with my Musset account")) { app.showAccount(); if sheet { dismiss() } }.buttonStyle(.link)
+                    }
+                    .font(.ui(12)).foregroundStyle(.secondary).padding(.top, 18)
                 }
-                if let error { Text(error).font(.ui(12)).foregroundStyle(Ink.error).padding(.top, 8) }
-                Spacer(minLength: 16)
-                existing
+                .frame(width: 720)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 28)
             }
-            .frame(width: 720)
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, 28)
         }
         .overlay { if dropping { RoundedRectangle(cornerRadius: 12).strokeBorder(Ink.accent, lineWidth: 2).padding(10) } }
         .dropDestination(for: URL.self, action: { urls, _ in
@@ -119,12 +122,31 @@ struct WelcomeView: View {
         .onAppear {
             focused = true
             // Development aids, like -musset-screen: `-musset-import <file>` opens the check screen for a file at launch,
-            // `-musset-title <title>` types a title and `-musset-step form` goes on to the form. (Launch arguments are
-            // read as defaults, so a test can set them too.)
+            // `-musset-title <title>` types a title, `-musset-step more` opens the other choices and `-musset-step form`
+            // goes on to the form. (Launch arguments are read as defaults, so a test can set them too.)
             let d = UserDefaults.standard
-            if let t = d.string(forKey: "musset-title") { title = t; choosingForm = d.string(forKey: "musset-step") == "form" }
+            if let t = d.string(forKey: "musset-title") {
+                title = t
+                editing = d.string(forKey: "musset-step") != nil
+                choosingForm = d.string(forKey: "musset-step") == "form"
+            }
             if let f = d.string(forKey: "musset-import") { Task { await begin(URL(fileURLWithPath: f)) } }
         }
+    }
+
+    /// Under the title: what Return does, and the way to the other choices for those who want them.
+    private var start: some View {
+        HStack(spacing: 16) {
+            Text(hasTitle ? L("Press Return and start writing. Nothing else to decide.") : L("Anything will do. You can change it whenever you like."))
+                .foregroundStyle(.secondary)
+            Spacer()
+            if working { ProgressView().controlSize(.small) }
+            if hasTitle {
+                Button(L("More choices")) { editing = true }.buttonStyle(.link)
+                Button(L("Start writing") + " ↩") { createBlank() }.buttonStyle(.ink).disabled(working)
+            }
+        }
+        .padding(.top, 14)
     }
 
     private var languageSwitch: some View {
@@ -141,77 +163,106 @@ struct WelcomeView: View {
         .accessibilityLabel(L("Interface language"))
     }
 
+    /// The other choices, for those who asked: genre, language, form, where it is kept.
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Text(L("Genre")).foregroundStyle(.secondary).frame(width: 104, alignment: .leading)
                 GenrePicker(genre: $genre)
+                    // An essay is written with sub-headings and lists: it takes the essay's form, unless another was chosen.
+                    .onChange(of: genre) { old, new in
+                        if new == "essai", form == .novel { form = .essay } else if old == "essai", form == .essay { form = .novel }
+                    }
             }
             HStack(spacing: 12) {
                 Text(L("Book language")).foregroundStyle(.secondary).frame(width: 104, alignment: .leading)
                 BookLanguagePicker(code: $lang)
             }
-            Text(BookGenres.effect(genre)).font(.ui(12)).foregroundStyle(.secondary).padding(.leading, 116)
-            HStack(spacing: 16) {
-                if editing {
-                    TextField(L("Author"), text: $author).textFieldStyle(.roundedBorder).frame(width: 180)
-                    Button(L("Choose a place…")) { chooseLocation() }.buttonStyle(.inkSecondary)
-                } else {
-                    (Text(path).font(.uiMono(12)) + Text(" · " + author)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    Button(L("Change")) { editing = true }.buttonStyle(.link)
-                }
+            HStack(spacing: 12) {
+                Text(L("Author")).foregroundStyle(.secondary).frame(width: 104, alignment: .leading)
+                TextField(L("Author"), text: $author).textFieldStyle(.roundedBorder).frame(width: 220)
+            }
+            HStack(spacing: 12) {
+                Text(L("Kept in")).foregroundStyle(.secondary).frame(width: 104, alignment: .leading)
+                Text(path).font(.uiMono(12)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                Button(L("Choose a place…")) { chooseLocation() }.buttonStyle(.link)
+            }
+            HStack(spacing: 10) {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button(L("Continue") + " ↩") { choosingForm = true }.buttonStyle(.ink).disabled(working)
+                Button(L("Novel, journal, play…")) { choosingForm = true }.buttonStyle(.inkSecondary).disabled(working || !hasTitle)
+                Button(L("Start writing") + " ↩") { createBlank() }.buttonStyle(.ink).disabled(working || !hasTitle)
             }
-            .padding(.top, 4)
-            if !Collab.shared.canSync {
-                Toggle(isOn: $keepInSync) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(L("Also keep it in Musset Sync")).fontWeight(.medium) + Text(" · " + SyncPrice.perMonth).foregroundColor(.secondary)
-                        Text(L("The book on all your Macs, with every version, and safe if this one is lost. Invite an editor or beta readers: they don’t pay."))
-                            .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .toggleStyle(.checkbox)
-                .padding(12)
-                .background(Ink.accent.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
-                .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.accent.opacity(0.2)))
-                .padding(.top, 10)
-            }
+            .padding(.top, 6)
         }
         .padding(.top, 14)
     }
 
-    private var existing: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(L("Or pick up a book that already exists")).foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                tile("folder", L("A folder"), L("Markdown files")) { app.addBookViaPanel(); finish() }
-                tile("doc.richtext", "Word", L(".docx file")) { pick(types: ["docx"], directories: false) }
-                tile("books.vertical", "Scrivener", L(".scriv project")) { pick(types: ["scriv"], directories: true) }
-                tile("text.justify.left", "Ulysses", L("Markdown export")) { pick(types: [], directories: true) }
+    /// The two other doors: a book that already exists, and a book to look around in.
+    private var doors: some View {
+        HStack(alignment: .top, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L("Bring a book you have started")).font(.ui(13, .medium))
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                    tile("doc.richtext", "Word", L(".docx file")) { pick(types: ["docx"], directories: false) }
+                    tile("books.vertical", "Scrivener", L(".scriv project")) { pick(types: ["scriv"], directories: true) }
+                    tile("text.justify.left", "Ulysses", L("Markdown export")) { pick(types: [], directories: true) }
+                    tile("folder", L("A folder"), L("Markdown files")) { app.addBookViaPanel(); finish() }
+                }
+                Text(L("Or drop it on this window. Your original is never changed.")).font(.ui(12)).foregroundStyle(.secondary)
             }
-            HStack {
-                Text(L("You can also drop a file on this window."))
-                Spacer()
-                Button(L("Find my books with my Musset account")) { app.showAccount(); if sheet { dismiss() } }.buttonStyle(.link)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L("Or look around first")).font(.ui(13, .medium))
+                Button { openExample() } label: {
+                    HStack(alignment: .center, spacing: 16) {
+                        ExamplePage(lang: lang)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(ExampleBook.title(lang)).font(.system(size: 19, design: .serif))
+                            Text(ExampleBook.author).foregroundStyle(.secondary)
+                            Spacer(minLength: 6)
+                            Text(L("Open the example book") + " →").font(.ui(13, .medium)).foregroundStyle(Ink.accent)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, minHeight: 136, maxHeight: 136, alignment: .leading)
+                    .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.card))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).disabled(working)
+                Text(L("A finished novel with its characters, places, notes and versions. Remove it whenever you like.")).font(.ui(12)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .font(.ui(12)).foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func openExample() {
+        Task {
+            working = true
+            defer { working = false }
+            error = nil
+            do {
+                try await ExampleBook.open(in: app, at: location, lang: lang)
+                finish()
+            } catch { self.error = error.localizedDescription }
         }
     }
 
     private func tile(_ icon: String, _ name: String, _ what: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon).font(.ui(17)).frame(height: 22)
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: icon).font(.ui(17)).frame(width: 24)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(name).font(.ui(13, .medium))
                     Text(what).font(.ui(12)).foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 0)
             }
             .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
             .background(Ink.panel, in: RoundedRectangle(cornerRadius: Radius.card))
             .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             .contentShape(Rectangle())
@@ -286,23 +337,37 @@ struct WelcomeView: View {
                 let chapters = plan.source == .word ? try await BookImporter.chapters(of: plan, cwd: FileManager.default.temporaryDirectory) : plan.chapters
                 try await app.createBook(at: location.appendingPathComponent(BibleStore.slug(plan.title)), title: plan.title, author: author, lang: lang, genre: genre, chapters: chapters)
                 self.plan = nil
-                finish()
+                finish(imported: true)
             } catch { self.error = error.localizedDescription }
         }
     }
 
-    private func finish() {
+    /// The book is open. Nothing is offered over it: the AI readers and Musset Sync wait until there is something
+    /// written to offer them on (`AppState.considerOffers`, in FirstSteps.swift). An imported book opens as a book, typeset.
+    private func finish(imported: Bool = false) {
         UserDefaults.standard.set(author, forKey: "lastAuthor")
         app.showHome = false
         if sheet { dismiss() }
-        let offer = keepInSync && !Collab.shared.canSync
-        let firstBook = !UserDefaults.standard.bool(forKey: "helpersSeen") && !AIStatus.shared.isOn
-        guard offer || firstBook else { return }
-        Task { @MainActor in
-            // After this window closes: one sheet at a time.
-            try? await Task.sleep(nanoseconds: 450_000_000)
-            if offer { app.offerSync(for: app.current) } else { app.showHelpers = true }
+        if imported { app.showAsBook() }
+    }
+}
+
+/// A small printed page, for the example book's door.
+struct ExamplePage: View {
+    let lang: String
+    var body: some View {
+        VStack(spacing: 5) {
+            Text(ExampleBook.title(lang).uppercased()).font(.system(size: 6.5, design: .serif)).tracking(0.8).multilineTextAlignment(.center).padding(.top, 16)
+            Rectangle().fill(Color.black.opacity(0.25)).frame(width: 14, height: 0.5).padding(.bottom, 4)
+            ForEach(0..<9, id: \.self) { i in
+                Rectangle().fill(Color.black.opacity(0.16)).frame(width: i == 8 ? 34 : (i == 0 ? 50 : 56), height: 1.5).frame(width: 56, alignment: i == 0 ? .trailing : .leading)
+            }
+            Spacer(minLength: 0)
         }
+        .foregroundStyle(Color.black.opacity(0.75))
+        .frame(width: 78, height: 112)
+        .background(Color.white)
+        .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
     }
 }
 
@@ -332,7 +397,7 @@ struct GenrePicker: View {
             PillRow(options: BookGenres.first.map { ($0, BookGenres.label($0)) }, selection: $genre)
             Menu(BookGenres.first.contains(genre) ? L("Other…") : BookGenres.label(genre)) {
                 ForEach(ScoringLibrary.shared.presets.filter { !BookGenres.first.contains($0.id) }) { p in
-                    Button(p.name) { genre = p.id }
+                    Button(p.shownName) { genre = p.id }
                 }
             }
             .menuStyle(.borderlessButton).fixedSize().font(.ui(12))
@@ -387,7 +452,7 @@ struct ImportReviewView: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Genre")).font(.ui(12)).foregroundStyle(.secondary)
-                Picker("", selection: $genre) { ForEach(ScoringLibrary.shared.presets) { Text($0.name).tag($0.id) } }.labelsHidden()
+                Picker("", selection: $genre) { ForEach(ScoringLibrary.shared.presets) { Text(BookGenres.label($0.id)).tag($0.id) } }.labelsHidden()
                 Text(L("Book language")).font(.ui(12)).foregroundStyle(.secondary)
                 BookLanguagePicker(code: $lang)
                 Text(L("Author")).font(.ui(12)).foregroundStyle(.secondary)

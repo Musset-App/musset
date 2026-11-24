@@ -41,7 +41,7 @@ struct BaremeSheet: View {
                     Picker("", selection: Binding(get: { bareme?.presetId ?? "" }, set: { id in
                         if let p = library.presets.first(where: { $0.id == id }) { bareme?.adopt(p); open = nil }
                     })) {
-                        ForEach(library.presets) { Text($0.name).tag($0.id) }
+                        ForEach(library.presets) { Text($0.shownName).tag($0.id) }
                         if bareme?.presetId == nil { Text(L("Own grid")).tag("") }
                     }
                     .labelsHidden().fixedSize()

@@ -457,6 +457,10 @@ extension BookManifest {
         var next = BookStructure(form: form)
         next.unnumbered = structure?.unnumbered
         next.strands = structure?.strands
+        // The lists the author switched on or off stay with the book when its form changes.
+        if let t = structure?.text, t.bulletLists != nil || t.numberedLists != nil {
+            next.text = BookStructure.TextFeatures(bulletLists: t.bulletLists, numberedLists: t.numberedLists)
+        }
         if form == .custom {
             for id in BookStructure.LevelID.allCases {
                 let l = level(id)

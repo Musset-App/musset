@@ -31,7 +31,28 @@ struct MalusItem: Codable, Equatable, Hashable, Sendable {
 /// The library shipped with the app: criteria and genre presets. A preset is never edited: a book takes a copy.
 struct ScoringLibrary {
     struct Grid: Codable { var items: [WeightedCriterion]; var maluses: [MalusItem] }
-    struct Preset: Codable, Identifiable { var id: String; var name: String; var contract: String; var work: Grid; var chapter: Grid }
+    struct Preset: Codable, Identifiable {
+        var id: String; var name: String; var contract: String; var work: Grid; var chapter: Grid
+        /// The name in the interface's language: the file's names are French.
+        var shownName: String {
+            switch id {
+            case "litterature-blanche": L("Literary fiction")
+            case "essai": L("Philosophical essay")
+            case "thriller": L("Psychological thriller")
+            case "chick-lit": L("Chick lit")
+            case "romance": L("Romance")
+            case "young-adult": L("Young adult")
+            case "sf": L("Science fiction")
+            case "michon": L("Lives, after Michon")
+            case "polar": L("Crime, noir")
+            case "fantasy": L("Fantasy")
+            case "autofiction": L("Autofiction")
+            case "horreur": L("Horror")
+            case "historique": L("Historical novel")
+            default: name
+            }
+        }
+    }
     private struct CriteriaFile: Codable { var criteria: [Criterion] }
     private struct PresetsFile: Codable { var presets: [Preset] }
 

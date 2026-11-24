@@ -62,6 +62,10 @@ final class EditorFaces {
     let body: NSFont
     let bold: NSFont
     let italic: NSFont
+    /// « ***both*** ».
+    let boldItalic: NSFont
+    /// The face has no bold italic: the bold, slanted.
+    let boldSlanted: Bool
     /// The face has no italic (Inconsolata, for one): a slight slant stands in for it.
     let slanted: Bool
     let paragraph: NSParagraphStyle
@@ -92,6 +96,9 @@ final class EditorFaces {
         self.body = body
         bold = fm.convert(body, toHaveTrait: .boldFontMask)
         italic = fm.convert(body, toHaveTrait: .italicFontMask)
+        let both = fm.convert(bold, toHaveTrait: .italicFontMask)
+        boldSlanted = !fm.traits(of: both).contains(.italicFontMask) || !fm.traits(of: both).contains(.boldFontMask)
+        boldItalic = boldSlanted ? bold : both
         slanted = !fm.traits(of: italic).contains(.italicFontMask)
         paragraph = theme.paragraphStyle
         rule = theme.ruleStyle
@@ -153,7 +160,11 @@ final class EditorFaces {
 
 enum MarkdownStyler {
     private static let heading = try! NSRegularExpression(pattern: #"^(#{1,6})[ \t]+(.*)$"#, options: [.anchorsMatchLines])
-    private static let emphasis = try! NSRegularExpression(pattern: #"(?<![\*_\w])([\*_])(?!\s)(.+?)(?<!\s)\1(?![\*_\w])"#)
+    /// One star or underscore, never the inner pair of « **strong** »: read as emphasis around « *strong* », it
+    /// set the bold in italics.
+    private static let emphasis = try! NSRegularExpression(pattern: #"(?<![\*_\w])([\*_])(?!\s|\1)(.+?)(?<!\s)\1(?![\*_\w])"#)
+    /// « ***both*** »: strong and emphasis together.
+    private static let strongEmphasis = try! NSRegularExpression(pattern: #"(\*\*\*|___)(?![\s\*_])(.+?)(?<!\s)\1"#)
     private static let strong = try! NSRegularExpression(pattern: #"(\*\*|__)(?!\s)(.+?)(?<!\s)\1"#)
     private static let comment = try! NSRegularExpression(pattern: #"<!--.*?-->"#, options: [.dotMatchesLineSeparators])
     private static let quote = try! NSRegularExpression(pattern: #"^>.*$"#, options: [.anchorsMatchLines])
@@ -279,6 +290,12 @@ enum MarkdownStyler {
         emphasis.enumerateMatches(in: s, options: around, range: range) { m, _, _ in
             guard let m else { return }
             italicize(storage, m.range(at: 2), faces)
+            dimMarkers(storage, m, faces, caretParagraph)
+        }
+        strongEmphasis.enumerateMatches(in: s, options: around, range: range) { m, _, _ in
+            guard let m else { return }
+            storage.addAttribute(.font, value: faces.boldItalic, range: m.range(at: 2))
+            if faces.boldSlanted { storage.addAttribute(.obliqueness, value: 0.18, range: m.range(at: 2)) }
             dimMarkers(storage, m, faces, caretParagraph)
         }
         quote.enumerateMatches(in: s, options: around, range: range) { m, _, _ in

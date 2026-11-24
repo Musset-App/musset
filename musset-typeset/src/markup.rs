@@ -608,6 +608,19 @@ fn inline_body(chars: &[G]) -> Frag {
     while i < n {
         let c = &chars[i];
         let next = chars.get(i + 1);
+        // « ***mot*** »: strong and emphasis together. Taken first, or its two outer stars would close on the
+        // first two of the three that end it and leave one star on each side in the page.
+        if c.is("*") && next.map(|g| g.is("*")) == Some(true) && chars.get(i + 2).map(|g| g.is("*")) == Some(true)
+            && chars.get(i + 3).is_some_and(|g| !g.is("*") && !g.is_whitespace())
+        {
+            if let Some(end) = find("***", i + 3) {
+                out.raw("#strong[#emph[");
+                out.append(inline(&chars[i + 3..end]));
+                out.raw("]]");
+                i = end + 3;
+                continue;
+            }
+        }
         if c.is("*") && next.map(|g| g.is("*")) == Some(true) {
             if let Some(end) = find("**", i + 2) {
                 out.raw("#strong[");
@@ -814,6 +827,8 @@ mod tests {
     #[test]
     fn paragraphs_and_emphasis() {
         assert_eq!(src("# Titre\n\nUn *mot* et **deux**.\n"), "= Titre\n\nUn #emph[mot] et #strong[deux].\n\n");
+        assert_eq!(src("(***Note:*** un mot.)"), "(#strong[#emph[Note:]] un mot.)\n\n");
+        assert_eq!(src("***Tip:*** **gras** et *ital*"), "#strong[#emph[Tip:]] #strong[gras] et #emph[ital]\n\n");
         assert_eq!(src("1943. Barcelone."), "1943\\. Barcelone.\n\n");
         assert_eq!(src("Fin^[Une note *ici*]."), "Fin#footnote[Une note #emph[ici]].\n\n");
         assert_eq!(src("a -- b / c"), "a \\-- b \\/ c\n\n");

@@ -80,13 +80,9 @@ grep -q "status: Accepted" "$DIST/notary-app.log"
 xcrun stapler staple "$APP"
 rm -f "$ZIP"
 
-ROOT="$DIST/dmgroot"
-mkdir -p "$ROOT"
-ditto "$APP" "$ROOT/Musset.app"
-ln -s /Applications "$ROOT/Applications"
 DMG="$DIST/Musset-$VERSION.dmg"
-hdiutil create -volname "Musset" -srcfolder "$ROOT" -ov -format ULMO "$DMG" >/dev/null
-rm -rf "$ROOT"
+# The app, a way to Applications, and a window that says so (scripts/dmg).
+scripts/dmg/build.sh "$APP" "$DMG" "Musset"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 xcrun notarytool submit "$DMG" ${=NOTARY} --wait | tee "$DIST/notary-dmg.log"
 grep -q "status: Accepted" "$DIST/notary-dmg.log"

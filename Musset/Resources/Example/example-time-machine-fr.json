@@ -1,0 +1,223 @@
+{
+ "title": "La Machine à explorer le temps",
+ "synopsis": "Un inventeur de l’époque victorienne montre à ses invités une machine qui voyage dans le temps. Une semaine plus tard, il entre en titubant dans sa propre salle à manger, couvert de poussière, boiteux, et leur raconte d’où il vient.\n\nEn l’an 802 701, il trouve les Eloïs, petits êtres doux qui vivent dans des palais en ruine et craignent l’obscurité. Il les prend pour les héritiers d’un monde parvenu à la perfection, jusqu’à ce que sa machine disparaisse dans le piédestal d’un sphinx blanc et qu’il rencontre les Morlocks, qui vivent sous terre, entretiennent les machines et se nourrissent des Eloïs.\n\nAvec Weena, une Eloï qui s’est attachée à lui, il fouille un musée abandonné pour y trouver des armes, la perd dans un incendie de forêt et reprend sa machine au piège qu’on lui tendait. Il fuit vers l’avenir, jusqu’à une terre mourante sous un soleil rouge, puis rentre.\n\nPersonne ne le croit tout à fait. Le lendemain il repart, et ne revient pas.",
+ "chapters": [
+  "Dîner du jeudi à Richmond. L’Explorateur du Temps soutient que le temps est une quatrième dimension et qu’on peut s’y déplacer.",
+  "Il envoie un modèle réduit dans le temps sous les yeux de ses invités, puis leur montre la machine, presque achevée.",
+  "Le jeudi suivant, il arrive en retard, hagard et boiteux, mange, et commence son récit.",
+  "Le premier voyage : les jours clignotent, la maison s’efface, et il s’arrête en l’an 802 701 devant un sphinx blanc.",
+  "Les Eloïs : petits, beaux, sans curiosité. Ils le mènent dans une grande salle et lui donnent des fruits.",
+  "Il parcourt le pays en ruine au soleil couchant et conclut que l’humanité a gagné sa guerre contre la nature, puis s’est amollie.",
+  "La machine a disparu. Une nuit de panique ; des traces mènent au piédestal de bronze du sphinx.",
+  "Il apprend la langue, sauve Weena de la rivière, remarque les puits et aperçoit une créature blanche, simiesque.",
+  "Descente dans un puits, chez les Morlocks : des machines et de la viande. Il s’échappe avec ses dernières allumettes.",
+  "La vérité : les Eloïs sont du bétail. Il part avec Weena vers le Palais de Porcelaine Verte.",
+  "Le palais est un musée en ruine. Il y trouve des allumettes, du camphre et un levier de fer.",
+  "Le retour de nuit. Il allume un feu, la forêt brûle, et Weena est perdue.",
+  "Le sphinx est ouvert. Les Morlocks ont appâté un piège avec sa machine ; il se dégage et pousse le levier.",
+  "Trente millions d’années plus tard : un soleil rouge, une mer immobile, des crabes géants, une éclipse, le dernier être vivant.",
+  "Il revient dans son laboratoire, quelques heures après son départ, et entre au milieu du dîner.",
+  "Les invités ne le croient pas. Le lendemain, le narrateur le voit repartir, avec un appareil photographique et un sac.",
+  "Trois ans plus tard. Le narrateur garde deux fleurs fanées, et s’interroge."
+ ],
+ "statuses": [
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "edited",
+  "edited",
+  "edited",
+  "edited",
+  "done",
+  "done",
+  "draft"
+ ],
+ "sheets": [
+  {
+   "kind": "character",
+   "title": "L’Explorateur du Temps",
+   "aliases": [
+    "Explorateur du Temps",
+    "l’Explorateur"
+   ],
+   "fields": {
+    "Occupation": "Inventeur, rentier",
+    "Wants": "Savoir ce que devient l’humanité",
+    "Hides": "Son nom. Il n’en reçoit jamais."
+   },
+   "body": "Des yeux gris, un visage pâle qui s’anime quand il parle. Trop ingénieux pour qu’on le croie, dit le narrateur : on soupçonne toujours un tour.\n\nIl raconte lui-même les chapitres 4 à 15 ; ce qui précède et ce qui suit est du narrateur."
+  },
+  {
+   "kind": "character",
+   "title": "Weena",
+   "aliases": [],
+   "fields": {
+    "Occupation": "Une Eloï",
+    "Wants": "Ne pas rester seule dans le noir",
+    "Hides": ""
+   },
+   "body": "Il la tire de la rivière et elle ne le quitte plus. Elle remplit ses poches de fleurs ; deux d’entre elles sont tout ce qu’il rapporte.\n\nPerdue dans l’incendie de la forêt, au chapitre 12. On ne saura jamais si elle est morte."
+  },
+  {
+   "kind": "character",
+   "title": "Le narrateur",
+   "aliases": [
+    "Hillyer"
+   ],
+   "fields": {
+    "Occupation": "Un habitué du jeudi",
+    "Wants": "Le croire",
+    "Hides": ""
+   },
+   "body": "Raconte les chapitres 1 à 3, le 16 et l’épilogue. L’Explorateur appelle un invité Hillyer, une seule fois, au chapitre 16 : c’est sans doute lui."
+  },
+  {
+   "kind": "character",
+   "title": "Filby",
+   "aliases": [],
+   "fields": {
+    "Occupation": "",
+    "Wants": "Avoir le dernier mot",
+    "Hides": ""
+   },
+   "body": "Personnage argumentatif à la chevelure rousse. Le sceptique du premier soir."
+  },
+  {
+   "kind": "character",
+   "title": "Le Docteur",
+   "aliases": [
+    "Docteur"
+   ],
+   "fields": {},
+   "body": "Un invité du jeudi. Examine les fleurs au chapitre 16 et ne parvient pas à les classer."
+  },
+  {
+   "kind": "character",
+   "title": "Le Psychologue",
+   "aliases": [
+    "Psychologue"
+   ],
+   "fields": {},
+   "body": "Un invité du jeudi. C’est sa main qui pousse le levier du modèle réduit."
+  },
+  {
+   "kind": "character",
+   "title": "Le Rédacteur en chef",
+   "aliases": [
+    "Rédacteur en chef",
+    "le Rédacteur",
+    "Blank"
+   ],
+   "fields": {},
+   "body": "Arrive le second jeudi. Offre un shilling la ligne pour le récit, mot pour mot."
+  },
+  {
+   "kind": "character",
+   "title": "Les Eloïs",
+   "aliases": [
+    "Eloïs",
+    "Eloï"
+   ],
+   "fields": {},
+   "body": "Le peuple du monde supérieur. Un mètre vingt environ, frêles, les cheveux bouclés, vite fatigués et vite oublieux. Ils dorment ensemble dans les grandes salles et ne sortent pas la nuit."
+  },
+  {
+   "kind": "character",
+   "title": "Les Morlocks",
+   "aliases": [
+    "Morlocks",
+    "Morlock"
+   ],
+   "fields": {},
+   "body": "Le peuple du monde souterrain. Pâles, de grands yeux, aveuglés par la lumière. Ils font tourner les machines et habillent les Eloïs, comme un fermier soigne son troupeau."
+  },
+  {
+   "kind": "place",
+   "title": "Richmond",
+   "aliases": [],
+   "fields": {
+    "Where": "Sur la Tamise, à l’ouest de Londres",
+    "When": "Les années 1890"
+   },
+   "body": "La maison de l’Explorateur : le fumoir, la salle à manger, et le laboratoire au bout du long corridor. Toute l’histoire reste à cet endroit de la carte ; seule l’année change."
+  },
+  {
+   "kind": "place",
+   "title": "Le Sphinx Blanc",
+   "aliases": [
+    "Sphinx Blanc",
+    "Sphinx blanc",
+    "sphinx"
+   ],
+   "fields": {
+    "Where": "Sur la pelouse où la machine s’arrête d’abord",
+    "When": "802 701"
+   },
+   "body": "Marbre blanc sur un piédestal de bronze, usé par le temps, les ailes déployées, l’ombre d’un sourire. Le piédestal est creux, et il a des portes."
+  },
+  {
+   "kind": "place",
+   "title": "Le Palais de Porcelaine Verte",
+   "aliases": [
+    "Palais de Porcelaine Verte"
+   ],
+   "fields": {
+    "Where": "À une trentaine de kilomètres du sphinx, vers Wimbledon",
+    "When": "802 701"
+   },
+   "body": "Un musée en ruine, un South Kensington des derniers jours : des fossiles, des machines mortes, une bibliothèque tombée en lambeaux. On y trouve encore une boîte d’allumettes et un bocal de camphre."
+  },
+  {
+   "kind": "event",
+   "title": "L’an 802 701",
+   "aliases": [],
+   "fields": {
+    "Date": "802 701 après J.-C."
+   },
+   "body": "Lu sur les cadrans de la machine. Les chapitres 4 à 13 s’y passent, en huit jours."
+  },
+  {
+   "kind": "event",
+   "title": "La terre mourante",
+   "aliases": [],
+   "fields": {
+    "Date": "Dans plus de trente millions d’années"
+   },
+   "body": "Chapitre 14. La terre a cessé de tourner ; le soleil est rouge, énorme, immobile. Le dernier arrêt avant le retour."
+  }
+ ],
+ "notes": [
+  {
+   "quote": "L’Explorateur du Temps (car c’est ainsi que pour plus de commodité nous l’appellerons)",
+   "kind": "note",
+   "body": "Il n’a jamais de nom, pas plus que la plupart des invités. À garder : les deux qui en ont un, Filby et Weena, en ressortent."
+  },
+  {
+   "quote": "Filby, personnage argumentatif à la chevelure rousse",
+   "kind": "praise",
+   "body": "Un personnage entier en sept mots."
+  },
+  {
+   "quote": "Il n’y a aucune différence entre le Temps et l’une quelconque des trois dimensions de l’Espace",
+   "kind": "todo",
+   "body": "L’exposé s’étire. Le Docteur pourrait-il interrompre un paragraphe plus tôt ?"
+  }
+ ],
+ "milestones": [
+  {
+   "title": "Parution en revue",
+   "note": "Mercure de France, d’octobre 1898 à mars 1899, dans la traduction d’Henry-D. Davray."
+  },
+  {
+   "title": "Relecture",
+   "note": "Les chapitres 1 à 10 sont définitifs."
+  }
+ ]
+}

@@ -289,6 +289,32 @@ final class ListsTests: XCTestCase {
         XCTAssertEqual(doc.text, "- un\n- deux\n- Oui\(n)?")
     }
 
+    /// Musset-App/musset#2: lists are on in every new book. There, a hyphen line that reads as a line of dialogue
+    /// still gets its dash; an item stays an item. An essay's hyphen lines are all items.
+    func testAHyphenIsDialogueOrAnItem() {
+        let fiction = ListOptions(bullets: true, numbered: true, dialogue: true)
+        let essay = ListOptions(bullets: true, numbered: true)
+        XCTAssertEqual(Typography.corrected("- Oui, dit-il.", lang: "fr", lists: fiction), "— Oui, dit-il.")
+        XCTAssertEqual(Typography.corrected("- Tu viens ?", lang: "fr", lists: fiction), "— Tu viens\u{00A0}?")
+        XCTAssertEqual(Typography.corrected("- *Jamais.*", lang: "fr", lists: fiction), "— *Jamais.*")
+        XCTAssertEqual(Typography.corrected("- du pain", lang: "fr", lists: fiction), "- du pain")
+        XCTAssertEqual(Typography.corrected("- Oui", lang: "fr", lists: fiction), "- Oui", "not a sentence yet: still being typed, or an item")
+        XCTAssertEqual(Typography.corrected("  - Oui, dit-il.", lang: "fr", lists: fiction), "  - Oui, dit-il.", "nested: an item")
+        XCTAssertEqual(Typography.corrected("* Oui, dit-il.", lang: "fr", lists: fiction), "* Oui, dit-il.")
+        XCTAssertEqual(Typography.corrected("- Oui, dit-il.", lang: "fr", lists: essay), "- Oui, dit-il.")
+        XCTAssertEqual(Typography.corrected("- Sì, disse.", lang: "it", lists: fiction), "— Sì, disse.")
+        XCTAssertEqual(Typography.corrected("- Yes, he said.", lang: "en", lists: fiction), "- Yes, he said.", "English dialogue has no dash")
+
+        var novel = BookManifest(title: "T", author: "A", lang: "fr", chapters: [])
+        XCTAssertEqual(novel.listOptions, .init(bullets: false, numbered: false, dialogue: true), "an existing novel: as it was")
+        novel.structure = BookStructure(form: .novel, text: .init(bulletLists: true, numberedLists: true))
+        XCTAssertEqual(novel.listOptions, fiction)
+        novel.setForm(.journal)
+        XCTAssertEqual(novel.listOptions, fiction, "the lists stay when the form changes")
+        novel.setForm(.essay)
+        XCTAssertEqual(novel.listOptions, essay)
+    }
+
     /// The proofreader's typography pass, in a real editor on a book: a list's markers stay, in a book that has
     /// bullet lists; in one that has none the dash becomes dialogue's.
     func testTheProofreaderLeavesListMarkersAlone() throws {
@@ -321,7 +347,7 @@ final class ListsTests: XCTestCase {
             return tv.string
         }
         let n = "\u{00A0}"
-        XCTAssertEqual(try run(bullets: true), "# Un\n- du lait\(n); des oeufs\n- Oui, dit-il.\nFin.\n")
+        XCTAssertEqual(try run(bullets: true), "# Un\n- du lait\(n); des oeufs\n— Oui, dit-il.\nFin.\n", "in a novel with lists, the item stays and the reply gets its dash")
         XCTAssertEqual(try run(bullets: false), "# Un\n— du lait\(n); des oeufs\n— Oui, dit-il.\nFin.\n")
         XCTAssertEqual(try run(bullets: nil), "# Un\n— du lait\(n); des oeufs\n— Oui, dit-il.\nFin.\n", "an old book keeps its dialogue dash")
     }
@@ -412,7 +438,7 @@ final class ListsTests: XCTestCase {
         m.structure = BookStructure(form: .novel, text: .init(subheadings: true, bulletLists: false, numberedLists: true))
         XCTAssertNil(m.typesetForm)
         XCTAssertEqual(m.typesetText, .init(bullets: false, numbered: true, sections: true))
-        XCTAssertEqual(m.listOptions, ListOptions(bullets: false, numbered: true))
+        XCTAssertEqual(m.listOptions, ListOptions(bullets: false, numbered: true, dialogue: true))
         m.structure = BookStructure(form: .essay)
         XCTAssertEqual(m.typesetText, .init(bullets: true, numbered: true, sections: true))
 

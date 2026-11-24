@@ -1,0 +1,222 @@
+{
+ "title": "La macchina del tempo",
+ "synopsis": "Un inventore dell’età vittoriana mostra ai suoi ospiti una macchina che viaggia nel tempo. Una settimana dopo entra barcollando nella propria sala da pranzo, coperto di polvere e zoppicante, e racconta dove è stato.\n\nNell’anno 802701 trova gli Eloi, piccoli esseri miti che vivono in palazzi in rovina e temono il buio. Li crede gli eredi di un mondo giunto alla perfezione, finché la sua macchina scompare nel piedistallo di una sfinge bianca e incontra i Morlocks, che vivono sottoterra, badano alle macchine e si nutrono degli Eloi.\n\nCon Weena, una Eloi che gli si è affezionata, fruga un museo abbandonato in cerca di armi, la perde in un incendio nella foresta e riprende la macchina alla trappola che gli era stata tesa. Fugge in avanti, fino a una terra morente sotto un sole rosso, poi torna a casa.\n\nNessuno gli crede del tutto. Il giorno dopo riparte, e non ritorna.",
+ "chapters": [
+  "Cena del giovedì a Richmond. L’Esploratore del tempo sostiene che il tempo è una quarta dimensione e che ci si può muovere lungo di essa.",
+  "Manda nel tempo un modellino sotto gli occhi degli ospiti, poi mostra loro la macchina, quasi finita.",
+  "Il giovedì seguente arriva tardi, stravolto e zoppicante, mangia, e comincia il suo racconto.",
+  "Il primo viaggio: i giorni lampeggiano, la casa svanisce, e si ferma nell’anno 802701 davanti a una sfinge bianca.",
+  "Gli Eloi: piccoli, belli, senza curiosità. Lo conducono in una grande sala e gli offrono frutta.",
+  "Percorre il paese in rovina al tramonto e conclude che l’umanità ha vinto la sua guerra contro la natura, e poi si è infiacchita.",
+  "La macchina è sparita. Una notte di panico; le tracce portano al piedistallo di bronzo della sfinge.",
+  "Impara la lingua, salva Weena dal fiume, nota i pozzi e scorge una creatura bianca, scimmiesca.",
+  "Giù in un pozzo, nel mondo dei Morlocks: macchine e carne. Fugge con gli ultimi fiammiferi.",
+  "La verità: gli Eloi sono bestiame. Parte con Weena verso il palazzo di porcellana verde.",
+  "Il palazzo è un museo in rovina. Vi trova fiammiferi, canfora e una leva di ferro.",
+  "Il ritorno di notte. Accende un fuoco, la foresta brucia, e Weena è perduta.",
+  "La sfinge è aperta. I Morlocks hanno teso una trappola con la sua macchina; si libera e spinge la leva.",
+  "Trenta milioni di anni dopo: un sole rosso, un mare immobile, granchi giganteschi, un’eclissi, l’ultimo essere vivente.",
+  "Torna nel suo laboratorio, poche ore dopo la partenza, ed entra nel mezzo della cena.",
+  "Gli ospiti non gli credono. Il giorno dopo il narratore lo vede ripartire, con una macchina fotografica e uno zaino.",
+  "Tre anni dopo. Il narratore conserva due fiori appassiti, e si interroga."
+ ],
+ "statuses": [
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "final",
+  "edited",
+  "edited",
+  "edited",
+  "edited",
+  "done",
+  "done",
+  "draft"
+ ],
+ "sheets": [
+  {
+   "kind": "character",
+   "title": "L’Esploratore del tempo",
+   "aliases": [
+    "Esploratore del tempo",
+    "Esploratore del Tempo",
+    "l’Esploratore"
+   ],
+   "fields": {
+    "Occupation": "Inventore, benestante",
+    "Wants": "Sapere che ne sarà dell’umanità",
+    "Hides": "Il suo nome. Non gliene viene mai dato uno."
+   },
+   "body": "Occhi grigi, un volto pallido che si accende quando parla. Troppo ingegnoso perché gli si creda, dice il narratore: si sospetta sempre un trucco.\n\nRacconta lui stesso i capitoli dal 4 al 15; ciò che precede e ciò che segue è del narratore."
+  },
+  {
+   "kind": "character",
+   "title": "Weena",
+   "aliases": [],
+   "fields": {
+    "Occupation": "Una degli Eloi",
+    "Wants": "Non restare sola al buio",
+    "Hides": ""
+   },
+   "body": "La tira fuori dal fiume e da allora lei non lo lascia più. Gli riempie le tasche di fiori; due di essi sono tutto ciò che riporta.\n\nPerduta nell’incendio della foresta, al capitolo 12. Non sapremo mai se è morta."
+  },
+  {
+   "kind": "character",
+   "title": "Il narratore",
+   "aliases": [
+    "Hillyer"
+   ],
+   "fields": {
+    "Occupation": "Un ospite abituale del giovedì",
+    "Wants": "Credergli",
+    "Hides": ""
+   },
+   "body": "Racconta i capitoli da 1 a 3, il 16 e l’epilogo. L’Esploratore chiama un ospite Hillyer, una volta sola, al capitolo 16: probabilmente è lui."
+  },
+  {
+   "kind": "character",
+   "title": "Filby",
+   "aliases": [],
+   "fields": {
+    "Occupation": "",
+    "Wants": "Avere l’ultima parola",
+    "Hides": ""
+   },
+   "body": "Sofistico personaggio dalla capigliatura rossastra. Lo scettico della prima sera."
+  },
+  {
+   "kind": "character",
+   "title": "Il Dottore",
+   "aliases": [
+    "Dottore"
+   ],
+   "fields": {},
+   "body": "Un ospite del giovedì. Esamina i fiori al capitolo 16 e non riesce a classificarli."
+  },
+  {
+   "kind": "character",
+   "title": "Lo Psicologo",
+   "aliases": [
+    "Psicologo"
+   ],
+   "fields": {},
+   "body": "Un ospite del giovedì. È la sua mano a spingere la leva del modellino."
+  },
+  {
+   "kind": "character",
+   "title": "Il Redattore capo",
+   "aliases": [
+    "Redattore capo",
+    "Blank"
+   ],
+   "fields": {},
+   "body": "Arriva il secondo giovedì. Offre uno scellino a riga per il racconto, parola per parola."
+  },
+  {
+   "kind": "character",
+   "title": "Gli Eloi",
+   "aliases": [
+    "Eloi"
+   ],
+   "fields": {},
+   "body": "Il popolo del mondo superiore. Alti poco più di un metro, fragili, ricciuti, presto stanchi e presto dimentichi. Dormono insieme nelle grandi sale e non escono dopo il tramonto."
+  },
+  {
+   "kind": "character",
+   "title": "I Morlocks",
+   "aliases": [
+    "Morlocks",
+    "Morlock"
+   ],
+   "fields": {},
+   "body": "Il popolo del mondo sotterraneo. Pallidi, dagli occhi grandi, accecati dalla luce. Tengono in moto le macchine e vestono gli Eloi, come un fattore bada al suo gregge."
+  },
+  {
+   "kind": "place",
+   "title": "Richmond",
+   "aliases": [],
+   "fields": {
+    "Where": "Sul Tamigi, a ovest di Londra",
+    "When": "Gli anni Novanta dell’Ottocento"
+   },
+   "body": "La casa dell’Esploratore: il fumatoio, la sala da pranzo, e il laboratorio in fondo al lungo corridoio. Tutta la storia non lascia mai questo punto della carta; cambia soltanto l’anno."
+  },
+  {
+   "kind": "place",
+   "title": "La sfinge bianca",
+   "aliases": [
+    "sfinge bianca",
+    "bianca sfinge",
+    "sfinge"
+   ],
+   "fields": {
+    "Where": "Sul prato dove la macchina si ferma la prima volta",
+    "When": "802701"
+   },
+   "body": "Marmo bianco su un piedistallo di bronzo, corroso dal tempo, le ali spiegate, l’ombra di un sorriso. Il piedistallo è cavo, e ha delle porte."
+  },
+  {
+   "kind": "place",
+   "title": "Il palazzo di porcellana verde",
+   "aliases": [
+    "palazzo di porcellana verde"
+   ],
+   "fields": {
+    "Where": "A una trentina di chilometri dalla sfinge, verso Wimbledon",
+    "When": "802701"
+   },
+   "body": "Un museo in rovina, un South Kensington degli ultimi giorni: fossili, macchine morte, una biblioteca ridotta in stracci. Vi si trovano ancora una scatola di fiammiferi e un vaso di canfora."
+  },
+  {
+   "kind": "event",
+   "title": "L’anno 802701",
+   "aliases": [],
+   "fields": {
+    "Date": "802701 d.C."
+   },
+   "body": "Letto sui quadranti della macchina. I capitoli dal 4 al 13 si svolgono qui, in otto giorni."
+  },
+  {
+   "kind": "event",
+   "title": "La terra morente",
+   "aliases": [],
+   "fields": {
+    "Date": "Fra più di trenta milioni di anni"
+   },
+   "body": "Capitolo 14. La terra ha smesso di girare; il sole è rosso, enorme, immobile. L’ultima sosta prima del ritorno."
+  }
+ ],
+ "notes": [
+  {
+   "quote": "L’Esploratore del tempo (non credo conveniente chiamarlo in altro modo)",
+   "kind": "note",
+   "body": "Non ha mai un nome, e nemmeno la maggior parte degli ospiti. Da tenere: i due che ne hanno uno, Filby e Weena, risaltano."
+  },
+  {
+   "quote": "Filby, sofistico personaggio dalla capigliatura rossastra",
+   "kind": "praise",
+   "body": "Un personaggio intero in sei parole."
+  },
+  {
+   "quote": "Non vi ha la minima differenza fra il tempo e qual si sia delle tre dimensioni dello spazio",
+   "kind": "todo",
+   "body": "La lezione va per le lunghe. Il Dottore potrebbe interrompere un capoverso prima?"
+  }
+ ],
+ "milestones": [
+  {
+   "title": "Prima edizione italiana",
+   "note": "Vallardi, Milano, 1902, nella traduzione di Pasquale De Luca, con il titolo «Un’esplorazione nel futuro»."
+  },
+  {
+   "title": "Rilettura",
+   "note": "I capitoli da 1 a 10 sono definitivi."
+  }
+ ]
+}
