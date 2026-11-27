@@ -171,7 +171,7 @@ struct CommandPalette: View {
         let critique = L("Critique"), go = AppCommand.Group.go.label
         let chapter = session.selectedChapter?.title ?? ""
         let ai = AIStatus.shared
-        let agent = ai.engine(preferring: chat.agent)
+        let agent = ai.conversingEngine(preferring: chat.agent)
         let model = { (agent == .claude ? claudeModel : codexModel) }
 
         // The open chapter's scenes, then the book's chapters with theirs.

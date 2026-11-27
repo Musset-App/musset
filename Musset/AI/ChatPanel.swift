@@ -45,7 +45,7 @@ final class ChatModel {
     /// Shown or not, it keeps running; closing only slides it away.
     var tableShown = false
     @ObservationIgnored private var sessions: [AgentKind: String] = [:]
-    @ObservationIgnored private var process: Process?
+    @ObservationIgnored private var process: (any AgentRun)?
     @ObservationIgnored private var bookRoot: URL?
     /// Messages waiting for the current answer to finish.
     @ObservationIgnored private var pending: [Pending] = []
@@ -427,7 +427,7 @@ struct ChatPanel: View {
                         .frame(height: max(composerHeight, 40))
                     HStack(spacing: 8) {
                         Menu {
-                            ForEach(AIStatus.shared.engines) { a in
+                            ForEach(AIStatus.shared.conversing) { a in
                                 Button { chat.agent = a } label: { Label(a.label + modelSuffix(a), systemImage: chat.agent == a ? "checkmark" : "") }
                             }
                         } label: {
@@ -471,7 +471,7 @@ struct ChatPanel: View {
             .overlay(alignment: .top) { Divider() }
         }
         // Only one of the two CLIs on this Mac: talk to that one.
-        .onAppear { if let e = AIStatus.shared.engine(preferring: chat.agent) { chat.agent = e } }
+        .onAppear { if let e = AIStatus.shared.conversingEngine(preferring: chat.agent) { chat.agent = e } }
     }
 
     private func modelSuffix(_ a: AgentKind) -> String {

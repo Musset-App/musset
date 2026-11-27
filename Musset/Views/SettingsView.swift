@@ -36,8 +36,17 @@ struct SettingsView: View {
 
     init(app: AppState? = nil, pane: Pane = Self.initialPane) { self.app = app; _pane = State(initialValue: pane) }
 
+    /// Opens Settings on this pane, from elsewhere in the app (call before `openSettings()`).
+    static func show(_ pane: Pane) {
+        requested = pane
+        NotificationCenter.default.post(name: Self.paneRequest, object: pane.rawValue)
+    }
+    nonisolated(unsafe) private static var requested: Pane?
+    private static let paneRequest = Notification.Name("musset.settings.pane")
+
     /// `-musset-settings ai` opens a pane directly (screenshots).
     static var initialPane: Pane {
+        if let p = requested { requested = nil; return p }
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-musset-settings"), i + 1 < args.count else { return .general }
         return Pane(rawValue: args[i + 1]) ?? .general
@@ -88,6 +97,10 @@ struct SettingsView: View {
             .background(Color(nsColor: .textBackgroundColor))
         }
         .frame(width: 860, height: 600)
+        // Settings already open: go to the pane asked for.
+        .onReceive(NotificationCenter.default.publisher(for: Self.paneRequest)) { n in
+            if let p = (n.object as? String).flatMap(Pane.init(rawValue:)) { pane = p; Self.requested = nil }
+        }
     }
 }
 
@@ -293,31 +306,56 @@ private struct ProofPane: View {
 private struct AIPane: View {
     @State private var catalog = ModelCatalog.shared
     @AppStorage("keepBible") private var keepBible = true
-    @State private var custom: AITask?
+    /// A model id typed by hand, for this task and provider.
+    @State private var custom: (task: AITask, provider: Provider)?
     @State private var customID = ""
+    /// The task whose model is being chosen among all of a server's.
+    @State private var browsing: Browse?
+    /// The server being added or edited.
+    @State private var editing: EndpointConfig?
     @State private var pangramKey = ""
     /// Bumped on every choice so the fields read UserDefaults again.
     @State private var revision = 0
     private var ai: AIStatus { .shared }
 
+    struct Browse: Identifiable { let task: AITask; let server: EndpointConfig; var id: String { task.rawValue } }
+
+    /// Where a task runs: a CLI, or one of your own servers.
+    enum Provider: Hashable {
+        case cli(AgentKind)
+        case server(String)
+        var engine: AgentKind { if case .cli(let k) = self { k } else { .endpoint } }
+    }
+
+    private var servers: [EndpointConfig] { _ = revision; return EndpointClient.providers() }
+
+    private var providers: [Provider] {
+        AgentKind.clis.filter { ai.installed.contains($0) }.map { .cli($0) } + servers.map { .server($0.id) }
+    }
+
+    private func label(_ p: Provider) -> String {
+        switch p {
+        case .cli(let k): k.label
+        case .server(let id): servers.first { $0.id == id }?.label ?? id
+        }
+    }
+
     private var note: String {
         if !ai.enabled {
             return L("Off. No AI reader, no annotations, no AI proofreading or plot grid. Everything else works the same.")
         }
-        if ai.installed.isEmpty {
-            return L("Neither claude nor codex is installed on this Mac: the AI features are hidden.")
-        }
-        return L("Uses \(ai.installed.map(\.rawValue).formatted(.list(type: .and).locale(UILang.locale))), through your own login. Each task has its model.")
+        return L("Connect the providers you use, then choose a provider and a model for each task.")
     }
 
-    /// The engine a task runs on, and its model as the catalog names it.
-    private func current(_ task: AITask) -> (engine: AgentKind, id: String, model: AIModel?) {
+    /// The provider a task runs on, and its model's id there (empty: the provider's default).
+    private func current(_ task: AITask) -> (provider: Provider, id: String) {
         _ = revision
         let engine = ai.engine(preferring: TaskModels.preferredEngine(task)) ?? .claude
-        let id = TaskModels.model(task, for: engine)
-        let list = catalog.models(engine)
-        let model = id.isEmpty ? list.first(where: \.isDefault) : list.first { $0.id == id }
-        return (engine, id, model)
+        let stored = TaskModels.model(task, for: engine)
+        guard engine == .endpoint else { return (.cli(engine), stored) }
+        let (config, _) = EndpointClient.resolve(stored)
+        let own = EndpointClient.split(stored)
+        return (.server(config.id), own.provider == config.id || own.provider == nil ? own.model : "")
     }
 
     var body: some View {
@@ -326,41 +364,46 @@ private struct AIPane: View {
             Spacer()
             SettingsSwitch(on: Binding(get: { ai.enabled }, set: { ai.enabled = $0 }))
         }
-        if ai.isOn {
-            HStack(spacing: 6) {
-                SectionLabel(L("Models"), tracking: 0.6)
-                Spacer()
-                ForEach(AgentKind.allCases) { e in
-                    let on = ai.installed.contains(e)
-                    HStack(spacing: 6) {
-                        Circle().fill(on ? Ink.positive : Color(nsColor: .tertiaryLabelColor)).frame(width: 6, height: 6)
-                        Text(e.rawValue + " " + (on ? L("connected") : L("missing")))
-                    }
-                    .font(.ui(11, .medium))
-                    .foregroundStyle(on ? Ink.positive : .secondary)
-                    .padding(.horizontal, 9).frame(height: 22)
-                    .background(on ? Ink.positive.opacity(0.12) : Ink.selected, in: Capsule())
-                }
+        if ai.enabled {
+            SectionLabel(L("Providers"), tracking: 0.6).padding(.bottom, 8)
+            SettingsCard {
+                ForEach(AgentKind.clis) { k in cliRow(k) }
+                ForEach(servers, id: \.id) { s in serverRow(s) }
             }
-            .padding(.bottom, 8)
+            HStack(spacing: 10) {
+                Menu {
+                    ForEach(EndpointPreset.allCases.filter { p in !servers.contains { $0.preset == p } }) { p in
+                        Button(p.label) { editing = EndpointConfig(preset: p, baseURL: p.defaultURL) }
+                    }
+                } label: { Label(L("Add a provider"), systemImage: "plus") }
+                .menuStyle(.button).fixedSize()
+                .disabled(servers.count == EndpointPreset.allCases.count)
+                Text(L("OpenRouter, Ollama, LM Studio or any server that speaks OpenAI's chat completions. Your key, your bill: Musset takes nothing."))
+                    .font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 12)
+        }
+        if ai.isOn {
+            SectionLabel(L("Models"), tracking: 0.6).padding(.top, 28).padding(.bottom, 8)
             SettingsCard {
                 ForEach(AITask.allCases) { task in
                     SettingsRow(title: task.label, hint: task.hint) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             // The Bible's reading runs on its own, after pauses: it can be turned off.
                             if task == .bible { Toggle("", isOn: $keepBible).toggleStyle(.switch).controlSize(.mini).labelsHidden().accessibilityLabel(L("Keep the Bible up to date")) }
+                            providerMenu(task)
                             modelMenu(task)
                         }
                     }
                 }
             }
-            if let task = custom {
+            if let (task, provider) = custom {
                 HStack(spacing: 10) {
                     Text(L("Model id for \(task.label)")).font(.ui(13, .medium))
-                    TextField("claude-opus-5-5", text: $customID).textFieldStyle(.roundedBorder).font(.uiMono(12))
+                    TextField(provider.engine == .endpoint ? "mistralai/mistral-large" : "claude-opus-5-5", text: $customID).textFieldStyle(.roundedBorder).font(.uiMono(12))
                     Button(L("Use")) {
                         let id = customID.trimmingCharacters(in: .whitespaces)
-                        if !id.isEmpty { TaskModels.set(task, engine: current(task).engine, model: id); revision += 1 }
+                        if !id.isEmpty { choose(task, provider, model: id) }
                         custom = nil
                     }
                     .buttonStyle(.ink)
@@ -371,7 +414,7 @@ private struct AIPane: View {
                 .padding(.top, 12)
             }
             HStack(spacing: 10) {
-                Text(L("Read from claude and codex, through your own login: no API key in Musset.")
+                Text(L("The lists come from claude and codex, through your own login, and from your servers.")
                      + (catalog.updatedAt.map { " " + L("Updated \($0.formatted(.relative(presentation: .named))).") } ?? ""))
                     .font(.ui(12)).foregroundStyle(.secondary)
                 Spacer()
@@ -387,7 +430,8 @@ private struct AIPane: View {
                 .disabled(catalog.refreshing)
             }
             .padding(.top, 12)
-
+        }
+        if ai.isOn {
             SectionLabel("Pangram", tracking: 0.6).padding(.top, 28).padding(.bottom, 8)
             SettingsCard {
                 SettingsRow(title: L("API key"),
@@ -404,27 +448,294 @@ private struct AIPane: View {
                 if ai.installed.isEmpty { await ai.detect() }
                 await catalog.refresh()
             }
+            .sheet(item: $browsing) { b in
+                ModelBrowser(config: b.server, key: EndpointClient.key(b.server),
+                             current: current(b.task).provider == .server(b.server.id) ? EndpointClient.resolve(EndpointClient.route(b.server.id, current(b.task).id)).model : "") { m, _ in
+                    choose(b.task, .server(b.server.id), model: m.id)
+                }
+            }
+            .sheet(item: Binding(get: { editing.map { Editing(config: $0) } }, set: { editing = $0?.config })) { e in
+                ProviderSheet(config: e.config, isNew: !servers.contains { $0.id == e.config.id }) {
+                    revision += 1
+                    Task { await catalog.refresh(); revision += 1 }
+                }
+            }
+    }
+
+    struct Editing: Identifiable { let config: EndpointConfig; var id: String { config.id } }
+
+    // MARK: Providers
+
+    private func cliRow(_ k: AgentKind) -> some View {
+        let on = ai.installed.contains(k)
+        return HStack(spacing: 12) {
+            badge(.cli(k))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(k.label).font(.ui(13, .medium))
+                Text(k == .claude ? L("Through the claude command, with your Claude subscription.") : L("Through the codex command, with your ChatGPT subscription."))
+                    .font(.ui(12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            state(on ? L("connected") : L("missing"), on: on)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    private func serverRow(_ s: EndpointConfig) -> some View {
+        HStack(spacing: 12) {
+            badge(.server(s.id))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(s.label).font(.ui(13, .medium))
+                    if !s.defaultModel.isEmpty {
+                        Text(s.defaultModel).font(.uiMono(11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
+                    }
+                }
+                Text(s.destination).font(.ui(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            // Connected once it has listed its models; a local server that isn't running doesn't.
+            let answers = catalog.models(.endpoint).contains { EndpointClient.split($0.id).provider == s.id }
+            state(answers ? L("connected") : L("no answer"), on: answers)
+            Button(L("Edit…")) { editing = s }.buttonStyle(.inkSecondary)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    private func state(_ text: String, on: Bool) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(on ? Ink.positive : Color(nsColor: .tertiaryLabelColor)).frame(width: 6, height: 6)
+            Text(text)
+        }
+        .font(.ui(11, .medium))
+        .foregroundStyle(on ? Ink.positive : .secondary)
+        .padding(.horizontal, 9).frame(height: 22)
+        .background(on ? Ink.positive.opacity(0.12) : Ink.selected, in: Capsule())
+    }
+
+    private func badge(_ p: Provider) -> some View {
+        Text(Self.letter(label(p))).font(.ui(10, .semibold)).foregroundStyle(.white)
+            .frame(width: 18, height: 18)
+            .background(Self.color(p), in: RoundedRectangle(cornerRadius: Radius.row))
+    }
+
+    private static func letter(_ name: String) -> String {
+        name == "Codex" ? "X" : String(name.prefix(1)).uppercased()
+    }
+
+    private static func color(_ p: Provider) -> Color {
+        switch p {
+        case .cli(.claude): Color(red: 0.77, green: 0.42, blue: 0.29)
+        case .cli: Color(white: 0.23)
+        case .server("openrouter"): Color(nsColor: .systemIndigo)
+        case .server("ollama"): Color(white: 0.4)
+        case .server("lmstudio"): Color(nsColor: .systemPurple)
+        case .server: Color(nsColor: .systemTeal)
+        }
+    }
+
+    // MARK: Models
+
+    private func choose(_ task: AITask, _ p: Provider, model: String) {
+        switch p {
+        case .cli(let k): TaskModels.set(task, engine: k, model: model)
+        case .server(let id): TaskModels.set(task, engine: .endpoint, model: EndpointClient.route(id, model))
+        }
+        revision += 1
+    }
+
+    private func providerMenu(_ task: AITask) -> some View {
+        let cur = current(task)
+        return PopMenu(providers.map { p in
+            PopItem(title: label(p), checked: p == cur.provider) {
+                guard p != cur.provider else { return }
+                // Back on a provider: the model it had for this task, else its default.
+                switch p {
+                case .cli(let k): choose(task, p, model: TaskModels.model(task, for: k))
+                case .server: choose(task, p, model: "")
+                }
+            }
+        }) {
+            Field(text: label(cur.provider), width: 168) { badge(cur.provider) }
+        }
+        .help(L("Provider for: \(task.label)"))
     }
 
     private func modelMenu(_ task: AITask) -> some View {
         let cur = current(task)
-        let sections = ai.engines.map { engine in
-            PopSection(title: engine.rawValue.uppercased(), items: catalog.models(engine).map { m in
-                let chosen = engine == cur.engine && (m.id == cur.id || (cur.id.isEmpty && m.isDefault))
-                return PopItem(title: m.name, checked: chosen, detail: m.isDefault ? m.id + " · " + L("default") : m.id, subtitle: m.note) {
-                    TaskModels.set(task, engine: engine, model: m.id); revision += 1
-                }
-            })
-        } + [PopSection(items: [PopItem(title: L("Other model…")) { customID = cur.id; custom = task }])]
+        var sections = [PopSection(items: items(task, cur))]
+        var more = [PopItem(title: L("Other model…")) { customID = cur.id; custom = (task, cur.provider) }]
+        if case .server(let id) = cur.provider, let server = servers.first(where: { $0.id == id }) {
+            more.insert(PopItem(title: L("All \(server.label) models…")) { browsing = Browse(task: task, server: server) }, at: 0)
+        }
+        sections.append(PopSection(items: more))
         return PopMenu(sections: sections) {
-            Field(text: cur.model?.name ?? (cur.id.isEmpty ? L("Default") : cur.id),
-                  detail: cur.engine == .claude ? cur.id : nil, width: 240) {
-                Text(cur.engine == .claude ? "C" : "X").font(.ui(10, .semibold)).foregroundStyle(.white)
-                    .frame(width: 18, height: 18)
-                    .background(cur.engine == .claude ? Color(red: 0.77, green: 0.42, blue: 0.29) : Color(white: 0.23), in: RoundedRectangle(cornerRadius: Radius.row))
-            }
+            Field(text: name(cur), detail: cur.provider == .cli(.claude) ? cur.id : nil, width: 210)
         }
         .help(L("Model for: \(task.label)"))
+    }
+
+    /// What the model field shows: the catalog's name, the server's default, or the id.
+    private func name(_ cur: (provider: Provider, id: String)) -> String {
+        switch cur.provider {
+        case .cli(let k):
+            let list = catalog.models(k)
+            let m = cur.id.isEmpty ? list.first(where: \.isDefault) : list.first { $0.id == cur.id }
+            return m?.name ?? (cur.id.isEmpty ? L("Default") : cur.id)
+        case .server(let id):
+            let model = cur.id.isEmpty ? (servers.first { $0.id == id }?.defaultModel ?? "") : cur.id
+            return catalog.models(.endpoint).first { $0.id == EndpointClient.route(id, model) }?.name ?? (model.isEmpty ? L("Default") : model)
+        }
+    }
+
+    /// A server can list hundreds of models (OpenRouter): the menu shows its default, the one chosen, and the browser.
+    private func items(_ task: AITask, _ cur: (provider: Provider, id: String)) -> [PopItem] {
+        switch cur.provider {
+        case .cli(let k):
+            return catalog.models(k).map { m in
+                PopItem(title: m.name, checked: m.id == cur.id || (cur.id.isEmpty && m.isDefault),
+                        detail: m.isDefault ? m.id + " · " + L("default") : m.id, subtitle: m.note) { choose(task, cur.provider, model: m.id) }
+            }
+        case .server(let id):
+            let server = servers.first { $0.id == id }
+            var list = catalog.models(.endpoint).filter { EndpointClient.split($0.id).provider == id }
+            if list.count > 25 { list = list.filter { $0.isDefault || EndpointClient.split($0.id).model == cur.id } }
+            let def = PopItem(title: L("The server's model"), checked: cur.id.isEmpty, detail: server?.defaultModel) {
+                choose(task, cur.provider, model: "")
+            }
+            return [def] + list.filter { !$0.isDefault }.map { m in
+                let model = EndpointClient.split(m.id).model
+                return PopItem(title: m.name, checked: model == cur.id, detail: model, subtitle: m.note) { choose(task, cur.provider, model: model) }
+            }
+        }
+    }
+}
+
+/// One of your own servers: its address, its key in the Keychain, its default model, and whether background work may use it.
+/// Nothing is kept until Save; Test tries what is in the form.
+private struct ProviderSheet: View {
+    let isNew: Bool
+    let changed: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var config: EndpointConfig
+    @State private var key = ""
+    @State private var models: [EndpointModel] = []
+    @State private var testing = false
+    @State private var result: (ok: Bool, text: String)?
+    @State private var browsing = false
+
+    init(config: EndpointConfig, isNew: Bool, changed: @escaping () -> Void) {
+        _config = State(initialValue: config)
+        self.isNew = isNew
+        self.changed = changed
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(config.preset == .custom ? L("Other server") : config.preset.label).font(.ui(15, .semibold))
+            SettingsCard {
+                SettingsRow(title: L("Address"), hint: config.destination.isEmpty ? L("It usually ends in /v1.") : config.destination) {
+                    TextField("https://…/v1", text: $config.baseURL).textFieldStyle(.roundedBorder).font(.uiMono(12)).frame(width: 260)
+                }
+                if config.preset.needsKey {
+                    SettingsRow(title: L("API key"), hint: L("Kept in the Keychain of this Mac.")) {
+                        SecureField("", text: $key).textFieldStyle(.roundedBorder).font(.uiMono(12)).frame(width: 260)
+                    }
+                }
+                SettingsRow(title: L("Model"), hint: modelHint) {
+                    HStack(spacing: 6) {
+                        TextField(config.preset == .ollama ? "llama3.1" : "mistralai/mistral-large", text: $config.defaultModel)
+                            .textFieldStyle(.roundedBorder).font(.uiMono(12)).frame(width: 180)
+                        Button(L("Browse…")) { browsing = true }
+                            .buttonStyle(.inkSecondary).disabled(!config.isConfigured)
+                            .help(L("Every model the server lists, with its price and context"))
+                    }
+                }
+                if !config.isLocal {
+                    SettingsRow(title: L("Also for background work"),
+                                hint: L("Proofreading as you write and keeping the Bible up to date. On a paid server, every pause costs tokens.")) {
+                        Toggle("", isOn: $config.background).toggleStyle(.switch).controlSize(.mini).labelsHidden()
+                    }
+                }
+            }
+            if testing || result != nil {
+                HStack(spacing: 8) {
+                    if testing { ProgressView().controlSize(.small) }
+                    if let result {
+                        Text(result.text).font(.ui(12)).foregroundStyle(result.ok ? Ink.positive : Ink.error)
+                            .lineLimit(3).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                if !isNew {
+                    Button(L("Remove")) { remove() }.buttonStyle(.inkSecondary)
+                }
+                Spacer()
+                Button(L("Cancel")) { dismiss() }.buttonStyle(.inkSecondary)
+                Button(L("Test")) { test() }.buttonStyle(.inkSecondary).disabled(testing || !config.isConfigured)
+                Button(L("Save")) { save() }.buttonStyle(.ink).keyboardShortcut(.defaultAction).disabled(!config.isConfigured)
+            }
+        }
+        .padding(20)
+        .frame(width: 640)
+        // Read when the sheet opens, not at launch: a Keychain prompt must never hold up the app.
+        .onAppear { if !isNew { key = config.storedKey() ?? "" } }
+        .sheet(isPresented: $browsing) {
+            ModelBrowser(config: config, key: key, current: config.defaultModel) { m, list in
+                config.defaultModel = m.id; models = list
+            }
+        }
+    }
+
+    private var modelHint: String {
+        guard let m = models.first(where: { $0.id == config.defaultModel }) else {
+            return L("Used by every task that has no model of its own on this server.")
+        }
+        var parts: [String] = []
+        if let c = m.context { parts.append(L("Reads \(c.formatted(.number.notation(.compactName))) tokens at once.")) }
+        if !m.usable { parts.append(L("Can't use tools, which the reader will need. Choose another model.")) }
+        return parts.joined(separator: " ")
+    }
+
+    private func test() {
+        testing = true
+        result = nil
+        let config = config, key = key
+        Task {
+            do {
+                let list = try await EndpointClient.models(config, key: key)
+                models = list
+                guard !config.defaultModel.isEmpty else {
+                    result = (true, L("Connected: \(list.count) models. Choose one."))
+                    testing = false
+                    return
+                }
+                let start = Date()
+                _ = try await EndpointClient.complete([EndpointMessage(role: "user", content: "Reply with the single word: OK")],
+                                                      model: config.defaultModel, config: config, key: key)
+                let seconds = Date().timeIntervalSince(start).formatted(.number.precision(.fractionLength(1)))
+                result = (true, L("Connected. \(config.defaultModel) answered in \(seconds) s."))
+            } catch {
+                result = (false, error.localizedDescription)
+            }
+            testing = false
+        }
+    }
+
+    private func save() {
+        config.save()
+        Secrets.set(config.keychainAccount, config.preset.needsKey ? key.trimmingCharacters(in: .whitespacesAndNewlines) : "")
+        AIStatus.shared.refreshEndpoint()
+        changed()
+        dismiss()
+    }
+
+    private func remove() {
+        EndpointConfig.forget(config.id)
+        AIStatus.shared.refreshEndpoint()
+        changed()
+        dismiss()
     }
 }
 

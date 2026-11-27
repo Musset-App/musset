@@ -7,10 +7,17 @@ extension Note.Author {
         case .me: .systemGreen
         case .claude: .systemPurple
         case .codex: .systemTeal
+        case .model: .systemIndigo
         }
     }
     var color: Color { Color(nsColor: nsColor) }
-    var engine: AgentKind { self == .codex ? .codex : .claude }
+    var engine: AgentKind {
+        switch self {
+        case .codex: .codex
+        case .model: .endpoint
+        case .me, .claude: .claude
+        }
+    }
 }
 
 extension Note.Kind {
@@ -196,7 +203,7 @@ struct NoteThread: View {
                         Text(e).font(.ui(11)).foregroundStyle(Ink.warning).lineLimit(3).textSelection(.enabled)
                     }
                     // Without that AI on this Mac (or with AI off), a reply is just a note.
-                    let ai = partner(of: note).flatMap { AIStatus.shared.engines.contains($0.engine) ? $0 : nil }
+                    let ai = partner(of: note).flatMap { AIStatus.shared.conversing.contains($0.engine) ? $0 : nil }
                     Composer(text: $reply, fontSize: fontSize,
                              placeholder: ai.map { L("Reply to \($0.label)… (⇧↩ new line)") } ?? L("Reply… (⇧↩ new line)"),
                              onSend: { if let ai { ask(ai.engine) } else { sendReply() } }, height: $composerHeight)
@@ -209,7 +216,7 @@ struct NoteThread: View {
                             Button(L("Stop")) { annotator.stopAsking() }.controlSize(.small)
                         } else {
                             // In a conversation with an AI, ↩ answers it; otherwise ↩ is a plain reply.
-                            ForEach([Note.Author.claude, .codex].filter { $0 != ai && AIStatus.shared.engines.contains($0.engine) }, id: \.self) { other in
+                            ForEach([Note.Author.claude, .codex, .model].filter { $0 != ai && AIStatus.shared.conversing.contains($0.engine) }, id: \.self) { other in
                                 Button { ask(other.engine) } label: { Label(L("Ask \(other.label)"), systemImage: "sparkles") }
                                     .buttonStyle(.bordered).controlSize(.small)
                             }

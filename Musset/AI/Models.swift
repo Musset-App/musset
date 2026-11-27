@@ -45,6 +45,14 @@ enum TaskModels {
 
     static func engine(_ task: AITask) -> AgentKind? { AIStatus.shared.engine(preferring: preferredEngine(task)) }
 
+    /// For work that runs on its own, unasked (proofreading as you write, the Bible kept up to date): never a paid server
+    /// the author hasn't allowed for it. A CLI then takes its place, or the work waits.
+    static func backgroundEngine(_ task: AITask, endpoint: EndpointConfig? = nil) -> AgentKind? {
+        guard let e = engine(task) else { return nil }
+        if e != .endpoint || (endpoint ?? EndpointClient.resolve(model(task, for: .endpoint)).config).allowsBackground { return e }
+        return AIStatus.shared.engines.first { $0 != .endpoint }
+    }
+
     static func model(_ task: AITask, for engine: AgentKind, defaults d: UserDefaults = .standard) -> String {
         if let m = d.string(forKey: modelKey(task, engine)) { return m }
         // Before per-task models: the chat's model per engine, the proofreader's own, Opus for the plot.
@@ -55,6 +63,8 @@ enum TaskModels {
         case (.plot, .claude), (.tenses, .claude): return "opus"
         case (.words, .claude), (.bible, .claude): return "sonnet"
         case (.proof, .codex), (.plot, .codex), (.words, .codex), (.tenses, .codex), (.bible, .codex): return ""
+        // Empty: the model chosen for the server as a whole.
+        case (_, .endpoint): return ""
         }
     }
 
@@ -112,11 +122,27 @@ final class ModelCatalog {
         defer { refreshing = false }
         let installed = AIStatus.shared.installed
         let codex = installed.contains(.codex) ? await Task.detached { Self.codexModels() }.value : []
-        // A codex that did not answer keeps its last list.
+        // A codex that did not answer keeps its last list; so does a server that did not.
         let kept = codex.isEmpty ? models(.codex) : codex
-        models = (installed.contains(.claude) || installed.isEmpty ? Self.claudeModels() : []) + kept
+        var endpoint: [AIModel] = []
+        for config in EndpointClient.providers() {
+            let served = await Self.endpointModels(config)
+            endpoint += served.isEmpty ? models(.endpoint).filter { EndpointClient.split($0.id).provider == config.id } : served
+        }
+        models = (installed.contains(.claude) || installed.isEmpty ? Self.claudeModels() : []) + kept + endpoint
         updatedAt = Date()
         if let data = try? JSONEncoder().encode(Saved(models: models, at: updatedAt!)) { UserDefaults.standard.set(data, forKey: Self.key) }
+    }
+
+    /// What one of your servers lists, marked with its default. Ids carry the server: « ollama|llama3.1 ».
+    nonisolated static func endpointModels(_ config: EndpointConfig) async -> [AIModel] {
+        guard let list = try? await EndpointClient.models(config, key: EndpointClient.key(config)) else { return [] }
+        // Models that can't use tools aren't offered, unless one was already chosen.
+        return list.filter { $0.usable || $0.id == config.defaultModel }.map { m in
+            var note = m.context.map { L("Reads \($0.formatted(.number.notation(.compactName))) tokens at once.") } ?? ""
+            if !m.usable { note += (note.isEmpty ? "" : " ") + L("Can't use tools, which the reader will need.") }
+            return AIModel(engine: .endpoint, id: EndpointClient.route(config.id, m.id), name: m.name, note: note, isDefault: m.id == config.defaultModel)
+        }
     }
 
     /// The aliases `claude --model` documents: each always means that family's latest model.

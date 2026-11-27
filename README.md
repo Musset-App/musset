@@ -187,8 +187,12 @@ your book.
   grammar alerts before they are underlined.
 
 The AI runs through **your own account** with the provider, signed in from Musset: Claude through the official Claude
-Code command-line tool, ChatGPT through the official Codex command-line tool. Musset holds no AI provider keys and
-takes no margin.
+Code command-line tool, ChatGPT through the official Codex command-line tool. Or bring a model of your choice: any
+server that speaks OpenAI's chat completions, such as OpenRouter with your own key, or Ollama and LM Studio running on
+your Mac, where the book never leaves it. Each task (the chat, margin notes, proofreading, the outline, the Bible) has
+its own provider and model. With your own model, Musset runs its own small reader loop: the model looks through the
+book with read-only tools (chapters, versions, a search, the Bible's sheets) and never sees a file path. Musset takes no
+margin, and keys stay in your Keychain.
 
 ![The editor inside: a chat about the chapter, its notes left in the margin, critiques one click away](screenshots/reader.jpg)
 
@@ -317,7 +321,7 @@ My Book/
 
 - **On your Mac:** your books, their history, typography, spelling and grammar (LanguageTool runs locally).
 - **Sent to an AI provider, only when you turn the AI on and ask:** the passages or chapters the feature needs, through
-  your own account with that provider, under its terms.
+  your own account with that provider, under its terms. With Ollama or LM Studio, they go to a model on your Mac.
 - **Sent to Pangram, only if you add your own Pangram key and run a check:** the passage being checked for AI
   writing. The key stays in your Keychain.
 - **Sent to Musset Sync, only if you subscribe:** your book’s files and history.
@@ -393,6 +397,7 @@ unless their environment variable is set (prefixed with `TEST_RUNNER_` when pass
 | Variable | What it runs |
 |---|---|
 | `MUSSET_LIVE=1` | Live AI calls (plot index, critique, exports of a real book) |
+| `MUSSET_LIVE_ENDPOINT="<url> <model>"` | Your own model on a real server (key in `MUSSET_LIVE_ENDPOINT_KEY`): the client and the reader loop |
 | `MUSSET_SNAPSHOT=<dir>` | Screenshots of screens and panels |
 | `MUSSET_SITE_SHOTS=<dir>` | The screenshots in this README, on a demo book |
 | `MUSSET_PROOF_BOOK=<book>` | Proofreading a real book (with `MUSSET_ARBITER_REAL=sonnet` for the AI arbiter) |

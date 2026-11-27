@@ -26,6 +26,8 @@ final class AIStatus {
     /// The engines the interface offers.
     var engines: [AgentKind] { enabled ? installed : [] }
     var isOn: Bool { !engines.isEmpty }
+    /// The engines that can hold the chat, the debate and a reply in a note: all of them now.
+    var conversing: [AgentKind] { engines.filter(\.converses) }
 
     /// The author's choice when it is available, else the first engine there is.
     func engine(preferring kind: AgentKind?) -> AgentKind? {
@@ -33,13 +35,25 @@ final class AIStatus {
         return engines.first
     }
 
-    /// Looks for the CLIs on the login PATH, off the main thread (the PATH comes from a login shell).
+    /// The same, among the engines that converse.
+    func conversingEngine(preferring kind: AgentKind?) -> AgentKind? {
+        if let kind, conversing.contains(kind) { return kind }
+        return conversing.first
+    }
+
+    /// Looks for the CLIs on the login PATH, off the main thread (the PATH comes from a login shell),
+    /// and for your own model in the settings.
     func detect() async {
         let found = await Task.detached { Self.detect(Shell.which) }.value
         await MainActor.run { installed = found }
     }
 
-    static func detect(_ which: (String) -> String?) -> [AgentKind] {
-        AgentKind.allCases.filter { which($0.rawValue) != nil }
+    /// After your own model is saved or removed in Settings: no need to look for the CLIs again.
+    func refreshEndpoint(_ servers: [EndpointConfig] = EndpointClient.providers()) {
+        installed = installed.filter { $0 != .endpoint } + (servers.isEmpty ? [] : [.endpoint])
+    }
+
+    static func detect(_ which: (String) -> String?, endpoints: [EndpointConfig] = EndpointClient.providers()) -> [AgentKind] {
+        AgentKind.clis.filter { which($0.rawValue) != nil } + (endpoints.isEmpty ? [] : [.endpoint])
     }
 }

@@ -1,7 +1,7 @@
 ---
 title: The editor inside: an AI that reads your book and never writes it
 short: The AI reader
-description: Musset's AI reads a chapter like a demanding editor: it quotes your sentence, says what it sees and asks a question. It never writes prose for your book. How to set it up with your own Claude or ChatGPT account, and how to turn it off.
+description: Musset's AI reads a chapter like a demanding editor: it quotes your sentence, says what it sees and asks a question. It never writes prose for your book. How to set it up with your own Claude or ChatGPT account, or a model of your choice through OpenRouter, Ollama or LM Studio, and how to turn it off.
 section: revise
 order: 7
 kind: Guide
@@ -32,24 +32,37 @@ This is built in, not a preference:
 
 ## Set it up
 
-Musset has no AI of its own and holds no key. It uses **your own account** with the provider, through the provider's official tool on your Mac:
+Musset has no AI of its own and takes no margin. It uses **your own account** with a provider, or a model on your own Mac. Connect as many as you like in **Settings ▸ AI ▸ Providers**:
 
-- **Claude**, with a Claude subscription;
-- **ChatGPT**, with a ChatGPT subscription, through OpenAI's Codex tool.
+- **Claude**, with a Claude subscription, through Anthropic's official tool on your Mac;
+- **ChatGPT**, with a ChatGPT subscription, through OpenAI's Codex tool;
+- **OpenRouter**, with your own key: hundreds of models (Mistral, Gemini, DeepSeek, Llama, Qwen…), paid by the token on your OpenRouter account;
+- **Ollama** or **LM Studio**, a model running on your Mac: free, and the book never leaves it;
+- **any other server** that speaks OpenAI's chat completions, with its address and key.
+
+For Claude or ChatGPT:
 
 1. Open the **AI Reader** panel ([[⌘3]]) and click **Choose an AI Reader…**, or open **Settings ▸ AI**.
 2. Click **Sign in…** beside Claude or ChatGPT. If the provider's tool is not on your Mac, Musset offers to download it from the provider.
 3. Finish signing in on the provider's page, in your browser.
 
-There is no terminal to open and no key to paste. You pay your provider as you already do; Musset takes no margin and adds no usage fee.
+For OpenRouter, Ollama, LM Studio or another server:
+
+1. Open **Settings ▸ AI** and click **Add a provider**.
+2. Check the address (Musset fills in the usual one), and paste your key if the server needs one. Musset keeps it in the Keychain of your Mac.
+3. Choose a default model, or click **Browse…** to see every model the server offers, with its price and how much text it reads at once. Click **Test**, then **Save**.
+
+Musset's reader looks through the book with tools (it reads the chapters it needs, searches the book, opens the Bible's sheets), so only models that can use tools are offered. On a local server, a model that can't is said plainly the first time you ask it something.
 
 ## Choose the models
 
-In **Settings ▸ AI**, each task has its own model: the conversation, the margin notes, the proofreading, the outline, the vocabulary, the Bible. A demanding model reads your chapter; a fast one checks typos as you type. The defaults are sensible, and you can change any of them.
+In **Settings ▸ AI ▸ Models**, each task has its own provider and model: the conversation, the margin notes, the proofreading, the outline, the vocabulary, the tenses, the Bible. A demanding model reads your chapter; a fast or local one checks typos as you type. Mix them freely: Claude for the conversation, a model on OpenRouter for the margin notes, Ollama for the proofreading.
+
+**On a paid server**, work that runs on its own (proofreading as you write, keeping the Bible up to date) is off unless you switch on **Also for background work** for that server: every pause would cost tokens. A local server has no such limit.
 
 ## Talk about a chapter
 
-Open the AI Reader panel ([[⌘3]]) and ask. Select a passage first to discuss only that. The reader can look at the other chapters to answer a question of continuity, and look something up on the web to check a fact.
+Open the AI Reader panel ([[⌘3]]) and ask. Select a passage first to discuss only that. The reader can look at the other chapters to answer a question of continuity, and, with Claude or ChatGPT, look something up on the web to check a fact.
 
 When it points at passages, it offers to add them to the margin as notes, so the conversation leaves something you can work through.
 

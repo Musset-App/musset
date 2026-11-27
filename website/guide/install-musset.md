@@ -53,4 +53,4 @@ Musset is open source under the GPL v3. The [repository on GitHub](https://githu
 
 ## Optional: the AI reader
 
-Musset can read your chapters like an editor and leave notes in the margin. It never writes text for your book. This uses your own Claude or ChatGPT account and is off until you set it up; everything else works without it. See [the editor inside](/guide/ai-editor/).
+Musset can read your chapters like an editor and leave notes in the margin. It never writes text for your book. This uses your own Claude or ChatGPT account, or a model of your choice through OpenRouter, Ollama or LM Studio, and is off until you set it up; everything else works without it. See [the editor inside](/guide/ai-editor/).

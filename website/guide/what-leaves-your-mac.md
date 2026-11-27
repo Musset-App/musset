@@ -24,7 +24,9 @@ Text is sent somewhere only when you turn on a feature that needs it. This page 
 
 ## The AI reader, if you set it up
 
-Musset has no AI service of its own. Requests go from your Mac to **your** provider, Anthropic for Claude or OpenAI for ChatGPT, under your own account and their terms. Musset holds no key and sees none of it.
+Musset has no AI service of its own. Requests go from your Mac to **your** provider, under your own account and their terms: Anthropic for Claude, OpenAI for ChatGPT, or OpenRouter, which passes them to the model's maker. Musset sees none of it; a key you give it for OpenRouter or another server stays in the Keychain of your Mac.
+
+With **Ollama** or **LM Studio**, the model runs on your Mac: what is listed below goes to it, and nothing leaves the Mac at all.
 
 Sent **when you ask**:
 

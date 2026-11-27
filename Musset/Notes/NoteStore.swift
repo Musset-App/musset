@@ -3,9 +3,26 @@ import Observation
 
 struct Note: Codable, Identifiable, Equatable {
     enum Author: String, Codable, CaseIterable {
-        case me, claude, codex
-        var label: String { self == .me ? L("You") : (self == .claude ? "Claude" : "Codex") }
+        /// `model`: your own model (OpenRouter, Ollama…), named after its server.
+        case me, claude, codex, model
+        var label: String {
+            switch self {
+            case .me: L("You")
+            case .claude: "Claude"
+            case .codex: "Codex"
+            case .model: AgentKind.endpoint.label
+            }
+        }
         var isAI: Bool { self != .me }
+
+        /// Who signs what this engine writes.
+        init(_ engine: AgentKind) {
+            switch engine {
+            case .claude: self = .claude
+            case .codex: self = .codex
+            case .endpoint: self = .model
+            }
+        }
     }
 
     enum Kind: String, Codable, CaseIterable {

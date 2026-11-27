@@ -254,8 +254,14 @@ final class ChapterReader {
         let chapters = session.manifest.chapters
         let text = BookStore.stripHTMLComments(Revisions.resolveAll(session.editorText(of: chapter.id), accept: false))
         let criteria = bareme.chapter.compactMap { bareme.criterion($0.criterionId) }
-        let model = chosen ?? (engine == .claude ? (UserDefaults.standard.string(forKey: "model.chat.claude") ?? "opus")
-                                                 : (UserDefaults.standard.string(forKey: "model.chat.codex") ?? ""))
+        let model: String = chosen ?? {
+            switch engine {
+            case .claude: UserDefaults.standard.string(forKey: "model.chat.claude") ?? "opus"
+            case .codex: UserDefaults.standard.string(forKey: "model.chat.codex") ?? ""
+            // The server's model by name, so that two readings by different models are never taken for the same.
+            case .endpoint: Agents.resolvedModel(.endpoint, TaskModels.model(.annotate, for: .endpoint))
+            }
+        }()
         let hash = PlotGrid.fingerprint(text)
         let earlier = Reading.load(session.root, chapter.id)
         // The same text, the same rubric, the same reader: the answer is the one already given.
@@ -399,7 +405,7 @@ final class ChapterReader {
     static func pinNotes(_ items: [Annotator.Item], of reading: Reading, chapter: String, in session: BookSession) -> PinResult {
         guard session.selectedChapterID == chapter else { return .none }
         session.notes.lastAutoResolved = 0
-        let placed = Annotator.add(items, to: session, author: reading.agent == "codex" ? .codex : .claude,
+        let placed = Annotator.add(items, to: session, author: Note.Author(AgentKind(rawValue: reading.agent) ?? .claude),
                                    defaultKind: .critique, scope: nil, run: reading.id.uuidString)
         let resolved = session.notes.lastAutoResolved
         return PinResult(placed: placed, skipped: items.filter { $0.resolves == nil }.count - placed, resolved: resolved)

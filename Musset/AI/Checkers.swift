@@ -220,7 +220,7 @@ final class CheckerRunner {
                     return
                 }
                 let findings = Self.merged(found.items, outside: found.outside, in: BookStore.stripHTMLComments(session.text), french: french)
-                let placed = Self.place(findings, checker: checker, session: session, author: engine == .claude ? .claude : .codex)
+                let placed = Self.place(findings, checker: checker, session: session, author: Note.Author(engine))
                 let missed = findings.count - placed
                 self.status = L("\(placed) notes in the margin from \(checker.name)")
                     + (missed > 0 ? L(", \(missed) passages not found in the text.") : ".")

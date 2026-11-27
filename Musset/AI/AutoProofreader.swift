@@ -122,10 +122,10 @@ final class AutoProofreader {
     }
 
     /// nil when no AI is available (no CLI, or AI off): the AI pass is skipped, the rest still runs.
-    private var engine: AgentKind? { UserDefaults.standard.bool(forKey: "proofWithAI") ? TaskModels.engine(.proof) : nil }
+    private var engine: AgentKind? { UserDefaults.standard.bool(forKey: "proofWithAI") ? TaskModels.backgroundEngine(.proof) : nil }
     private var model: String { engine.map { TaskModels.model(.proof, for: $0) } ?? "" }
     /// Separate from the AI proofreader: this only sends what LanguageTool flagged, with its neighbours.
-    private var arbiterEngine: AgentKind? { UserDefaults.standard.bool(forKey: "proofArbiter") ? TaskModels.engine(.proof) : nil }
+    private var arbiterEngine: AgentKind? { UserDefaults.standard.bool(forKey: "proofArbiter") ? TaskModels.backgroundEngine(.proof) : nil }
     private var arbiterOn: Bool { arbiterVoice != nil || arbiterEngine != nil }
     private var cacheURL: URL? { root?.appendingPathComponent(".musset/proof/cache.json") }
     /// Tracked in git with the book, unlike the cache.

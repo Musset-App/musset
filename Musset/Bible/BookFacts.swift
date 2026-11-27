@@ -197,7 +197,7 @@ final class BibleKeeper {
               let chapter = session.manifest.chapters.first(where: { $0.id == id }) else { return }
         // Never a real AI call from the tests: they give a voice.
         let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
-        let engine = testing ? nil : TaskModels.engine(.bible)
+        let engine = testing ? nil : TaskModels.backgroundEngine(.bible)
         guard voice != nil || engine != nil else { return }
         let text = BookStore.stripHTMLComments(session.editorText(of: id))
         guard text.contains(where: \.isLetter) else { return }

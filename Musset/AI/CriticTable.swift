@@ -216,11 +216,11 @@ final class CriticTable: Identifiable {
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
 
     typealias Voice = (_ agent: AgentKind, _ prompt: String, _ session: String?, _ cwd: URL, _ model: String, _ system: String,
-                       _ onEvent: @escaping @Sendable (AgentEvent) -> Void, _ onDone: @escaping @Sendable (Int32, String) -> Void) throws -> Process?
+                       _ onEvent: @escaping @Sendable (AgentEvent) -> Void, _ onDone: @escaping @Sendable (Int32, String) -> Void) throws -> (any AgentRun)?
 
     @ObservationIgnored private let voice: Voice
     @ObservationIgnored private var queue: [(id: String, opening: Bool)] = []
-    @ObservationIgnored private var process: Process?
+    @ObservationIgnored private var process: (any AgentRun)?
     @ObservationIgnored private var retried = false
 
     var running: Bool { speaking != nil }
@@ -356,7 +356,7 @@ extension BookSession {
         Les chapitres du livre :
         \(chapterFiles)
         """
-        let engine = AgentKind(rawValue: reading.agent).flatMap { AIStatus.shared.engines.contains($0) ? $0 : nil } ?? fallbackAgent
+        let engine = AgentKind(rawValue: reading.agent).flatMap { AIStatus.shared.conversing.contains($0) ? $0 : nil } ?? fallbackAgent
         let name = L("The AI reader")
         return CriticTableRecord(id: id, kind: .reader, title: L("AI reading of « \(title) »"),
                                  critics: [Critic(id: "lecteur", name: name, horizon: "")],
@@ -557,7 +557,7 @@ struct DebatePage: View {
     @State private var newHorizon = ""
     @State private var past: [CriticTableRecord] = []
 
-    private var engine: AgentKind? { AIStatus.shared.engine(preferring: TaskModels.preferredEngine(.chat) ?? .claude) }
+    private var engine: AgentKind? { AIStatus.shared.conversingEngine(preferring: TaskModels.preferredEngine(.chat) ?? .claude) }
     private var model: String {
         guard let engine else { return "" }
         return engine == .claude ? (UserDefaults.standard.string(forKey: "model.chat.claude") ?? "opus") : (UserDefaults.standard.string(forKey: "model.chat.codex") ?? "")

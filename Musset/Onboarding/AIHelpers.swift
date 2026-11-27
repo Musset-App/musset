@@ -30,6 +30,7 @@ enum ManagedCLI {
         case .codex:
             guard Shell.which("npm") != nil else { return nil }
             return ["/bin/sh", "-c", "npm install -g @openai/codex"]
+        case .endpoint: return nil
         }
     }
 
@@ -50,6 +51,7 @@ struct AIHelpersView: View {
     @State private var problem: String?
     @State private var pangramKey = ""
     @AppStorage("proofWithAI") private var proofWithAI = false
+    @Environment(\.openSettings) private var openSettings
 
     enum Phase { case installing, signingIn }
 
@@ -116,6 +118,11 @@ struct AIHelpersView: View {
             .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Ink.hairline))
             .padding(.top, 10)
             Text(L("Your subscription, on the official page. No terminal, no key.")).font(.ui(12)).foregroundStyle(.secondary).padding(.top, 6)
+            HStack(spacing: 6) {
+                Text(L("Or your own model: OpenRouter, Ollama, LM Studio…")).font(.ui(12)).foregroundStyle(.secondary)
+                Button(L("Set up in Settings…")) { SettingsView.show(.ai); openSettings() }.buttonStyle(.link).font(.ui(12))
+            }
+            .padding(.top, 4)
             if let problem { Text(problem).font(.ui(12)).foregroundStyle(Ink.error).lineLimit(3).padding(.top, 4) }
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -171,7 +178,7 @@ struct AIHelpersView: View {
     }
 
     private func refresh() async {
-        for kind in AgentKind.allCases { states[kind] = await ManagedCLI.state(kind) }
+        for kind in AgentKind.clis { states[kind] = await ManagedCLI.state(kind) }
         await AIStatus.shared.detect()
     }
 

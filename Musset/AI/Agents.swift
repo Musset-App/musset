@@ -1,10 +1,27 @@
 import Foundation
 
-/// Claude and Codex through their own logged-in CLIs (OAuth subscriptions, no API keys).
+/// Claude and Codex through their own logged-in CLIs (OAuth subscriptions, no API keys),
+/// and « your own model »: a server that speaks Chat Completions, with the author's key (Endpoint.swift).
 enum AgentKind: String, CaseIterable, Identifiable, Codable {
-    case claude, codex
+    case claude, codex, endpoint
     var id: String { rawValue }
-    var label: String { self == .claude ? "Claude" : "Codex" }
+    var label: String {
+        switch self {
+        case .claude: "Claude"
+        case .codex: "Codex"
+        case .endpoint: Self.endpointLabel
+        }
+    }
+    /// Your own servers, by name: « OpenRouter », or « OpenRouter, Ollama ».
+    static var endpointLabel: String {
+        let names = EndpointClient.providers().map(\.label)
+        return names.isEmpty ? L("Your model") : names.joined(separator: ", ")
+    }
+    /// The two command-line tools Musset drives.
+    static let clis: [AgentKind] = [.claude, .codex]
+    /// Streams, reads the book with tools and resumes sessions: the chat, the debate, replies in a note, the checkers.
+    /// Every engine does: your own model through Musset's own loop (ReaderLoop).
+    var converses: Bool { true }
 }
 
 enum AgentEvent: Sendable {
@@ -25,7 +42,7 @@ enum Agents {
     static func send(_ kind: AgentKind, prompt: String, session: String?, cwd: URL, model: String,
                      systemPrompt: String?,
                      onEvent: @escaping @Sendable (AgentEvent) -> Void,
-                     onDone: @escaping @Sendable (Int32, String) -> Void) throws -> Process {
+                     onDone: @escaping @Sendable (Int32, String) -> Void) throws -> any AgentRun {
         switch kind {
         case .claude:
             var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
@@ -50,6 +67,10 @@ enum Agents {
             return try Shell.stream("codex", args, cwd: cwd, stdin: prompt, onLine: { line in
                 for e in parseCodex(line) { onEvent(e) }
             }, onExit: onDone)
+        case .endpoint:
+            // Musset's own loop, with the book as read-only tools (no web search yet).
+            return ReaderLoop.start(prompt: prompt, session: session, systemPrompt: systemPrompt, model: model, root: cwd, tools: true,
+                                    onEvent: onEvent, onDone: onDone)
         }
     }
 
@@ -136,6 +157,10 @@ enum Agents {
             result = try await Shell.runAsync("codex", args, cwd: cwd, stdin: prompt)
             guard let text = try? String(contentsOf: out, encoding: .utf8) else { throw err(result.stderr) }
             return text
+        case .endpoint:
+            // Most one-shot tasks put their text in the prompt; a checker reads the other chapters with the book's tools.
+            if tools.isEmpty { return try await endpointOneShot(prompt: prompt, model: model) }
+            return try await ReaderLoop.turn(prompt: prompt, session: nil, systemPrompt: nil, model: model, root: cwd, tools: true)
         }
     }
 
@@ -171,6 +196,8 @@ enum Agents {
             }
             guard !text.isEmpty else { throw err(result.stderr) }
             return (text, thread)
+        case .endpoint:
+            return try await endpointConverse(prompt: prompt, session: session, model: model)
         }
     }
 

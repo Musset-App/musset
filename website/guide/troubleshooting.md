@@ -77,7 +77,11 @@ kind: Reference
 
 **Will it rewrite my text?** No. It reads, quotes, questions and annotates. See [the editor inside](/guide/ai-editor/).
 
-**Does it cost extra?** Musset charges nothing for it. It uses your own Claude or ChatGPT subscription.
+**Does it cost extra?** Musset charges nothing for it. It uses your own Claude or ChatGPT subscription, your own OpenRouter account, or a model on your Mac with Ollama or LM Studio, which costs nothing.
+
+**It says "Nothing answers at localhost".** The local server isn't running. Open Ollama or LM Studio (in LM Studio, start its server), then try again.
+
+**It says the model can't use tools.** Musset's reader needs a model that can use tools to look through the book. Choose another model for that task in **Settings ▸ AI ▸ Models**.
 
 ## Exports
 

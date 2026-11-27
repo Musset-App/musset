@@ -67,7 +67,7 @@ final class Annotator {
     /// The note being answered by "Ask Claude / Codex".
     var answering: UUID?
     var askError: String?
-    @ObservationIgnored private var askProcess: Process?
+    @ObservationIgnored private var askProcess: (any AgentRun)?
     /// Last AI run, so it can be dismissed in one go.
     var lastRun: String?
 
@@ -169,7 +169,7 @@ final class Annotator {
         let text = scope.map { full.substring(with: $0) } ?? session.text
         let prompt = Self.prompt(task: task, custom: custom, root: session.root, book: session.title, chapter: chapter.title, text: text,
                                  agents: Self.agentsMD(session.root) + Self.existingNotes(session))
-        let author: Note.Author = engine == .claude ? .claude : .codex
+        let author = Note.Author(engine)
         let chapterID = chapter.id
         running = true
         lastError = nil
@@ -221,7 +221,7 @@ final class Annotator {
         like a conversation: direct, specific, usually 1 to 6 sentences.
         \(WritingPartner.noRewrites)\(Self.agentsMD(session.root))
         """
-        let replyID = session.notes.reply(noteID, author: engine == .claude ? .claude : .codex, body: "")
+        let replyID = session.notes.reply(noteID, author: Note.Author(engine), body: "")
         answering = noteID
         askError = nil
         do {
