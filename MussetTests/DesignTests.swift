@@ -113,8 +113,22 @@ final class DesignTests: XCTestCase {
         try png(WelcomeView(app: app), NSSize(width: 580, height: 560), "d-newbook.png")
         let chat = ChatModel()
         chat.messages = [ChatMessage(role: .user, text: "La scène de l’arrivée tient-elle sans aucun dialogue ?"),
-                         ChatMessage(role: .assistant, agent: .claude, text: "Oui, et c’est sa force : l’enfant enregistre des objets parce qu’il ne peut pas encore enregistrer le reste.\n\nCe qui l’affaiblit, c’est la dernière phrase.", action: .style, notesAdded: 3)]
+                         ChatMessage(role: .assistant, agent: .claude, text: "Oui, et c’est sa force : l’enfant enregistre des objets parce qu’il ne peut pas encore enregistrer le reste.\n\nCe qui l’affaiblit, c’est la dernière phrase.", action: .style, notesAdded: 3, model: "opus"),
+                         ChatMessage(role: .assistant, agent: .endpoint, text: "La dernière phrase explique ce que la scène montrait déjà.", model: "openrouter|deepseek/deepseek-chat")]
         try png(ChatPanel(chat: chat, session: s, bridge: bridge), NSSize(width: 400, height: 640), "d-partner.png")
+        try png(FeedbackSheet(kind: .problem), NSSize(width: 520, height: 470), "d-feedback.png")
+        // The same sheet in dark mode, on the window's own background as a sheet has it.
+        let dark = NSHostingView(rootView: FeedbackSheet(kind: .problem).frame(width: 520, height: 470)
+            .background(Color(nsColor: .windowBackgroundColor)).environment(\.colorScheme, .dark))
+        dark.appearance = NSAppearance(named: .darkAqua)
+        dark.frame = NSRect(x: 0, y: 0, width: 520, height: 470)
+        let darkWindow = NSWindow(contentRect: dark.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        darkWindow.appearance = NSAppearance(named: .darkAqua)
+        darkWindow.contentView = dark
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        let darkRep = dark.bitmapImageRepForCachingDisplay(in: dark.bounds)!
+        dark.cacheDisplay(in: dark.bounds, to: darkRep)
+        try darkRep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: dir).appendingPathComponent("d-feedback-dark.png"))
         try png(PlotGridView(app: app, session: s, bridge: bridge, analyst: PlotAnalyst(), planner: ScenePlanner()), NSSize(width: 1300, height: 420), "d-grid.png")
         try png(StatusBar(app: app, session: s, proof: AutoProofreader(), bridge: bridge).padding(20), NSSize(width: 520, height: 70), "d-status.png")
     }

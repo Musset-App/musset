@@ -77,6 +77,38 @@ enum TaskModels {
         }
     }
 
+    /// The model that will answer, as a chat message keeps it: your own server's choice resolved to that server and its
+    /// model (an empty one means the server's default), a CLI's as chosen (empty: its default). Nil when nothing is known.
+    @MainActor
+    static func answering(_ engine: AgentKind, _ model: String) -> String? {
+        switch engine {
+        case .endpoint:
+            let (config, m) = EndpointClient.resolve(model)
+            return m.isEmpty ? nil : EndpointClient.route(config.id, m)
+        case .claude, .codex:
+            return model.isEmpty ? ModelCatalog.shared.models(engine).first(where: \.isDefault)?.id : model
+        }
+    }
+
+    /// « Claude · Opus », « OpenRouter · Mistral Small 3.2 24B »: the engine and the model, by name when the catalog has it.
+    @MainActor
+    static func answerLabel(_ engine: AgentKind, _ model: String?) -> String {
+        guard let model, !model.isEmpty else { return engine == .endpoint ? AgentKind.endpointLabel : engine.label }
+        let catalog = ModelCatalog.shared
+        if engine == .endpoint {
+            let (id, m) = EndpointClient.split(model)
+            // A server removed since: its preset's name, still.
+            let server = EndpointClient.providers().first { $0.id == id }?.label
+                ?? id.flatMap { EndpointPreset(rawValue: $0)?.label } ?? id ?? AgentKind.endpointLabel
+            // OpenRouter names start with the maker (« DeepSeek: DeepSeek V3 »): the model's own name is enough here.
+            let full = catalog.models(.endpoint).first { $0.id == model }?.name ?? m
+            let name = full.range(of: ": ").map { String(full[$0.upperBound...]) } ?? full
+            return server + " · " + name
+        }
+        let name = catalog.models(engine).first { $0.id == model }?.name ?? model.prefix(1).uppercased() + model.dropFirst()
+        return engine.label + " · " + name
+    }
+
     static func set(_ task: AITask, engine: AgentKind, model: String, defaults d: UserDefaults = .standard) {
         d.set(engine.rawValue, forKey: engineKey(task))
         d.set(model, forKey: modelKey(task, engine))

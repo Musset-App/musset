@@ -24,6 +24,8 @@ struct ChatMessage: Identifiable, Codable, Hashable {
     var notesSkipped: Int? = nil
     /// The chapter a reading is of, to discuss it later.
     var chapter: String? = nil
+    /// The model that answered: a CLI's model (« opus »), or your own server's, routed (« openrouter|mistralai/… »).
+    var model: String? = nil
 }
 
 /// One conversation per book and agent, persisted in `.musset/chat/` (git-ignored).
@@ -164,6 +166,7 @@ final class ChatModel {
                 var m = ChatMessage(role: .assistant, agent: engine,
                                     text: reading.advice?.overview.nilIfEmpty ?? L("A separate AI reader, outside this conversation, read « \(title) »."),
                                     action: .critique, notesRun: run, notesAdded: pins.placed)
+                m.model = TaskModels.answering(engine, model)
                 m.notesSkipped = pins.skipped
                 m.notesResolved = pins.resolved
                 m.reading = reading
@@ -234,7 +237,8 @@ final class ChatModel {
         running = true
         status = L("\(agent.label) is reading…")
         let replyID = UUID()
-        messages.append(ChatMessage(id: replyID, role: .assistant, agent: agent, text: "", action: action))
+        messages.append(ChatMessage(id: replyID, role: .assistant, agent: agent, text: "", action: action,
+                                    model: TaskModels.answering(agent, model)))
         current = (replyID, action, agent, book)
         do {
             process = try Agents.send(agent, prompt: prompt, session: sessions[agent], cwd: book.root, model: model,
@@ -284,7 +288,7 @@ final class ChatModel {
         let items = Self.noteBlocks(in: reply)
         if !items.isEmpty {
             let run = UUID().uuidString
-            let author: Note.Author = c.agent == .codex ? .codex : .claude
+            let author = Note.Author(c.agent)
             book.notes.lastAutoResolved = 0
             messages[i].notesAdded = Annotator.add(items, to: book, author: author, defaultKind: action.defaultKind, scope: nil, run: run)
             messages[i].notesResolved = book.notes.lastAutoResolved
@@ -314,6 +318,10 @@ struct ChatPanel: View {
     let bridge: EditorBridge
     @AppStorage("model.chat.claude") private var claudeModel = "opus"
     @AppStorage("model.chat.codex") private var codexModel = ""
+    @AppStorage("model.chat.endpoint") private var endpointModel = ""
+    /// Your own servers' models picked in the chat lately, so switching back and forth takes one click.
+    @AppStorage("chat.recentModels") private var recentModels = ""
+    @State private var browsing: EndpointConfig?
     @State private var composerHeight: CGFloat = 26
     @State private var showTics = false
     @State private var showCheckers = false
@@ -324,7 +332,13 @@ struct ChatPanel: View {
     /// False once the author has scrolled up: a small arrow then leads back to the end.
     @State private var atBottom = true
 
-    private var currentModel: String { chat.agent == .claude ? claudeModel : codexModel }
+    private var currentModel: String {
+        switch chat.agent {
+        case .claude: claudeModel
+        case .codex: codexModel
+        case .endpoint: endpointModel
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -354,7 +368,7 @@ struct ChatPanel: View {
                         }
                         ForEach(chat.messages.suffix(shownMessages)) { m in
                             MessageView(message: m, fontSize: chatFontSize, onAddNotes: { items in
-                                let author: Note.Author = m.agent == .codex ? .codex : .claude
+                                let author = Note.Author(m.agent ?? .claude)
                                 return Annotator.add(items, to: session, author: author, defaultKind: .note, scope: nil, run: UUID().uuidString)
                             }, onRemoveNotes: { chat.removeNotes(of: m.id, book: session) }, onShowQuote: { quote in
                                 if let range = ReadingCheck.locate(quote, in: bridge.textView?.string ?? session.text) { bridge.scroll(to: range) }
@@ -426,14 +440,7 @@ struct ChatPanel: View {
                              onSend: send, height: $composerHeight)
                         .frame(height: max(composerHeight, 40))
                     HStack(spacing: 8) {
-                        Menu {
-                            ForEach(AIStatus.shared.conversing) { a in
-                                Button { chat.agent = a } label: { Label(a.label + modelSuffix(a), systemImage: chat.agent == a ? "checkmark" : "") }
-                            }
-                        } label: {
-                            Text(chat.agent.label + modelSuffix(chat.agent)).foregroundColor(.secondary) + Text(" ") + Text(Image(systemName: "chevron.down")).font(.ui(9)).foregroundColor(.secondary)
-                        }
-                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
+                        modelPicker
                         if !bridge.selectedText.isEmpty {
                             Text(L("Selection: \(TextCounts(bridge.selectedText).label)"))
                                 .foregroundStyle(.tertiary).lineLimit(1)
@@ -474,9 +481,69 @@ struct ChatPanel: View {
         .onAppear { if let e = AIStatus.shared.conversingEngine(preferring: chat.agent) { chat.agent = e } }
     }
 
-    private func modelSuffix(_ a: AgentKind) -> String {
-        let m = a == .claude ? claudeModel : codexModel
-        return m.isEmpty ? "" : " · " + m.prefix(1).uppercased() + m.dropFirst()
+    /// The engine and model for the next message, picked here as in Settings › AI: comparing two models on the same passage
+    /// is a click, and each answer says which model gave it.
+    private var modelPicker: some View {
+        let catalog = ModelCatalog.shared
+        return Menu {
+            ForEach(AIStatus.shared.conversing) { a in
+                if a == .endpoint {
+                    ForEach(EndpointClient.providers(), id: \.id) { server in
+                        Section(server.label) {
+                            ForEach(serverChoices(server), id: \.self) { model in
+                                pickButton(.endpoint, EndpointClient.route(server.id, model),
+                                           title: catalog.models(.endpoint).first { $0.id == EndpointClient.route(server.id, model) }?.name ?? model)
+                            }
+                            Button(L("All \(server.label) models…")) { browsing = server }
+                        }
+                    }
+                } else {
+                    Section(a.label) {
+                        let list = catalog.models(a)
+                        if list.isEmpty { pickButton(a, "", title: L("Default")) }
+                        ForEach(list) { m in pickButton(a, m.id, title: m.name) }
+                    }
+                }
+            }
+        } label: {
+            Text(TaskModels.answerLabel(chat.agent, TaskModels.answering(chat.agent, currentModel))).foregroundColor(.secondary)
+                + Text(" ") + Text(Image(systemName: "chevron.down")).font(.ui(9)).foregroundColor(.secondary)
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tint(.secondary)
+        .help(L("Engine and model for the next message"))
+        .sheet(item: Binding(get: { browsing.map { Browsing(config: $0) } }, set: { browsing = $0?.config })) { b in
+            ModelBrowser(config: b.config, key: EndpointClient.key(b.config),
+                         current: EndpointClient.split(TaskModels.answering(.endpoint, endpointModel) ?? "").model) { m, _ in
+                pick(.endpoint, EndpointClient.route(b.config.id, m.id))
+            }
+        }
+    }
+
+    struct Browsing: Identifiable { let config: EndpointConfig; var id: String { config.id } }
+
+    private func pickButton(_ engine: AgentKind, _ model: String, title: String) -> some View {
+        let chosen = chat.agent == engine && TaskModels.answering(engine, currentModel) == TaskModels.answering(engine, model)
+        return Button { pick(engine, model) } label: { Label(title, systemImage: chosen ? "checkmark" : "") }
+    }
+
+    /// A server can list hundreds of models: its default, the one chosen, and the ones picked here lately.
+    private func serverChoices(_ server: EndpointConfig) -> [String] {
+        let listed = ModelCatalog.shared.models(.endpoint).map { EndpointClient.split($0.id) }.filter { $0.provider == server.id }.map(\.model)
+        let chosen = EndpointClient.split(TaskModels.answering(.endpoint, endpointModel) ?? "")
+        let recent = recentModels.split(separator: "\n").map { EndpointClient.split(String($0)) }.filter { $0.provider == server.id }.map(\.model)
+        var out: [String] = []
+        for m in [server.defaultModel] + (chosen.provider == server.id ? [chosen.model] : []) + recent + (listed.count <= 12 ? listed : [])
+        where !m.isEmpty && !out.contains(m) { out.append(m) }
+        return out
+    }
+
+    private func pick(_ engine: AgentKind, _ model: String) {
+        chat.agent = engine
+        TaskModels.set(.chat, engine: engine, model: model)
+        if engine == .endpoint {
+            let kept = recentModels.split(separator: "\n").map(String.init).filter { $0 != model }
+            recentModels = ([model] + kept).prefix(8).joined(separator: "\n")
+        }
     }
 
     /// One-click requests: the answer annotates the chapter (or the selection) instead of filling the chat.
@@ -505,7 +572,7 @@ struct ChatPanel: View {
                     .help((bridge.selectedText.isEmpty ? action.help : L("\(action.help) — on the selection")))
                 }
                 ForEach(bookCheckers.checkers) { checker in
-                    Button { session.checks.run(checker, session: session, engine: chat.agent, model: chat.agent == .claude ? claudeModel : codexModel) } label: {
+                    Button { session.checks.run(checker, session: session, engine: chat.agent, model: currentModel) } label: {
                         Label(checker.name, systemImage: "checkmark.seal").font(.ui(12)).labelStyle(.titleAndIcon)
                             .padding(.horizontal, 10).frame(height: 24)
                             .overlay(Capsule().strokeBorder(Ink.critique.opacity(0.6)))
@@ -530,11 +597,11 @@ struct ChatPanel: View {
     }
 
     private func runAction(_ action: ChatAction) {
-        chat.runAction(action, session: session, selection: bridge.selectedText, model: chat.agent == .claude ? claudeModel : codexModel)
+        chat.runAction(action, session: session, selection: bridge.selectedText, model: currentModel)
     }
 
     private func send() {
-        chat.send(session: session, selection: bridge.selectedText, model: chat.agent == .claude ? claudeModel : codexModel)
+        chat.send(session: session, selection: bridge.selectedText, model: currentModel)
     }
 }
 
@@ -576,12 +643,16 @@ private struct MessageView: View {
             case .assistant:
                 HStack(spacing: 8) {
                     let a = message.agent ?? .claude
-                    Text(String(a.label.prefix(1)))
+                    let color = Note.Author(a).color
+                    let label = TaskModels.answerLabel(a, message.model)
+                    Text(String(label.prefix(1)))
                         .font(.ui(10, .semibold))
-                        .foregroundStyle(a == .claude ? Note.Author.claude.color : Note.Author.codex.color)
+                        .foregroundStyle(color)
                         .frame(width: 16, height: 16)
-                        .background((a == .claude ? Note.Author.claude.color : Note.Author.codex.color).opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-                    Text(a.label).font(.ui(12)).foregroundStyle(.secondary)
+                        .background(color.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
+                    Text(label).font(.ui(12)).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                        .help(message.model.map { EndpointClient.split($0).model } ?? "")
                 }
                 // The JSON blocks are for the app: notes go to the margin, scores to the card.
                 MarkdownText(text: message.text.isEmpty ? "…" : stripMachineBlocks(message.text), size: fontSize)

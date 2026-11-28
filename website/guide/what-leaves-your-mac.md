@@ -79,6 +79,10 @@ None of these happens unless you do it.
 
 Once a day Musset asks musset.app whether a newer version exists. The server adds one to a counter by day, version and country, and does the same for downloads. No address and no identifier is kept. The code that does it is [public](https://github.com/Musset-App/musset/tree/main/website/stats).
 
+## Feedback you send
+
+**Send Feedback** (at the foot of the sidebar, and in the Help menu) sends your message to the people who make Musset, not to a public page. It goes with your e-mail address if you give one, so we can answer, and, if you leave the box ticked, the details the sheet shows before you send: Musset's version, macOS, the kind of Mac, the interface language, the keyboard mode and which AI engines are set up (by name, never a key or an address). For a problem you can also attach Musset's latest crash report from the past week. Nothing from your books is sent. The message is kept on Musset's server and e-mailed to us.
+
 ## What Musset never does
 
 - No analytics, no telemetry, no crash reports sent in the background.

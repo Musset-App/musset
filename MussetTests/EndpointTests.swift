@@ -354,6 +354,43 @@ final class EndpointTests: XCTestCase {
         XCTAssertEqual(Self.ollama.label, "Ollama")
     }
 
+    /// Issue 4: each chat answer keeps the model that gave it, the server's default resolved, never the codex setting.
+    @MainActor
+    func testTheChatKnowsWhichModelAnswers() {
+        EndpointClient.providers = { [Self.openRouter, Self.ollama] }
+        XCTAssertEqual(TaskModels.answering(.endpoint, ""), "openrouter|mistralai/mistral-large", "empty: the first server's default")
+        XCTAssertEqual(TaskModels.answering(.endpoint, "ollama|"), "ollama|llama3.1", "a server without a model: its default")
+        XCTAssertEqual(TaskModels.answering(.endpoint, "openrouter|deepseek/deepseek-chat"), "openrouter|deepseek/deepseek-chat")
+        XCTAssertEqual(TaskModels.answering(.claude, "opus"), "opus")
+        XCTAssertEqual(TaskModels.answerLabel(.endpoint, "ollama|llama3.1"), "Ollama · llama3.1")
+        XCTAssertEqual(TaskModels.answerLabel(.claude, "opus"), "Claude · Opus")
+        XCTAssertEqual(TaskModels.answerLabel(.claude, nil), "Claude", "older messages: the engine alone")
+        // Saved with the conversation, and read back by a Musset from before (no model: the engine alone).
+        let m = ChatMessage(role: .assistant, agent: .endpoint, text: "Oui.", model: "openrouter|deepseek/deepseek-chat")
+        let back = try? JSONDecoder().decode(ChatMessage.self, from: JSONEncoder().encode(m))
+        XCTAssertEqual(back?.model, "openrouter|deepseek/deepseek-chat")
+        let old = try? JSONDecoder().decode(ChatMessage.self, from: Data(#"{"id":"\#(UUID())","role":"assistant","agent":"endpoint","text":"x"}"#.utf8))
+        XCTAssertNil(old?.model)
+    }
+
+    func testFeedbackAttachesOnlyARecentMussetCrash() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        func write(_ name: String, daysAgo: Double) throws {
+            let url = dir.appendingPathComponent(name)
+            try name.write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(-daysAgo * 86400)], ofItemAtPath: url.path)
+        }
+        XCTAssertNil(Feedback.latestCrash(in: dir))
+        try write("Musset-2026-11-01-old.ips", daysAgo: 20)
+        try write("Safari-2026-11-26.ips", daysAgo: 0.5)
+        XCTAssertNil(Feedback.latestCrash(in: dir), "too old, or another app's")
+        try write("Musset-2026-11-25.ips", daysAgo: 2)
+        try write("Musset-2026-11-26.ips", daysAgo: 1)
+        XCTAssertEqual(Feedback.latestCrash(in: dir)?.text, "Musset-2026-11-26.ips", "the newest")
+    }
+
     func testEachTaskPicksItsServer() {
         EndpointClient.providers = { [Self.openRouter, Self.ollama] }
         XCTAssertEqual(EndpointClient.resolve("ollama|qwen3:8b").config, Self.ollama)

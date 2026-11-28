@@ -163,6 +163,7 @@ struct ChapterSidebar: View {
                             .help(AppCommand.hint(L("Plot Grid"), "view.grid")).accessibilityLabel(L("Plot Grid"))
                     }
                     .buttonStyle(.plain).foregroundStyle(.secondary)
+                    FeedbackButton(app: app)
                 }
                 .padding(.horizontal, 12).padding(.bottom, 10)
             }

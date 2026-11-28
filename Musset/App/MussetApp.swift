@@ -146,6 +146,10 @@ struct PaneCommands: Commands {
     private func item(_ id: String) -> some View { AppCommand.menuItem(id, CommandContext(app: app, bridge: bridge)) }
 
     var body: some Commands {
+        // Help: Musset has no help book; the menu sends feedback instead.
+        CommandGroup(replacing: .help) {
+            item("app.feedback")
+        }
         CommandGroup(replacing: .saveItem) {
             item("panes.closeTab")
             item("panes.closeWindow")

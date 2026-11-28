@@ -315,6 +315,7 @@ struct AppCommand: Identifiable {
                    isOn: { _ in Collab.shared.signedIn }) { $0.app.showAccount() },
         AppCommand("app.settings", .app, L("Settings…"), Shortcut(","), icon: "gearshape.2") { $0.openSettings() },
         AppCommand("app.updates", .app, L("Check for Updates…"), icon: "arrow.down.circle") { _ in Updates.shared.check() },
+        AppCommand("app.feedback", .app, L("Send Feedback…"), icon: "bubble.left.and.text.bubble.right") { $0.app.showFeedback = true },
     ]
 }
 

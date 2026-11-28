@@ -20,6 +20,8 @@ final class AppState {
     /// Asked from elsewhere (the toolbar, the command bar): the Readers page opens its invitation.
     var inviteRequested = false
     var showNewBook = false
+    /// The Feedback sheet: an idea, a problem or a question for the people who make Musset.
+    var showFeedback = false
     /// Musset Sync, offered; with the book to put online once paid.
     var showSyncOffer = false
     var syncOfferBook: URL?

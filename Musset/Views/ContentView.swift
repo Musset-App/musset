@@ -133,6 +133,7 @@ struct ContentView: View {
             app.openWindow = { [openWindow] ref in openWindow(id: PaneWindow.sceneID, value: ref) }
         }
         .sheet(isPresented: $app.showNewBook) { WelcomeView(app: app, sheet: true) }
+        .sheet(isPresented: $app.showFeedback) { FeedbackSheet() }
         .sheet(isPresented: $app.showSyncOffer) { SyncOfferSheet(app: app) }
         .sheet(item: $chapterDone) { done in
             if let s = app.current { ChapterDoneCard(app: app, session: s, chapterID: done.id) }

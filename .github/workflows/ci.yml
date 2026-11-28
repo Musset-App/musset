@@ -32,19 +32,24 @@ jobs:
       - name: Reading engine
         run: scripts/build-typeset.sh --mac-only
       - name: Test
+        # Under the job's limit, so a stuck run still fails here and leaves its log (a cancelled job keeps nothing).
+        timeout-minutes: 45
         run: |
           xcodegen generate
           set -o pipefail
           # The whole log goes to a file; the page shows what matters: the compiler's errors, failed tests, the end.
           mkdir -p build
           status=0
+          # A test that hangs (a fresh Mac has no first launch behind it, no CLI, no keychain item) fails after five minutes
+          # with its name, and the others still run.
           xcodebuild test -project Musset.xcodeproj -scheme Musset -destination 'platform=macOS,arch=arm64' \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 120 -maximum-test-execution-time-allowance 300 \
             -derivedDataPath build/ci CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= > build/xcodebuild.log 2>&1 || status=$?
-          grep -E "error:|' failed|Executed [0-9]+ tests" build/xcodebuild.log | sort -u | head -80 || true
+          grep -E "error:|' failed|exceeded|stalled|Executed [0-9]+ tests" build/xcodebuild.log | sort -u | head -80 || true
           tail -20 build/xcodebuild.log
           exit $status
       - name: Keep the full log
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log

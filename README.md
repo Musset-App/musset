@@ -444,7 +444,8 @@ Text(L("Done", ctx: "Écrit"))                       // two senses of the same E
 
 ## Contributing
 
-Issues and pull requests are welcome. A few principles guide what goes in:
+Issues and pull requests are welcome: how to report, propose and send a change is in [CONTRIBUTING.md](CONTRIBUTING.md),
+and what changed in each release in [CHANGELOG.md](CHANGELOG.md). A few principles guide what goes in:
 
 1. **Musset never generates the author’s text.** Features may read, quote, question and annotate; they do not write
    prose for the book.
