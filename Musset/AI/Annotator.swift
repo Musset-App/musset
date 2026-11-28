@@ -227,9 +227,9 @@ final class Annotator {
         do {
             askProcess = try Agents.send(engine, prompt: prompt, session: nil, cwd: session.root, model: Self.model(for: engine), systemPrompt: nil,
                 onEvent: { [weak self] ev in Swift.Task { @MainActor in self?.askEvent(ev, noteID: noteID, replyID: replyID, session: session, engine: engine) } },
-                onDone: { [weak self] code, stderr in Swift.Task { @MainActor in self?.askDone(code, stderr, noteID: noteID, replyID: replyID, session: session) } })
+                onDone: { [weak self] code, stderr in Swift.Task { @MainActor in self?.askDone(code, stderr, noteID: noteID, replyID: replyID, session: session, engine: engine) } })
         } catch {
-            askDone(1, error.localizedDescription, noteID: noteID, replyID: replyID, session: session)
+            askDone(1, error.localizedDescription, noteID: noteID, replyID: replyID, session: session, engine: engine)
         }
     }
 
@@ -243,14 +243,14 @@ final class Annotator {
             let current = session.notes.replyBody(noteID, replyID) ?? ""
             if engine == .codex { session.notes.appendToReply(noteID, replyID, (current.isEmpty ? "" : "\n\n") + t) }
             else if current.isEmpty { session.notes.appendToReply(noteID, replyID, t) }
-        case .error(let e): askError = Agents.err(e).localizedDescription
+        case .error(let e): askError = Agents.err(e, engine: engine).localizedDescription
         default: break
         }
     }
 
-    private func askDone(_ code: Int32, _ stderr: String, noteID: UUID, replyID: UUID, session: BookSession) {
+    private func askDone(_ code: Int32, _ stderr: String, noteID: UUID, replyID: UUID, session: BookSession, engine: AgentKind) {
         session.notes.finishReply(noteID, replyID)
-        if code != 0, code != 15, askError == nil { askError = Agents.err(stderr).localizedDescription }
+        if code != 0, code != 15, askError == nil { askError = Agents.err(stderr, engine: engine).localizedDescription }
         askProcess = nil
         answering = nil
     }

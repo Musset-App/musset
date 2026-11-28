@@ -53,6 +53,7 @@ extension EndpointClient {
     static func stream(_ messages: [LoopMessage], tools: [[String: Any]], toolChoice: String? = nil, model: String,
                        config: EndpointConfig, key: String?, onText: (String) -> Void) async throws -> Turn {
         guard let base = config.url else { throw failure(L("Set up your own model in Settings › AI first.")) }
+        try requireKey(config, key)
         let model = model.isEmpty ? config.defaultModel : model
         guard !model.isEmpty else { throw failure(L("Choose a model for \(config.label) in Settings › AI.")) }
         var req = URLRequest(url: base.appendingPathComponent("chat/completions"))

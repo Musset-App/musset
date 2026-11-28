@@ -103,7 +103,9 @@ enum PangramClient {
 
 /// Pangram key: Keychain first, then a book's `.env` (PANGRAM_API_KEY=…), which is copied into the Keychain.
 enum Secrets {
-    static let service = "app.musset.Musset"
+    /// Tests keep their keys apart: a test that forgets a server must never delete the author's real key (it did, every
+    /// time the suite ran, for OpenRouter's).
+    static let service = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil ? "app.musset.Musset" : "app.musset.Musset.tests"
 
     static func get(_ account: String) -> String? {
         let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,

@@ -201,10 +201,11 @@ enum Agents {
         }
     }
 
-    static func err(_ message: String) -> NSError {
+    /// `engine`: who failed. Your own server's errors already say what to do; the CLI sign-in hint is for the CLIs.
+    static func err(_ message: String, engine: AgentKind? = nil) -> NSError {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         var text = trimmed.isEmpty ? L("The CLI returned nothing.") : String(trimmed.suffix(400))
-        if text.localizedCaseInsensitiveContains("OAuth") || text.localizedCaseInsensitiveContains("login") || text.localizedCaseInsensitiveContains("authenticate") {
+        if engine != .endpoint, text.localizedCaseInsensitiveContains("OAuth") || text.localizedCaseInsensitiveContains("login") || text.localizedCaseInsensitiveContains("authenticate") {
             text += L("\n\nRun `claude` (or `codex login`) in Terminal once to sign in again.")
         }
         return NSError(domain: "Musset.agent", code: 1, userInfo: [NSLocalizedDescriptionKey: text])

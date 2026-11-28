@@ -391,6 +391,30 @@ final class EndpointTests: XCTestCase {
         XCTAssertEqual(Feedback.latestCrash(in: dir)?.text, "Musset-2026-11-26.ips", "the newest")
     }
 
+    /// OpenRouter lists its models without a key, then refuses every question with « Failed to authenticate request with
+    /// Clerk »: without a key, nothing is sent, and the author is told where to add it, never to sign in to a CLI.
+    /// The suite once deleted the author's OpenRouter key: tests have a Keychain service of their own.
+    func testTestsNeverTouchTheAuthorsKeys() {
+        XCTAssertEqual(Secrets.service, "app.musset.Musset.tests")
+    }
+
+    func testAPaidServerWithoutAKeySaysSoBeforeSending() async throws {
+        EndpointClient.key = { _ in nil }
+        do {
+            _ = try await EndpointClient.stream([.user("Bonjour")], tools: [], model: "", config: Self.openRouter, key: nil) { _ in }
+            XCTFail("a request without a key")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("OpenRouter"), error.localizedDescription)
+            XCTAssertTrue(error.localizedDescription.contains("Fournisseurs"), error.localizedDescription)
+        }
+        XCTAssertTrue(Stub.requests.isEmpty, "nothing sent")
+        // A local server needs none.
+        XCTAssertNoThrow(try EndpointClient.requireKey(Self.ollama, nil))
+        let clerk = "Le serveur a refusé la clé. Failed to authenticate request with Clerk"
+        XCTAssertFalse(Agents.err(clerk, engine: .endpoint).localizedDescription.contains("codex login"))
+        XCTAssertTrue(Agents.err("OAuth token expired", engine: .claude).localizedDescription.contains("codex login"))
+    }
+
     func testEachTaskPicksItsServer() {
         EndpointClient.providers = { [Self.openRouter, Self.ollama] }
         XCTAssertEqual(EndpointClient.resolve("ollama|qwen3:8b").config, Self.ollama)

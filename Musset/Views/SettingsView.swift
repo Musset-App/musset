@@ -495,8 +495,10 @@ private struct AIPane: View {
             }
             Spacer()
             // Connected once it has listed its models; a local server that isn't running doesn't.
+            // OpenRouter lists its models to anyone: without a key it answers the list, and refuses every question.
             let answers = catalog.models(.endpoint).contains { EndpointClient.split($0.id).provider == s.id }
-            state(answers ? L("connected") : L("no answer"), on: answers)
+            let keyless = s.preset.needsKey && (EndpointClient.key(s) ?? "").isEmpty
+            state(keyless ? L("no key") : answers ? L("connected") : L("no answer"), on: answers && !keyless)
             Button(L("Edit…")) { editing = s }.buttonStyle(.inkSecondary)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)

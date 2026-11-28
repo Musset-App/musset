@@ -300,7 +300,7 @@ final class CriticTable: Identifiable {
             if record.agent == .codex { record.turns[i].text += (record.turns[i].text.isEmpty ? "" : "\n\n") + t }
             else if record.turns[i].text.isEmpty { record.turns[i].text = t }
         case .status: break
-        case .error(let e): lastError = Agents.err(e).localizedDescription
+        case .error(let e): lastError = Agents.err(e, engine: record.agent).localizedDescription
         }
     }
 
@@ -320,7 +320,7 @@ final class CriticTable: Identifiable {
         if empty { record.turns.removeAll { $0.id == turn } }
         speaking = nil
         if code != 0, code != 15 {
-            lastError = Agents.err(stderr).localizedDescription
+            lastError = Agents.err(stderr, engine: record.agent).localizedDescription
             queue.removeAll()
         }
         record.save(root)
@@ -560,7 +560,7 @@ struct DebatePage: View {
     private var engine: AgentKind? { AIStatus.shared.conversingEngine(preferring: TaskModels.preferredEngine(.chat) ?? .claude) }
     private var model: String {
         guard let engine else { return "" }
-        return engine == .claude ? (UserDefaults.standard.string(forKey: "model.chat.claude") ?? "opus") : (UserDefaults.standard.string(forKey: "model.chat.codex") ?? "")
+        return TaskModels.model(.chat, for: engine)
     }
 
     var body: some View {

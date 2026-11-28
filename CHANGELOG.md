@@ -2,6 +2,12 @@
 
 What changed in each release of Musset, newest first. Musset updates itself; every version is also at [musset.app/download](https://musset.app/download) and on the [releases page](https://github.com/Musset-App/musset/releases).
 
+## 0.7.2 — 2026-11-28
+
+- With OpenRouter or another server that needs a key, a missing key is now said plainly ("No key for OpenRouter on this Mac"), and Settings › AI › Providers shows "no key" instead of "connected". Nothing is sent without one.
+- Errors from your own server no longer tell you to sign in to Claude or Codex.
+- Fixed: the critic table sent Codex's model setting to your own server instead of the model chosen for the AI reader.
+
 ## 0.7.1 — 2026-11-28
 
 - Send Feedback, at the foot of the sidebar: an idea, a problem or a question goes straight to the people who make Musset, not to a public page. Nothing from your books is sent.

@@ -260,11 +260,12 @@ final class ChatModel {
             if agent == .codex { messages[i].text += (messages[i].text.isEmpty ? "" : "\n\n") + t }
             else if messages[i].text.isEmpty { messages[i].text = t }
         case .status(let s): status = s
-        case .error(let e): messages.append(ChatMessage(role: .error, agent: agent, text: Agents.err(e).localizedDescription))
+        case .error(let e): messages.append(ChatMessage(role: .error, agent: agent, text: Agents.err(e, engine: agent).localizedDescription))
         }
     }
 
     private func finish(_ code: Int32, _ stderr: String, replyID: UUID) {
+        let engine = current?.agent
         running = false
         status = ""
         process = nil
@@ -274,7 +275,7 @@ final class ChatModel {
             messages.remove(at: i)
         }
         if code != 0, code != 15, messages.last?.role != .error {
-            messages.append(ChatMessage(role: .error, text: Agents.err(stderr).localizedDescription))
+            messages.append(ChatMessage(role: .error, agent: engine, text: Agents.err(stderr, engine: engine).localizedDescription))
         }
         startNext()
         persist()

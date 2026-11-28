@@ -219,8 +219,16 @@ enum EndpointClient {
     }
 
     /// One answer to a conversation.
+    /// OpenRouter and other paid servers need a key: without one, nothing is sent, and the author is told where to put it
+    /// (OpenRouter's own answer, « Failed to authenticate request with Clerk », says nothing useful).
+    static func requireKey(_ config: EndpointConfig, _ key: String?) throws {
+        guard config.preset.needsKey, (key ?? "").isEmpty else { return }
+        throw failure(L("No key for \(config.label) on this Mac. Add it in Settings › AI › Providers, with Edit…"))
+    }
+
     static func complete(_ messages: [EndpointMessage], model: String, config: EndpointConfig, key: String?) async throws -> Reply {
         guard let base = config.url else { throw failure(L("Set up your own model in Settings › AI first.")) }
+        try requireKey(config, key)
         let model = model.isEmpty ? config.defaultModel : model
         guard !model.isEmpty else { throw failure(L("Choose a model for \(config.label) in Settings › AI.")) }
         var req = URLRequest(url: base.appendingPathComponent("chat/completions"))
