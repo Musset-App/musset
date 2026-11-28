@@ -95,8 +95,15 @@ enum Shell {
                       stderr: String(decoding: errData, as: UTF8.self))
     }
 
+    /// `run` waits for the process to end, so it waits on a thread of its own, never on one of Swift's shared ones:
+    /// those are as many as the Mac has cores, and a few imports at once (Scrivener runs pandoc eight at a time) could hold
+    /// them all, leaving nothing to finish the work. CI's three-core Macs stalled there.
     static func runAsync(_ tool: String, _ args: [String], cwd: URL? = nil, stdin: String? = nil) async throws -> Result {
-        try await Task.detached { try run(tool, args, cwd: cwd, stdin: stdin) }.value
+        try await withCheckedThrowingContinuation { done in
+            DispatchQueue.global(qos: .userInitiated).async {
+                done.resume(with: Swift.Result<Shell.Result, Error> { try run(tool, args, cwd: cwd, stdin: stdin) })
+            }
+        }
     }
 
     /// Streams stdout line by line. Returns the process so callers can cancel it.

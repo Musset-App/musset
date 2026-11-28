@@ -53,4 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log
-          path: build/xcodebuild.log
+          # The test report too: for a test that timed out, it holds where each thread was waiting.
+          path: |
+            build/xcodebuild.log
+            build/ci/Logs/Test/*.xcresult
